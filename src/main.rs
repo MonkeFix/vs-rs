@@ -19,6 +19,5 @@ fn main() {
 }
 
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn_empty()
-        .insert(Camera2dBundle::default());
+    commands.spawn(Camera2dBundle::default());
 }
