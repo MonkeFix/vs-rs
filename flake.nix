@@ -15,7 +15,6 @@
       craneLib = crane.lib.${system};
 
       buildInputs = with pkgs; [
-          cargo
           pkg-config
           udev
           alsaLib
@@ -29,14 +28,14 @@
           vulkan-validation-layers
       ];
 
-      LD_LIBRARY_PATH = ''${lib.makeLibraryPath [
-          pkgs.alsaLib
-          pkgs.udev
-          pkgs.xorg.libX11
-          pkgs.xorg.libXcursor
-          pkgs.vulkan-loader
-          pkgs.xorg.libXi
-          pkgs.xorg.libXrandr
+      LD_LIBRARY_PATH = with pkgs; ''${lib.makeLibraryPath [
+          alsaLib
+          udev
+          xorg.libX11
+          xorg.libXcursor
+          vulkan-loader
+          xorg.libXi
+          xorg.libXrandr
       ]}'';
 
       commonArgs = {
@@ -77,7 +76,10 @@
       vs-rs = wrap vs-rs-unwrapped;
     in {
       devShells.default = pkgs.mkShell {
-        inherit buildInputs LD_LIBRARY_PATH;
+        inherit LD_LIBRARY_PATH;
+        buildInputs = with pkgs; [
+          cargo
+        ] ++ buildInputs;
       };
 
       packages = {
