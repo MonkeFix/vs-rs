@@ -13,7 +13,7 @@ fn movement(
     keyboard_input: Res<Input<KeyCode>>,
     mut query: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
 ) {
-    for (mut transform, mut ortho) in query.iter_mut() {
+    if let Ok((mut transform, mut ortho)) = query.get_single_mut() {
         let mut direction = Vec3::ZERO;
 
         if keyboard_input.pressed(KeyCode::Left) {
