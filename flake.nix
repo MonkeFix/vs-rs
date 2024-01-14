@@ -11,6 +11,8 @@
   outputs = { self, nixpkgs, flake-utils, crane, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs { inherit system; };
+      lib = pkgs.lib;
+      craneLib = crane.lib.${system};
 
       buildInputs = with pkgs; [
           cargo
@@ -27,7 +29,7 @@
           vulkan-validation-layers
       ];
 
-      LD_LIBRARY_PATH = ''${pkgs.lib.makeLibraryPath [
+      LD_LIBRARY_PATH = ''${lib.makeLibraryPath [
           pkgs.alsaLib
           pkgs.udev
           pkgs.xorg.libX11
@@ -37,14 +39,31 @@
           pkgs.xorg.libXrandr
       ]}'';
 
-      vs-rs-unwrapped = with crane.lib.${system}; buildPackage {
-        src = cleanCargoSource (path ./.);
+      commonArgs = {
+        src = lib.cleanSourceWith {
+          src = ./.;
+          filter = path: type:
+            (lib.hasInfix "/assets/" path) ||
+            (craneLib.filterCargoSources path type)
+          ;
+        };
+      };
+
+      cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
+        inherit buildInputs;
+      });
+
+      vs-rs-unwrapped = with craneLib; buildPackage (commonArgs // {
         pname = "vs-rs";
         version = "0.1.0";
 
-        inherit buildInputs LD_LIBRARY_PATH;
+        inherit cargoArtifacts LD_LIBRARY_PATH;
         cargoVendorDir = vendorCargoDeps { cargoLock = ./Cargo.lock; };
-      };
+
+        postInstall = ''
+          cp -r --no-preserve=mode,ownership ./assets/ $out/bin/assets
+        '';
+      });
 
       wrap = pkg: pkgs.runCommand pkg.name {
         inherit (pkg) pname version;
