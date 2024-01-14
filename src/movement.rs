@@ -8,6 +8,10 @@ impl Plugin for MovementPlugin {
     }
 }
 
+fn axis(negative: bool, positive: bool) -> f32 {
+    ((positive as i8) - (negative as i8)) as f32
+}
+
 fn movement(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
@@ -16,20 +20,13 @@ fn movement(
     if let Ok((mut transform, mut ortho)) = query.get_single_mut() {
         let mut direction = Vec3::ZERO;
 
-        if keyboard_input.pressed(KeyCode::Left) {
-            direction -= Vec3::new(1.0, 0.0, 0.0);
-        }
+        let is_pressed = |key| keyboard_input.pressed(key);
+        let x = axis(is_pressed(KeyCode::Left), is_pressed(KeyCode::Right));
+        let y = axis(is_pressed(KeyCode::Down), is_pressed(KeyCode::Up));
+        let magnitude = (x.powi(2) + y.powi(2)).sqrt();
 
-        if keyboard_input.pressed(KeyCode::Right) {
-            direction += Vec3::new(1.0, 0.0, 0.0);
-        }
-
-        if keyboard_input.pressed(KeyCode::Up) {
-            direction += Vec3::new(0.0, 1.0, 0.0);
-        }
-
-        if keyboard_input.pressed(KeyCode::Down) {
-            direction -= Vec3::new(0.0, 1.0, 0.0);
+        if magnitude != 0. {
+            direction = Vec3::new(x / magnitude, y / magnitude, 0.);
         }
 
         #[cfg(debug_assertions)]
