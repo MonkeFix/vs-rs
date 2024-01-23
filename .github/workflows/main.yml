@@ -12,3 +12,4 @@ jobs:
 
       - name: cargo build
         run: nix develop -c cargo build
+        if: success() || failure()

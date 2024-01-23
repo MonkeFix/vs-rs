@@ -4,6 +4,7 @@ mod movement;
 mod player;
 mod tilemap;
 
+#[cfg(debug_assertions)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use movement::MovementPlugin;
 use player::PlayerPlugin;

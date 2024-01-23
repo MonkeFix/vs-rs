@@ -6,13 +6,18 @@
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, crane, ... }@inputs:
+  outputs = { self, nixpkgs, flake-utils, crane, fenix, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs { inherit system; };
       lib = pkgs.lib;
-      craneLib = crane.lib.${system};
+      craneLib = crane.lib.${system}.overrideToolchain
+        fenix.packages.${system}.minimal.toolchain;
 
       buildInputs = with pkgs; [
           pkg-config
