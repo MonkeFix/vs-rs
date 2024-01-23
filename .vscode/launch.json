@@ -1,0 +1,53 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'vs-rs'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=vs-rs",
+                    "--package=vs-rs",
+                    //"--features",
+                    //"bevy/dynamic_linking"
+                ],
+                "filter": {
+                    "name": "vs-rs",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "CARGO_MANIFEST_DIR": "${workspaceFolder}",
+                //"PATH": "${workspaceFolder}/target/debug/deps:${env:PATH}",
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'vs-rs'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=vs-rs",
+                    "--package=vs-rs",
+                    "--features",
+                    "bevy/dynamic_linking"
+                ],
+                "filter": {
+                    "name": "vs-rs",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
