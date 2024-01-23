@@ -1,21 +1,26 @@
 use bevy::prelude::*;
 
-mod tilemap;
 mod movement;
 mod player;
+mod tilemap;
 
-use tilemap::TileMapPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use movement::MovementPlugin;
 use player::PlayerPlugin;
+use tilemap::TileMapPlugin;
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins)
         .add_plugins(TileMapPlugin)
         .add_plugins(MovementPlugin)
         .add_plugins(PlayerPlugin)
-        .add_systems(Startup, spawn_camera)
-        .run();
+        .add_systems(Startup, spawn_camera);
+
+    #[cfg(debug_assertions)]
+    app.add_plugins(WorldInspectorPlugin::new());
+
+    app.run();
 }
 
 fn spawn_camera(mut commands: Commands) {
