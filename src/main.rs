@@ -1,13 +1,16 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, reflect::TypeRegistry};
 
 mod camera;
+mod math;
 mod player;
+mod steering;
 mod tilemap;
 
 #[cfg(debug_assertions)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::CameraMovementPlugin;
 use player::PlayerPlugin;
+use steering::SteeringPlugin;
 use tilemap::TileMapPlugin;
 
 fn main() {
@@ -24,11 +27,12 @@ fn main() {
     .add_plugins(TileMapPlugin)
     .add_plugins(CameraMovementPlugin)
     .add_plugins(PlayerPlugin)
+    .add_plugins(SteeringPlugin)
     .add_systems(Startup, spawn_camera);
 
     #[cfg(debug_assertions)]
     app.add_plugins(WorldInspectorPlugin::new());
-
+    #[cfg(debug_assertions)]
     app.add_systems(Update, bevy::window::close_on_esc);
 
     app.run();

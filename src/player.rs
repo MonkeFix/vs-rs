@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::steering::{seek, SteeringBundle, SteeringHost};
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -39,31 +41,35 @@ fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
             transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
             ..default()
         },
+        SteeringBundle {
+            host: SteeringHost::default(),
+        },
+        Name::new("player"),
     ));
 }
 
 fn movement(
-    time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<&mut Transform, With<Player>>,
+    mut steering_host: Query<&mut SteeringHost, With<Player>>,
 ) {
-    if let Ok(mut transform) = query.get_single_mut() {
-        let mut direction = Vec3::ZERO;
-        if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
-            direction -= Vec3::new(1.0, 0.0, 0.0);
-        }
-        if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
-            direction += Vec3::new(1.0, 0.0, 0.0);
-        }
-        if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
-            direction += Vec3::new(0.0, 1.0, 0.0);
-        }
-        if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
-            direction -= Vec3::new(0.0, 1.0, 0.0);
-        }
+    let mut direction = Vec2::ZERO;
+    if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
+        direction -= Vec2::new(1.0, 0.0);
+    }
+    if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
+        direction += Vec2::new(1.0, 0.0);
+    }
+    if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
+        direction += Vec2::new(0.0, 1.0);
+    }
+    if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
+        direction -= Vec2::new(0.0, 1.0);
+    }
 
-        let direction = direction.normalize_or_zero();
+    let direction = direction.normalize_or_zero();
 
-        transform.translation += time.delta_seconds() * direction * 500.;
+    if let Ok(mut host) = steering_host.get_single_mut() {
+        let target = host.position + direction;
+        seek(&mut host, target);
     }
 }
