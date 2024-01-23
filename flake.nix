@@ -80,11 +80,8 @@
 
       vs-rs = wrap vs-rs-unwrapped;
     in {
-      devShells.default = pkgs.mkShell {
-        inherit LD_LIBRARY_PATH;
-        buildInputs = with pkgs; [
-          cargo
-        ] ++ buildInputs;
+      devShells.default = craneLib.devShell {
+        inherit LD_LIBRARY_PATH buildInputs;
       };
 
       packages = {
