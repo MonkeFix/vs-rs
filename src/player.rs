@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::steering::{seek, SteeringBundle, SteeringHost};
+use crate::steering::{fns, SteeringBundle, SteeringHost};
 
 pub struct PlayerPlugin;
 
@@ -70,6 +70,6 @@ fn movement(
 
     if let Ok(mut host) = steering_host.get_single_mut() {
         let target = host.position + direction;
-        seek(&mut host, target);
+        fns::seek(&mut host, target);
     }
 }

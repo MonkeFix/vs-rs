@@ -32,15 +32,6 @@ impl Default for SteeringHost {
     }
 }
 
-pub fn seek(host: &mut SteeringHost, target: Vec2) {
-    let dv = target - host.position;
-    let dv = dv.normalize_or_zero();
-
-    host.desired_velocity = dv;
-    let steering = host.desired_velocity * host.max_velocity - host.cur_velocity;
-    host.steering = steering;
-}
-
 #[derive(Bundle)]
 pub struct SteeringBundle {
     pub host: SteeringHost,
@@ -50,17 +41,21 @@ pub struct SteeringPlugin;
 
 impl Plugin for SteeringPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (steer, update));
+        app.add_systems(Update, (steer, update_translation, update_position));
     }
 }
 
-fn update(time: Res<Time>, mut host: Query<(&mut Transform, &mut SteeringHost)>) {
-    if let Ok((mut transform, mut host)) = host.get_single_mut() {
+fn update_translation(time: Res<Time>, mut host: Query<(&mut Transform, &SteeringHost)>) {
+    if let Ok((mut transform, host)) = host.get_single_mut() {
         // TODO: Calculate collisions here
 
         transform.translation.x += host.cur_velocity.x * time.delta_seconds();
         transform.translation.y += host.cur_velocity.y * time.delta_seconds();
+    }
+}
 
+fn update_position(mut host: Query<(&Transform, &mut SteeringHost)>) {
+    if let Ok((transform, mut host)) = host.get_single_mut() {
         host.position = Vec2::new(transform.translation.x, transform.translation.y);
 
         let friction = host.friction;
@@ -78,5 +73,19 @@ fn steer(mut host: Query<&mut SteeringHost>) {
 
         let steering = host.steering;
         host.cur_velocity = crate::math::truncate(host.cur_velocity + steering, host.max_velocity);
+    }
+}
+
+pub mod fns {
+    use super::SteeringHost;
+    use bevy::math::Vec2;
+
+    pub fn seek(host: &mut SteeringHost, target: Vec2) {
+        let dv = target - host.position;
+        let dv = dv.normalize_or_zero();
+
+        host.desired_velocity = dv;
+        let steering = host.desired_velocity * host.max_velocity - host.cur_velocity;
+        host.steering = steering;
     }
 }
