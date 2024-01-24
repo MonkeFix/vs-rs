@@ -1,14 +1,19 @@
-use bevy::prelude::*;
+use bevy::{
+    input::gamepad::{AxisSettings, GamepadSettings},
+    prelude::*,
+};
 
 mod camera;
+mod debug;
+mod input;
 mod math;
 mod player;
 mod steering;
 mod tilemap;
 
-#[cfg(debug_assertions)]
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::CameraMovementPlugin;
+#[cfg(debug_assertions)]
+use debug::DebugPlugin;
 use player::PlayerPlugin;
 use steering::SteeringPlugin;
 use tilemap::TileMapPlugin;
@@ -24,20 +29,26 @@ fn main() {
         }),
         ..default()
     }))
+    .add_plugins(input::InputPlugin)
     .add_plugins(TileMapPlugin)
     .add_plugins(CameraMovementPlugin)
     .add_plugins(PlayerPlugin)
     .add_plugins(SteeringPlugin)
-    .add_systems(Startup, spawn_camera);
+    .add_systems(Startup, (spawn_camera, setup_gamepad));
 
     #[cfg(debug_assertions)]
-    app.add_plugins(WorldInspectorPlugin::new());
-    #[cfg(debug_assertions)]
-    app.add_systems(Update, bevy::window::close_on_esc);
+    app.add_plugins(DebugPlugin);
 
     app.run();
 }
 
 fn spawn_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
+}
+
+fn setup_gamepad(mut gamepad_settings: ResMut<GamepadSettings>) {
+    let settings = AxisSettings::new(-1.0, -0.15, 0.15, 1.0, 0.1);
+    let settings = settings.unwrap();
+
+    gamepad_settings.default_axis_settings = settings.clone();
 }
