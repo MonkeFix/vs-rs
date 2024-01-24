@@ -4,17 +4,18 @@ use bevy::{
 };
 
 mod camera;
+mod debug;
 mod input;
 mod math;
 mod player;
 mod steering;
 mod tilemap;
 
-#[cfg(debug_assertions)]
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::CameraMovementPlugin;
+#[cfg(debug_assertions)]
+use debug::DebugPlugin;
 use player::PlayerPlugin;
-use steering::{SteeringHost, SteeringPlugin};
+use steering::SteeringPlugin;
 use tilemap::TileMapPlugin;
 
 fn main() {
@@ -33,13 +34,10 @@ fn main() {
     .add_plugins(CameraMovementPlugin)
     .add_plugins(PlayerPlugin)
     .add_plugins(SteeringPlugin)
-    .add_systems(Startup, (spawn_camera, setup_gamepad))
-    .register_type::<SteeringHost>();
+    .add_systems(Startup, (spawn_camera, setup_gamepad));
 
     #[cfg(debug_assertions)]
-    app.add_plugins(WorldInspectorPlugin::new());
-    #[cfg(debug_assertions)]
-    app.add_systems(Update, bevy::window::close_on_esc);
+    app.add_plugins(DebugPlugin);
 
     app.run();
 }
