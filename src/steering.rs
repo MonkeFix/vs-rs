@@ -1,4 +1,4 @@
-use bevy::{log, prelude::*};
+use bevy::prelude::*;
 
 #[derive(Component, Debug, PartialEq, Clone, Copy, Reflect)]
 #[reflect(Component, Default, PartialEq)]
@@ -64,12 +64,11 @@ fn update_translation(mut host: Query<(&mut Transform, &SteeringHost)>) {
 
 fn update_position(time: Res<Time>, mut host: Query<&mut SteeringHost>) {
     for mut host in &mut host {
-        let friction = host.friction;
-
-        host.cur_velocity *= friction;
-
         let dt = host.cur_velocity * time.delta_seconds();
         host.position += dt;
+
+        let friction = host.friction;
+        host.cur_velocity *= friction;
     }
 }
 
