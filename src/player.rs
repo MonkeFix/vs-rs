@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{input::gamepad::GamepadSettings, prelude::*};
 
 use crate::steering::{SteerSeek, SteeringBundle, SteeringHost};
 
@@ -51,8 +51,31 @@ fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn movement(
     keyboard_input: Res<Input<KeyCode>>,
     mut steering_host: Query<&mut SteeringHost, With<Player>>,
+    gamepad_axes: Res<Axis<GamepadAxis>>,
+    gamepad_settings: Res<GamepadSettings>,
+    gamepads: Res<Gamepads>,
 ) {
     let mut direction = Vec2::ZERO;
+
+    let dead_upper = gamepad_settings.default_axis_settings.deadzone_upperbound();
+    let dead_lower = gamepad_settings.default_axis_settings.deadzone_lowerbound();
+
+    for gamepad in gamepads.iter() {
+        let x = gamepad_axes
+            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
+            .unwrap();
+        let y = gamepad_axes
+            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
+            .unwrap();
+
+        if x > dead_lower || x < dead_upper {
+            direction.x = x;
+        }
+        if y > dead_lower || y < dead_upper {
+            direction.y = y;
+        }
+    }
+
     if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
         direction -= Vec2::new(1.0, 0.0);
     }
