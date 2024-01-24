@@ -1,4 +1,4 @@
-use bevy::{prelude::*, reflect::TypeRegistry};
+use bevy::prelude::*;
 
 mod camera;
 mod math;
