@@ -1,6 +1,9 @@
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
 
-use crate::steering::{SteerSeek, SteeringBundle, SteeringHost};
+use crate::{
+    input::PlayerControls,
+    steering::{SteerSeek, SteeringBundle, SteeringHost},
+};
 
 pub struct PlayerPlugin;
 
@@ -54,6 +57,7 @@ fn movement(
     gamepad_axes: Res<Axis<GamepadAxis>>,
     gamepad_settings: Res<GamepadSettings>,
     gamepads: Res<Gamepads>,
+    controls: Res<PlayerControls>,
 ) {
     let mut direction = Vec2::ZERO;
 
@@ -61,12 +65,22 @@ fn movement(
     let dead_lower = gamepad_settings.default_axis_settings.deadzone_lowerbound();
 
     for gamepad in gamepads.iter() {
-        let x = gamepad_axes
-            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
+        let x1 = gamepad_axes
+            .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_x))
             .unwrap();
-        let y = gamepad_axes
-            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
+        let y1 = gamepad_axes
+            .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_y))
             .unwrap();
+
+        let x2 = gamepad_axes
+            .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_x_2))
+            .unwrap();
+        let y2 = gamepad_axes
+            .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_y_2))
+            .unwrap();
+
+        let x = (x1 + x2) / 2.0;
+        let y = (y1 + y2) / 2.0;
 
         if x > dead_lower || x < dead_upper {
             direction.x = x;
@@ -76,16 +90,24 @@ fn movement(
         }
     }
 
-    if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
+    if keyboard_input.pressed(controls.keyboard.move_left)
+        || keyboard_input.pressed(controls.keyboard.move_left_2)
+    {
         direction -= Vec2::new(1.0, 0.0);
     }
-    if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
+    if keyboard_input.pressed(controls.keyboard.move_right)
+        || keyboard_input.pressed(controls.keyboard.move_right_2)
+    {
         direction += Vec2::new(1.0, 0.0);
     }
-    if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
+    if keyboard_input.pressed(controls.keyboard.move_up)
+        || keyboard_input.pressed(controls.keyboard.move_up_2)
+    {
         direction += Vec2::new(0.0, 1.0);
     }
-    if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
+    if keyboard_input.pressed(controls.keyboard.move_down)
+        || keyboard_input.pressed(controls.keyboard.move_down_2)
+    {
         direction -= Vec2::new(0.0, 1.0);
     }
 
