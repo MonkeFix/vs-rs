@@ -1,0 +1,53 @@
+[
+  {
+    "name": "capybara",
+    "dmg": 10,
+    "hp": 80,
+    "spawn_waves": [
+      {
+        "from": 1,
+        "to": 10,
+        "spawn_time": 5
+      },
+      {
+        "from": 20,
+        "to": 30,
+        "spawn_time":   10
+      }
+    ],
+    "asset_path": "map_1/capybara.png"
+  },
+  {
+    "name": "capybara_2",
+    "dmg": 10,
+    "hp": 80,
+    "spawn_waves": [
+      {
+        "from": 1,
+        "to": 10,
+        "spawn_time": 5
+      },
+      {
+        "from": 20,
+        "to": 30,
+        "spawn_time":   10
+      }
+    ],
+    "asset_path": "map_1/capybara.png"
+  },
+  {
+    "name": "capybara_elite",
+    "dmg": 25,
+    "hp": 300,
+    "spawn_waves": [
+      {
+        "from": 1,
+        "to": 3,
+        "spawn_time": 15
+      }
+    ],
+    "asset_path": "map_1/capybara_elite.png",
+    "maps": 1,
+    "is_elite": true
+  }
+]
