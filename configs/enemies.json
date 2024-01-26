@@ -3,6 +3,9 @@
     "name": "capybara",
     "dmg": 10,
     "hp": 80,
+    "max_velocity": 100.0,
+    "max_force": 100.0,
+    "mass": 2.0,
     "spawn_waves": [
       {
         "from": 1,
@@ -21,6 +24,9 @@
     "name": "capybara_elite",
     "dmg": 25,
     "hp": 300,
+    "max_velocity": 90.0,
+    "max_force": 90.0,
+    "mass": 2.0,
     "spawn_waves": [
       {
         "from": 2,

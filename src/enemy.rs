@@ -77,6 +77,9 @@ struct EnemySpawnComponent {
     enemy: Enemy,
     health: Health,
     damage: Damage,
+    max_velocity: MaxVelocity,
+    max_force: MaxForce,
+    mass: Mass,
     texture: Handle<Image>,
     rewards: Rewards,
     is_elite: Option<bool>,
@@ -87,12 +90,15 @@ struct EnemySpawnComponent {
 struct EnemySpawners(HashMap<u16, Vec<EnemySpawnComponent>>);
 
 impl EnemySpawnComponent {
-    fn new(name: String, enemy: Enemy, health: Health, damage: Damage, texture: Handle<Image>,is_elite: Option<bool>, rewards: Rewards) -> Self {
+    fn new(name: String, enemy: Enemy, health: Health, damage: Damage, max_velocity: MaxVelocity, max_force: MaxForce, mass: Mass, texture: Handle<Image>,is_elite: Option<bool>, rewards: Rewards) -> Self {
         Self {
             name,
             enemy,
             health,
             damage,
+            max_velocity,
+            max_force,
+            mass,
             texture,
             rewards,
             is_elite,
@@ -117,6 +123,9 @@ fn enemy_factory(
         name: String,
         dmg: i64,
         hp: i64,
+        max_velocity: f32,
+        max_force: f32,
+        mass: f32,
         asset_path: String,
         is_elite: Option<bool>,
         spawn_waves: Vec<SpawnWave>,
@@ -134,6 +143,9 @@ fn enemy_factory(
             Enemy,
             Health(enemy_conf.hp),
             Damage(enemy_conf.dmg),
+            MaxVelocity(enemy_conf.max_velocity),
+            MaxForce(enemy_conf.max_force),
+            Mass(enemy_conf.mass),
             texture_handle,
             enemy_conf.is_elite,
             Rewards { exp: 1, items: "Orange" }, // TODO: Make them drop gems)
@@ -205,9 +217,9 @@ fn spawn(
                                  SteeringBundle {
                                      host: SteeringHost {
                                          position: Vec2::new(m_x, m_y),
-                                         max_velocity: 100.0,
-                                         max_force: 100.0,
-                                         mass: 2.0,
+                                         max_velocity: spawner.max_velocity,
+                                         max_force: spawner.max_force,
+                                         mass: spawner.mass,
                                          ..default()
                                      },
                                  },
