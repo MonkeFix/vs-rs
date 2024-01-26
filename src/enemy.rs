@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use crate::player::*;
 use std::time::Duration;
-use bevy::asset::AssetContainer;
 use bevy::time::TimerMode::Repeating;
 use rand::{Rng, thread_rng};
 use crate::steering::{SteeringBundle, SteeringHost, SteerSeek};
@@ -38,6 +37,7 @@ impl Plugin for EnemyPlugin {
             .add_systems(Update, (
                 spawn,
                 movement,
+                check_health,
                 change_wave,
                 global_timer_tick
             ));
@@ -237,10 +237,6 @@ fn spawn(
             }
         }
     }
-}
-
-fn spawn_with_new_wave() {
-
 }
 fn movement(
     player: Query<&SteeringHost, With<Player>>,
