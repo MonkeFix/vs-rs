@@ -99,7 +99,7 @@ struct EnemySpawnComponent {
 
 #[derive(Resource, Debug, Clone)]
 struct EnemySpawners(HashMap<u16, Vec<EnemySpawnComponent>>);
-#[derive(Resource)]
+#[derive(Resource, Default)]
 struct CurrentWave{
     num: u16,
     timer: Timer,
@@ -174,7 +174,7 @@ fn spawn(
             for mut spawner in spawners {
                 spawner.timer.tick(global_time_ticker.0.duration());
 
-                if spawner.timer.finished() || current_wave.need_wave_spawn == true {
+                if spawner.timer.finished() || current_wave.need_wave_spawn {
                     // spawn elite only one time on the wave
                     if Some(true) == spawner.is_elite && current_wave.need_wave_spawn == false {
                         continue
@@ -224,7 +224,7 @@ fn spawn(
                     }
                 }
             }
-            if current_wave.need_wave_spawn == true {
+            if current_wave.need_wave_spawn {
                 current_wave.need_wave_spawn = false;
             }
         }
