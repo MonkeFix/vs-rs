@@ -28,11 +28,15 @@ Damage player when almost in the player (atm dying).
 Proper spawn of multiple enemies [V]
 Die. [V]
  */
+
+// TODO: Move to config?
+const WAVE_DURATION_SEC:u64 = 30;
+const GLOBAL_TIME_TICKER_SEC:u64 = 5;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(CurrentWave{ num: 1, timer: Timer::new(Duration::from_secs(30, ),Repeating), need_wave_spawn: true })
-            .insert_resource(GlobalTimeTickerResource(Timer::new(Duration::from_secs(5), TimerMode::Repeating)))
+            .insert_resource(CurrentWave{ num: 1, timer: Timer::new(Duration::from_secs(WAVE_DURATION_SEC ),Repeating), need_wave_spawn: true })
+            .insert_resource(GlobalTimeTickerResource(Timer::new(Duration::from_secs(GLOBAL_TIME_TICKER_SEC), TimerMode::Repeating)))
             .add_systems(Startup, enemy_factory)
             .add_systems(Update, (
                 spawn,
@@ -44,6 +48,13 @@ impl Plugin for EnemyPlugin {
     }
 }
 
+struct MinMaxStruct {
+    min: f32,
+    max: f32,
+}
+const SPAWN_DISTANCE:MinMaxStruct = MinMaxStruct{min:500.0,max:800.0};
+
+const ENEMY_BATCH_SIZE:MinMaxStruct = MinMaxStruct{min:6.0,max:20.0};
 #[derive(Resource)]
 struct GlobalTimeTickerResource(Timer);
 
@@ -88,25 +99,6 @@ struct EnemySpawnComponent {
 
 #[derive(Resource, Debug, Clone)]
 struct EnemySpawners(HashMap<u16, Vec<EnemySpawnComponent>>);
-
-impl EnemySpawnComponent {
-    fn new(name: String, enemy: Enemy, health: Health, damage: Damage, max_velocity: f32, max_force: f32, mass: f32, texture: Handle<Image>,is_elite: Option<bool>, rewards: Rewards) -> Self {
-        Self {
-            name,
-            enemy,
-            health,
-            damage,
-            max_velocity,
-            max_force,
-            mass,
-            texture,
-            rewards,
-            is_elite,
-            timer: Default::default(),
-        }
-    }
-}
-
 #[derive(Resource)]
 struct CurrentWave{
     num: u16,
@@ -138,18 +130,19 @@ fn enemy_factory(
 
     for enemy_conf in data {
         let texture_handle: Handle<Image> = asset_server.load(enemy_conf.asset_path);
-        let mut enemy = EnemySpawnComponent::new(
-            enemy_conf.name,
-            Enemy,
-            Health(enemy_conf.hp),
-            Damage(enemy_conf.dmg),
-            enemy_conf.max_velocity,
-            enemy_conf.max_force,
-            enemy_conf.mass,
-            texture_handle,
-            enemy_conf.is_elite,
-            Rewards { exp: 1, items: "Orange" }, // TODO: Make them drop gems)
-        );
+        let mut enemy = EnemySpawnComponent {
+            name: enemy_conf.name,
+            enemy: Enemy,
+            health: Health(enemy_conf.hp),
+            damage: Damage(enemy_conf.dmg),
+            max_velocity: enemy_conf.max_velocity,
+            max_force: enemy_conf.max_force,
+            mass: enemy_conf.mass,
+            texture: texture_handle,
+            is_elite: enemy_conf.is_elite,
+            rewards: Rewards { exp: 1, items: "Orange" }, // TODO: Make them drop gems)
+            timer: Default::default(),
+        };
 
         for waves in enemy_conf.spawn_waves {
             for n in waves.from..waves.to + 1 {
@@ -191,18 +184,18 @@ fn spawn(
                         let is_up = thread_rng().gen_range(0, 2);
                         let mut enemy_batch: Vec<(EnemyBundle, SpriteBundle, SteeringBundle, Name)> = Vec::new();
 
-                        for i in 1..thread_rng().gen_range(10, 20) {
+                        for i in 1..thread_rng().gen_range(ENEMY_BATCH_SIZE.min, ENEMY_BATCH_SIZE.max) {
                             let (mut m_x, mut m_y, mut m_z): (f32, f32, f32);
                             if is_left == 1 {
-                                m_x = thread_rng().gen_range(p_t.translation.x - 700.0, p_t.translation.x - 300.0);
+                                m_x = thread_rng().gen_range(p_t.translation.x - SPAWN_DISTANCE.max, p_t.translation.x - SPAWN_DISTANCE.min);
                             } else {
-                                m_x = thread_rng().gen_range(p_t.translation.x + 300.0, p_t.translation.x + 700.0);
+                                m_x = thread_rng().gen_range(p_t.translation.x + SPAWN_DISTANCE.min, p_t.translation.x + SPAWN_DISTANCE.max);
                             }
 
                             if is_up == 1 {
-                                m_y = thread_rng().gen_range(p_t.translation.y - 700.0, p_t.translation.y - 300.0);
+                                m_y = thread_rng().gen_range(p_t.translation.y - SPAWN_DISTANCE.max, p_t.translation.y - SPAWN_DISTANCE.min);
                             } else {
-                                m_y = thread_rng().gen_range(p_t.translation.y + 300.0, p_t.translation.y + 700.0);
+                                m_y = thread_rng().gen_range(p_t.translation.y + SPAWN_DISTANCE.min, p_t.translation.y + SPAWN_DISTANCE.max);
                             }
 
                             m_z = p_t.translation.z;
