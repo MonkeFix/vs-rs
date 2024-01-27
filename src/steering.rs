@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use crate::stats::{Mass, MaxForce, MaxVelocity};
 
 pub trait SteeringTarget {
     /// Returns target's position.
@@ -51,7 +50,7 @@ impl SteeringBehavior for SteerSeek {
         let dv = dv.normalize_or_zero();
 
         SteerResult {
-            steering_vec: dv * host.max_velocity.0 - host.cur_velocity,
+            steering_vec: dv * host.max_velocity - host.cur_velocity,
             desired_velocity: dv,
         }
     }
@@ -64,7 +63,7 @@ pub struct SteerFlee;
 impl SteeringBehavior for SteerFlee {
     fn steer(&mut self, host: &SteeringHost, target: &impl SteeringTarget) -> SteerResult {
         let dv = target.position() - host.position;
-        let dv = dv.normalize_or_zero() * host.max_velocity.0;
+        let dv = dv.normalize_or_zero() * host.max_velocity;
 
         SteerResult {
             steering_vec: dv - host.cur_velocity,
@@ -88,7 +87,7 @@ impl SteerPursuit {
 impl SteeringBehavior for SteerPursuit {
     fn steer(&mut self, host: &SteeringHost, target: &impl SteeringTarget) -> SteerResult {
         let distance = (target.position() - host.position).length();
-        let updates_ahead = distance / host.max_velocity.0;
+        let updates_ahead = distance / host.max_velocity;
         let future_pos = target.position() + target.velocity() * updates_ahead;
 
         self.seek.steer(host, &future_pos)
@@ -116,9 +115,9 @@ impl SteeringBehavior for SteerArrival {
         dv = dv.normalize_or_zero();
 
         let steering = if distance < self.slowing_radius {
-            host.max_velocity.0 * (distance / self.slowing_radius)
+            host.max_velocity * (distance / self.slowing_radius)
         } else {
-            host.max_velocity.0
+            host.max_velocity
         };
 
         SteerResult {
@@ -138,9 +137,9 @@ pub struct SteeringHost {
     pub steering: Vec2,
 
     /// The highest speed entity can get to.
-    pub max_velocity: MaxVelocity,
-    pub max_force: MaxForce,
-    pub mass: Mass,
+    pub max_velocity: f32,
+    pub max_force: f32,
+    pub mass: f32,
     pub friction: f32,
 }
 
@@ -153,9 +152,9 @@ impl Default for SteeringHost {
             cur_velocity: Vec2::ZERO,
             steering: Vec2::ZERO,
 
-            max_velocity: MaxVelocity(250.0),
-            max_force: MaxForce(150.0),
-            mass: Mass(4.0),
+            max_velocity: 250.0,
+            max_force: 150.0,
+            mass: 4.0,
             friction: 0.98,
         }
     }
@@ -209,13 +208,13 @@ fn update_position(time: Res<Time>, mut host: Query<&mut SteeringHost>) {
 
 fn steer(mut host: Query<&mut SteeringHost>) {
     for mut host in &mut host {
-        let mass = host.mass.0;
+        let mass = host.mass;
 
-        host.steering = crate::math::truncate_vec2(host.steering, host.max_force.0);
+        host.steering = crate::math::truncate_vec2(host.steering, host.max_force);
         host.steering /= mass;
 
         let steering = host.steering;
         host.cur_velocity =
-            crate::math::truncate_vec2(host.cur_velocity + steering, host.max_velocity.0);
+            crate::math::truncate_vec2(host.cur_velocity + steering, host.max_velocity);
     }
 }
