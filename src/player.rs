@@ -1,16 +1,22 @@
+use std::time::Duration;
+use bevy::{log};
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
-
+use crate::enemy::Enemy;
 use crate::{
     input::PlayerControls,
     steering::{SteerSeek, SteeringBundle, SteeringHost},
 };
+use crate::stats::*;
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn)
-            .add_systems(Update, movement);
+            .add_systems(Update, (
+                movement,
+                check_enemy_collision,
+                check_health).chain());
     }
 }
 
@@ -18,12 +24,12 @@ impl Plugin for PlayerPlugin {
 pub struct Player;
 
 #[derive(Component)]
-struct Health(u16);
-
+struct PlTimer(Timer);
 #[derive(Bundle)]
 struct PlayerBundle {
     player: Player,
     health: Health,
+    inv_timer: PlTimer
 }
 
 impl PlayerBundle {
@@ -31,6 +37,7 @@ impl PlayerBundle {
         Self {
             player: Player,
             health: Health(100),
+            inv_timer: PlTimer(Timer::new(Duration::from_millis(500), TimerMode::Repeating)),
         }
     }
 }
@@ -116,5 +123,34 @@ fn movement(
     if let Ok(mut host) = steering_host.get_single_mut() {
         let target = host.position + direction;
         host.steer(SteerSeek, &target);
+    }
+}
+
+fn check_enemy_collision(
+    mut player: Query<(&mut Health, &mut PlTimer, &SteeringHost), With<Player>>,
+    mut enemies: Query<(&mut Damage, &SteeringHost),(With<Enemy>, Without<Player>)>,
+    time: Res<Time>,
+) {
+    if let Ok((mut pl, mut timer, sh)) = player.get_single_mut() {
+        for (e_d, e_sh) in enemies.iter_mut() {
+            if (sh.position.x.abs() - e_sh.position.x.abs()).abs() <= 10.0 &&
+                (sh.position.y.abs() - e_sh.position.y.abs()).abs() <= 10.0 {
+                timer.0.tick(time.delta());
+
+                if timer.0.finished() {
+                    pl.0 = pl.0.saturating_sub(e_d.0);
+                }
+            }
+        }
+    }
+}
+
+fn check_health(
+    mut player: Query<&mut Health, With<Player>>,
+) {
+    if let Ok (h) = player.get_single_mut() {
+        if h.0 <= 0 {
+            log::error!("you lost. please close the game");
+        }
     }
 }

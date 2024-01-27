@@ -43,6 +43,28 @@ fn spawn_chunk(commands: &mut Commands, asset_server: &AssetServer, chunk_pos: I
             });
         }
     }
+
+    // Next lines of code are about my try into grouping up tiles for easier debugging
+    //
+    // let texture_handle: Handle<Image> = asset_server.load("tile.png");
+    //
+    // commands.spawn(SpatialBundle::default())
+    //     .with_children(|entity|{
+    //         for x in 0..CHUNK_SIZE.x {
+    //             for y in 0..CHUNK_SIZE.y {
+    //                 let transform = Transform::from_translation(Vec3::new(
+    //                     chunk_pos.x as f32 * CHUNK_SIZE.x as f32 * TILE_SIZE.x + x as f32 * TILE_SIZE.x,
+    //                     chunk_pos.y as f32 * CHUNK_SIZE.y as f32 * TILE_SIZE.y + y as f32 * TILE_SIZE.y,
+    //                     0.0,
+    //                 ));
+    //                 entity.spawn(SpriteBundle{
+    //                     texture: texture_handle.clone(),
+    //                     transform,
+    //                     ..default()
+    //                 });
+    //             }
+    //         }
+    //     });
 }
 
 fn camera_pos_to_chunk_pos(camera_pos: &Vec2) -> IVec2 {

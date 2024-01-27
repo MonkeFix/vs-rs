@@ -11,12 +11,16 @@ mod player;
 mod steering;
 mod tilemap;
 
+mod enemy;
+mod stats;
+
 use camera::CameraMovementPlugin;
 #[cfg(debug_assertions)]
 use debug::DebugPlugin;
 use player::PlayerPlugin;
 use steering::SteeringPlugin;
 use tilemap::TileMapPlugin;
+use crate::enemy::EnemyPlugin;
 
 fn main() {
     let mut app = App::new();
@@ -34,6 +38,7 @@ fn main() {
     .add_plugins(CameraMovementPlugin)
     .add_plugins(PlayerPlugin)
     .add_plugins(SteeringPlugin)
+    .add_plugins(EnemyPlugin)
     .add_systems(Startup, (spawn_camera, setup_gamepad));
 
     #[cfg(debug_assertions)]
