@@ -44,6 +44,8 @@ fn spawn_chunk(commands: &mut Commands, asset_server: &AssetServer, chunk_pos: I
         }
     }
 
+    // Next lines of code are about my try into grouping up tiles for easier debugging
+    //
     // let texture_handle: Handle<Image> = asset_server.load("tile.png");
     //
     // commands.spawn(SpatialBundle::default())

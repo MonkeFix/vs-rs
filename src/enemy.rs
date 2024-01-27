@@ -77,9 +77,9 @@ struct EnemySpawnComponent {
     enemy: Enemy,
     health: Health,
     damage: Damage,
-    max_velocity: MaxVelocity,
-    max_force: MaxForce,
-    mass: Mass,
+    max_velocity: f32,
+    max_force: f32,
+    mass: f32,
     texture: Handle<Image>,
     rewards: Rewards,
     is_elite: Option<bool>,
@@ -90,7 +90,7 @@ struct EnemySpawnComponent {
 struct EnemySpawners(HashMap<u16, Vec<EnemySpawnComponent>>);
 
 impl EnemySpawnComponent {
-    fn new(name: String, enemy: Enemy, health: Health, damage: Damage, max_velocity: MaxVelocity, max_force: MaxForce, mass: Mass, texture: Handle<Image>,is_elite: Option<bool>, rewards: Rewards) -> Self {
+    fn new(name: String, enemy: Enemy, health: Health, damage: Damage, max_velocity: f32, max_force: f32, mass: f32, texture: Handle<Image>,is_elite: Option<bool>, rewards: Rewards) -> Self {
         Self {
             name,
             enemy,
@@ -143,9 +143,9 @@ fn enemy_factory(
             Enemy,
             Health(enemy_conf.hp),
             Damage(enemy_conf.dmg),
-            MaxVelocity(enemy_conf.max_velocity),
-            MaxForce(enemy_conf.max_force),
-            Mass(enemy_conf.mass),
+            enemy_conf.max_velocity,
+            enemy_conf.max_force,
+            enemy_conf.mass,
             texture_handle,
             enemy_conf.is_elite,
             Rewards { exp: 1, items: "Orange" }, // TODO: Make them drop gems)
@@ -167,7 +167,6 @@ fn enemy_factory(
     }
 
     let spawners = EnemySpawners(spawn_map);
-    dbg!(spawners.clone());
     commands.insert_resource(spawners.clone());
 }
 fn spawn(

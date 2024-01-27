@@ -14,7 +14,6 @@ mod tilemap;
 mod enemy;
 mod stats;
 
-#[cfg(debug_assertions)]
 use camera::CameraMovementPlugin;
 #[cfg(debug_assertions)]
 use debug::DebugPlugin;
