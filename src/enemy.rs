@@ -48,13 +48,13 @@ impl Plugin for EnemyPlugin {
     }
 }
 
-struct MinMaxStruct {
-    min: f32,
-    max: f32,
+struct MinMaxStruct<T> {
+    min: T,
+    max: T,
 }
-const SPAWN_DISTANCE:MinMaxStruct = MinMaxStruct{min:500.0,max:800.0};
+const SPAWN_DISTANCE:MinMaxStruct<f32> = MinMaxStruct{min:500.0,max:800.0};
 
-const ENEMY_BATCH_SIZE:MinMaxStruct = MinMaxStruct{min:6.0,max:20.0};
+const ENEMY_BATCH_SIZE:MinMaxStruct<i64> = MinMaxStruct{min:6,max:20};
 #[derive(Resource)]
 struct GlobalTimeTickerResource(Timer);
 
