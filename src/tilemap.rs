@@ -4,15 +4,11 @@ use bevy::utils::*;
 pub struct TileMapPlugin;
 
 impl Plugin for TileMapPlugin {
-    fn build (&self, app: &mut App) {
-        app.insert_resource(ChunkManager::default())
-            .add_systems(
-                Update,
-                (
-                    spawn_chunks_around_camera,
-                    despawn_outofrange_chunks,
-                )
-            );
+    fn build(&self, app: &mut App) {
+        app.insert_resource(ChunkManager::default()).add_systems(
+            Update,
+            (spawn_chunks_around_camera, despawn_outofrange_chunks),
+        );
     }
 }
 
@@ -22,7 +18,10 @@ struct ChunkManager {
 }
 
 #[derive(Component)]
-struct TileSize { x: f32, y: f32 }
+struct TileSize {
+    x: f32,
+    y: f32,
+}
 
 const TILE_SIZE: TileSize = TileSize { x: 128.0, y: 128.0 };
 const CHUNK_SIZE: UVec2 = UVec2 { x: 4, y: 4 };
@@ -36,7 +35,7 @@ fn spawn_chunk(commands: &mut Commands, asset_server: &AssetServer, chunk_pos: I
                 chunk_pos.y as f32 * CHUNK_SIZE.y as f32 * TILE_SIZE.y + y as f32 * TILE_SIZE.y,
                 0.0,
             ));
-            commands.spawn(SpriteBundle{
+            commands.spawn(SpriteBundle {
                 texture: texture_handle.clone(),
                 transform,
                 ..default()
@@ -104,7 +103,8 @@ fn despawn_outofrange_chunks(
         for (entity, chunk_transform) in chunks_query.iter() {
             let chunk_pos = chunk_transform.translation.xy();
             let distance = camera_transform.translation.xy().distance(chunk_pos);
-            if distance > 3200.0 { // TODO: set the distance threshold to some reasonable value
+            if distance > 3200.0 {
+                // TODO: set the distance threshold to some reasonable value
                 let x = (chunk_pos.x / (CHUNK_SIZE.x as f32 * TILE_SIZE.x)).floor() as i32;
                 let y = (chunk_pos.y / (CHUNK_SIZE.y as f32 * TILE_SIZE.y)).floor() as i32;
                 chunk_manager.spawned_chunks.remove(&IVec2::new(x, y));

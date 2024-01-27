@@ -8,3 +8,7 @@ pub fn truncate_vec2(vec2: Vec2, max: f32) -> Vec2 {
 
     vec2
 }
+
+pub fn floor_to_int(f: f32) -> i32 {
+    (f as f64).floor() as i32
+}

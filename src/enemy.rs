@@ -1,13 +1,13 @@
-use std::collections::HashMap;
-use bevy::prelude::*;
 use crate::player::*;
-use std::time::Duration;
-use bevy::time::TimerMode::Repeating;
-use rand::{Rng, thread_rng};
-use crate::steering::{SteeringBundle, SteeringHost, SteerSeek};
 use crate::stats::*;
-use serde_json;
+use crate::steering::{SteerSeek, SteeringBundle, SteeringHost};
+use bevy::prelude::*;
+use bevy::time::TimerMode::Repeating;
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+use serde_json;
+use std::collections::HashMap;
+use std::time::Duration;
 
 pub struct EnemyPlugin;
 
@@ -30,21 +30,30 @@ Die. [V]
  */
 
 // TODO: Move to config?
-const WAVE_DURATION_SEC:u64 = 30;
-const GLOBAL_TIME_TICKER_SEC:u64 = 5;
+const WAVE_DURATION_SEC: u64 = 30;
+const GLOBAL_TIME_TICKER_SEC: u64 = 5;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(CurrentWave{ num: 1, timer: Timer::new(Duration::from_secs(WAVE_DURATION_SEC ),Repeating), need_wave_spawn: true })
-            .insert_resource(GlobalTimeTickerResource(Timer::new(Duration::from_secs(GLOBAL_TIME_TICKER_SEC), TimerMode::Repeating)))
-            .add_systems(Startup, enemy_factory)
-            .add_systems(Update, (
+        app.insert_resource(CurrentWave {
+            num: 1,
+            timer: Timer::new(Duration::from_secs(WAVE_DURATION_SEC), Repeating),
+            need_wave_spawn: true,
+        })
+        .insert_resource(GlobalTimeTickerResource(Timer::new(
+            Duration::from_secs(GLOBAL_TIME_TICKER_SEC),
+            TimerMode::Repeating,
+        )))
+        .add_systems(Startup, enemy_factory)
+        .add_systems(
+            Update,
+            (
                 spawn,
                 movement,
                 check_health,
                 change_wave,
-                global_timer_tick
-            ));
+                global_timer_tick,
+            ),
+        );
     }
 }
 
@@ -52,9 +61,12 @@ struct MinMaxStruct<T> {
     min: T,
     max: T,
 }
-const SPAWN_DISTANCE:MinMaxStruct<f32> = MinMaxStruct{min:500.0,max:800.0};
+const SPAWN_DISTANCE: MinMaxStruct<f32> = MinMaxStruct {
+    min: 500.0,
+    max: 800.0,
+};
 
-const ENEMY_BATCH_SIZE:MinMaxStruct<i64> = MinMaxStruct{min:6,max:20};
+const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 6, max: 20 };
 #[derive(Resource)]
 struct GlobalTimeTickerResource(Timer);
 
@@ -100,16 +112,13 @@ struct EnemySpawnComponent {
 #[derive(Resource, Debug, Clone)]
 struct EnemySpawners(HashMap<u16, Vec<EnemySpawnComponent>>);
 #[derive(Resource, Default)]
-struct CurrentWave{
+struct CurrentWave {
     num: u16,
     timer: Timer,
     need_wave_spawn: bool,
 }
 
-fn enemy_factory(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
+fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
     #[derive(Debug, Serialize, Deserialize)]
     struct EnemyConfig {
         name: String,
@@ -140,18 +149,23 @@ fn enemy_factory(
             mass: enemy_conf.mass,
             texture: texture_handle,
             is_elite: enemy_conf.is_elite,
-            rewards: Rewards { exp: 1, items: "Orange" }, // TODO: Make them drop gems)
+            rewards: Rewards {
+                exp: 1,
+                items: "Orange",
+            }, // TODO: Make them drop gems)
             timer: Default::default(),
         };
 
         for waves in enemy_conf.spawn_waves {
             for n in waves.from..waves.to + 1 {
                 if let Some(mut components) = spawn_map.get_mut(&n) {
-                    enemy.timer = Timer::new(Duration::from_secs(waves.spawn_time), TimerMode::Repeating);
+                    enemy.timer =
+                        Timer::new(Duration::from_secs(waves.spawn_time), TimerMode::Repeating);
                     components.push(enemy.clone());
                 } else {
                     let mut spawn_vec = Vec::new();
-                    enemy.timer = Timer::new(Duration::from_secs(waves.spawn_time), TimerMode::Repeating);
+                    enemy.timer =
+                        Timer::new(Duration::from_secs(waves.spawn_time), TimerMode::Repeating);
                     spawn_vec.push(enemy.clone());
                     spawn_map.insert(n, spawn_vec);
                 }
@@ -177,47 +191,73 @@ fn spawn(
                 if spawner.timer.finished() || current_wave.need_wave_spawn {
                     // spawn elite only one time on the wave
                     if Some(true) == spawner.is_elite && current_wave.need_wave_spawn == false {
-                        continue
+                        continue;
                     }
                     if let Ok(p_t) = player.get_single_mut() {
                         let is_left = thread_rng().gen_range(0, 2);
                         let is_up = thread_rng().gen_range(0, 2);
-                        let mut enemy_batch: Vec<(EnemyBundle, SpriteBundle, SteeringBundle, Name)> = Vec::new();
+                        let mut enemy_batch: Vec<(
+                            EnemyBundle,
+                            SpriteBundle,
+                            SteeringBundle,
+                            Name,
+                        )> = Vec::new();
 
-                        for i in 1..thread_rng().gen_range(ENEMY_BATCH_SIZE.min, ENEMY_BATCH_SIZE.max) {
+                        for i in
+                            1..thread_rng().gen_range(ENEMY_BATCH_SIZE.min, ENEMY_BATCH_SIZE.max)
+                        {
                             let (mut m_x, mut m_y, mut m_z): (f32, f32, f32);
                             if is_left == 1 {
-                                m_x = thread_rng().gen_range(p_t.translation.x - SPAWN_DISTANCE.max, p_t.translation.x - SPAWN_DISTANCE.min);
+                                m_x = thread_rng().gen_range(
+                                    p_t.translation.x - SPAWN_DISTANCE.max,
+                                    p_t.translation.x - SPAWN_DISTANCE.min,
+                                );
                             } else {
-                                m_x = thread_rng().gen_range(p_t.translation.x + SPAWN_DISTANCE.min, p_t.translation.x + SPAWN_DISTANCE.max);
+                                m_x = thread_rng().gen_range(
+                                    p_t.translation.x + SPAWN_DISTANCE.min,
+                                    p_t.translation.x + SPAWN_DISTANCE.max,
+                                );
                             }
 
                             if is_up == 1 {
-                                m_y = thread_rng().gen_range(p_t.translation.y - SPAWN_DISTANCE.max, p_t.translation.y - SPAWN_DISTANCE.min);
+                                m_y = thread_rng().gen_range(
+                                    p_t.translation.y - SPAWN_DISTANCE.max,
+                                    p_t.translation.y - SPAWN_DISTANCE.min,
+                                );
                             } else {
-                                m_y = thread_rng().gen_range(p_t.translation.y + SPAWN_DISTANCE.min, p_t.translation.y + SPAWN_DISTANCE.max);
+                                m_y = thread_rng().gen_range(
+                                    p_t.translation.y + SPAWN_DISTANCE.min,
+                                    p_t.translation.y + SPAWN_DISTANCE.max,
+                                );
                             }
 
                             m_z = p_t.translation.z;
-                            enemy_batch.push(
-                                (EnemyBundle::new(spawner.health.clone(), spawner.damage.clone(), spawner.rewards.clone()),
-                                 SpriteBundle {
-                                     transform: Transform::from_translation(Vec3::new(m_x, m_y, m_z)),
-                                     texture: spawner.texture.clone(),
-                                     ..default()
-                                 },
-                                 SteeringBundle {
-                                     host: SteeringHost {
-                                         position: Vec2::new(m_x, m_y),
-                                         max_velocity: spawner.max_velocity,
-                                         max_force: spawner.max_force,
-                                         mass: spawner.mass,
-                                         ..default()
-                                     },
-                                 },
-                                 Name::new(spawner.name.clone() + &i.to_string())));
+                            enemy_batch.push((
+                                EnemyBundle::new(
+                                    spawner.health.clone(),
+                                    spawner.damage.clone(),
+                                    spawner.rewards.clone(),
+                                ),
+                                SpriteBundle {
+                                    transform: Transform::from_translation(Vec3::new(
+                                        m_x, m_y, m_z,
+                                    )),
+                                    texture: spawner.texture.clone(),
+                                    ..default()
+                                },
+                                SteeringBundle {
+                                    host: SteeringHost {
+                                        position: Vec2::new(m_x, m_y),
+                                        max_velocity: spawner.max_velocity,
+                                        max_force: spawner.max_force,
+                                        mass: spawner.mass,
+                                        ..default()
+                                    },
+                                },
+                                Name::new(spawner.name.clone() + &i.to_string()),
+                            ));
                             if let Some(true) = spawner.is_elite {
-                               break;
+                                break;
                             }
                         }
                         commands.spawn_batch(enemy_batch)
@@ -260,7 +300,6 @@ fn check_health(
 fn change_wave(
     global_time_ticker: Res<GlobalTimeTickerResource>,
     mut cur_wave: ResMut<CurrentWave>,
-
 ) {
     if global_time_ticker.0.finished() {
         cur_wave.timer.tick(global_time_ticker.0.duration());
@@ -271,9 +310,6 @@ fn change_wave(
     }
 }
 
-fn global_timer_tick(
-    mut global_time_ticker: ResMut<GlobalTimeTickerResource>,
-    t: Res<Time>
-) {
+fn global_timer_tick(mut global_time_ticker: ResMut<GlobalTimeTickerResource>, t: Res<Time>) {
     global_time_ticker.0.tick(t.delta());
 }

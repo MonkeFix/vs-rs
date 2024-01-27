@@ -10,6 +10,7 @@ mod math;
 mod player;
 mod steering;
 mod tilemap;
+mod collisions;
 
 mod enemy;
 mod stats;
