@@ -1,5 +1,5 @@
 use crate::collisions::colliders::{Collider, ColliderBundle};
-use crate::collisions::shapes::{ColliderShape, ColliderShapeType};
+use crate::collisions::shapes::ColliderShapeType;
 use crate::enemy::Enemy;
 use crate::stats::*;
 use crate::{
@@ -129,13 +129,15 @@ fn movement(
     if let Ok(mut host) = steering_host.get_single_mut() {
         let target = host.position + direction;
         host.steer(SteerSeek, &target);
-    }
 
-    if let Ok(player_collider) = player_collider.get_single() {
-        for collider in &other_colliders {
-            let col = player_collider.collides_with(collider);
-            if col.is_some() {
-                //log::info!("COLLIDES!!!");
+        if let Ok(player_collider) = player_collider.get_single() {
+            for collider in &other_colliders {
+                let col = player_collider.collides_with(collider);
+                if let Some(mut col) = col {
+                    col.invert();
+                    let target = host.position + col.min_translation;
+                    host.steer(SteerSeek, &target);
+                }
             }
         }
     }
