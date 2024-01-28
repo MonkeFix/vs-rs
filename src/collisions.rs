@@ -1,9 +1,64 @@
 use bevy::math::Vec2;
 use num_enum::FromPrimitive;
 
+use self::colliders::Collider;
+
 pub mod colliders;
 pub mod shapes;
 pub mod spatial_hash;
+
+#[derive(Debug, Default)]
+pub struct CollisionResult {
+    pub collider: Option<Collider>,
+    pub normal: Vec2,
+    pub min_translation: Vec2,
+    pub point: Vec2,
+}
+
+#[derive(Debug, Default)]
+pub struct CollisionResultRef<'a> {
+    pub collider: Option<&'a Collider>,
+    pub normal: Vec2,
+    pub min_translation: Vec2,
+    pub point: Vec2,
+}
+
+impl CollisionResult {
+    pub fn invert(&mut self) {
+        self.normal.x = -self.normal.x;
+        self.normal.y = -self.normal.y;
+
+        self.min_translation.x = -self.min_translation.x;
+        self.min_translation.y = -self.min_translation.y;
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Ray2D {
+    pub start: Vec2,
+    pub end: Vec2,
+    pub direction: Vec2,
+}
+
+impl Ray2D {
+    pub fn new(position: Vec2, end: Vec2) -> Self {
+        Self {
+            start: position,
+            end,
+            direction: end - position,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct RaycastHit {
+    pub collider: Option<Collider>,
+    pub fraction: f32,
+    pub distance: f32,
+    pub point: Vec2,
+    pub normal: Vec2,
+    pub centroid: Vec2,
+}
 
 #[derive(Debug, Eq, PartialEq, FromPrimitive)]
 #[repr(u8)]
@@ -126,6 +181,19 @@ pub fn rect_to_point(x: f32, y: f32, w: f32, h: f32, point: Vec2) -> bool {
     point.x >= x && point.y >= y && point.x < x + w && point.y < y + h
 }
 
+pub fn rect_to_rect(
+    x1: f32,
+    y1: f32,
+    w1: f32,
+    h1: f32,
+    x2: f32,
+    y2: f32,
+    w2: f32,
+    h2: f32,
+) -> bool {
+    x1 + w1 >= x2 && x1 <= x2 + w2 && y1 + h1 >= y2 && y1 <= y2 + h2
+}
+
 pub fn get_sector(x: f32, y: f32, w: f32, h: f32, point: Vec2) -> PointSectors {
     let mut sector = PointSectors::Center as u8;
 
@@ -142,4 +210,116 @@ pub fn get_sector(x: f32, y: f32, w: f32, h: f32, point: Vec2) -> PointSectors {
     }
 
     PointSectors::from_primitive(sector)
+}
+
+/// Describes a 2D-rectangle with {x,y} being the top-left corner of the rectangle.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Rect {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+impl Rect {
+    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
+    pub fn from_min_max(min_x: f32, min_y: f32, max_x: f32, max_y: f32) -> Self {
+        Self {
+            x: min_x,
+            y: min_y,
+            width: max_x - min_x,
+            height: max_y - min_y,
+        }
+    }
+
+    pub fn left(&self) -> f32 {
+        self.x
+    }
+
+    pub fn right(&self) -> f32 {
+        self.x + self.width
+    }
+
+    pub fn top(&self) -> f32 {
+        self.y
+    }
+
+    pub fn bottom(&self) -> f32 {
+        self.y + self.height
+    }
+
+    pub fn max(&self) -> Vec2 {
+        Vec2::new(self.right(), self.bottom())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.width == 0.0 && self.height == 0.0 && self.x == 0.0 && self.y == 0.0
+    }
+
+    pub fn location(&self) -> Vec2 {
+        Vec2::new(self.x, self.y)
+    }
+
+    pub fn size(&self) -> Vec2 {
+        Vec2::new(self.width, self.height)
+    }
+
+    pub fn center(&self) -> Vec2 {
+        Vec2::new(self.x + self.width / 2.0, self.y + self.height / 2.0)
+    }
+
+    pub fn contains(&self, point: Vec2) -> bool {
+        self.x <= point.x
+            && point.x < (self.x + self.width)
+            && self.y <= point.y
+            && point.y < (self.y + self.height)
+    }
+
+    pub fn inflate(&mut self, horizontal: f32, vertical: f32) {
+        self.x -= horizontal;
+        self.y -= vertical;
+        self.width += horizontal * 2.0;
+        self.height += vertical * 2.0;
+    }
+
+    pub fn intersects(&self, other: Rect) -> bool {
+        other.left() < self.right()
+            && self.left() < other.right()
+            && other.top() < self.bottom()
+            && self.top() < other.bottom()
+    }
+
+    pub fn closest_point_to_origin(&self) -> Vec2 {
+        let max = self.max();
+        let mut min_dist = self.x.abs();
+        let mut bounds_point = Vec2::new(self.x, 0.0);
+
+        if max.x.abs() < min_dist {
+            min_dist = max.x.abs();
+            bounds_point.x = max.x;
+            bounds_point.y = 0.0;
+        }
+
+        if max.y.abs() < min_dist {
+            min_dist = max.y.abs();
+            bounds_point.x = 0.0;
+            bounds_point.y = max.y;
+        }
+
+        if self.y.abs() < min_dist {
+            // min_dist = self.y.abs();
+            bounds_point.x = 0.0;
+            bounds_point.y = self.y;
+        }
+
+        bounds_point
+    }
 }
