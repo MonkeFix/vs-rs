@@ -1,4 +1,4 @@
-use bevy::math::Vec2;
+use bevy::{math::Vec2, reflect::Reflect};
 use num_enum::FromPrimitive;
 
 use self::colliders::Collider;
@@ -213,7 +213,7 @@ pub fn get_sector(x: f32, y: f32, w: f32, h: f32, point: Vec2) -> PointSectors {
 }
 
 /// Describes a 2D-rectangle with {x,y} being the top-left corner of the rectangle.
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Reflect)]
 pub struct Rect {
     pub x: f32,
     pub y: f32,

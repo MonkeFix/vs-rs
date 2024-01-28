@@ -4,24 +4,25 @@ use bevy::{
 };
 
 mod camera;
+mod collisions;
 mod debug;
 mod input;
 mod math;
 mod player;
 mod steering;
 mod tilemap;
-mod collisions;
 
 mod enemy;
 mod stats;
 
+use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;
+use collisions::colliders::CollisionPlugin;
 #[cfg(debug_assertions)]
 use debug::DebugPlugin;
 use player::PlayerPlugin;
 use steering::SteeringPlugin;
 use tilemap::TileMapPlugin;
-use crate::enemy::EnemyPlugin;
 
 fn main() {
     let mut app = App::new();
@@ -40,6 +41,7 @@ fn main() {
     .add_plugins(PlayerPlugin)
     .add_plugins(SteeringPlugin)
     .add_plugins(EnemyPlugin)
+    .add_plugins(CollisionPlugin)
     .add_systems(Startup, (spawn_camera, setup_gamepad));
 
     #[cfg(debug_assertions)]

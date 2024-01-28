@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{log, prelude::*};
 
 use super::{
     circle_to_circle, rect_to_circle, rect_to_rect,
@@ -6,19 +6,28 @@ use super::{
     CollisionResult,
 };
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct Collider {
     pub shape: ColliderShape,
 }
 
-#[derive(Bundle)]
-pub struct ColliderBundle {
-    pub collider: Collider,
-}
-
 impl Collider {
-    pub fn new(shape: ColliderShape) -> Self {
-        Self { shape }
+    pub fn new(shape_type: ColliderShapeType) -> Self {
+        let bounds = match shape_type {
+            ColliderShapeType::Circle { radius } => {
+                super::Rect::new(0.0, 0.0, radius * 2.0, radius * 2.0)
+            }
+            ColliderShapeType::Box { width, height } => super::Rect::new(0.0, 0.0, width, height),
+        };
+
+        Self {
+            shape: ColliderShape {
+                shape_type,
+                position: Vec2::ZERO,
+                center: Vec2::ZERO,
+                bounds,
+            },
+        }
     }
 
     /// Checks if this shape overlaps any other `Collider`.
@@ -62,7 +71,7 @@ impl Collider {
         }
     }
 
-    /// Checks if this Collider collides with collider. If it does, 
+    /// Checks if this Collider collides with collider. If it does,
     /// true will be returned and result will be populated with collision data.
     pub fn collides_with(&self, other: &Collider) -> Option<CollisionResult> {
         let res = match self.shape.shape_type {
@@ -92,7 +101,7 @@ impl Collider {
         None
     }
 
-    /// Checks if this Collider with motion applied (delta movement vector) collides 
+    /// Checks if this Collider with motion applied (delta movement vector) collides
     /// with collider. If it does, true will be returned and result will be populated
     ///  with collision data.
     pub fn collides_with_motion(
@@ -115,5 +124,27 @@ impl Collider {
 
     fn position(&self) -> Vec2 {
         self.shape.position
+    }
+}
+
+#[derive(Bundle)]
+pub struct ColliderBundle {
+    pub collider: Collider,
+}
+
+pub struct CollisionPlugin;
+
+impl Plugin for CollisionPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, update_positions);
+    }
+}
+
+fn update_positions(mut colliders: Query<(&mut Collider, &Transform)>) {
+    for (mut collider, transform) in &mut colliders {
+        collider.shape.position = Vec2::new(transform.translation.x, transform.translation.y);
+        collider.shape.center = collider.shape.position;
+        collider.shape.bounds.x = collider.shape.position.x;
+        collider.shape.bounds.y = collider.shape.position.y;
     }
 }

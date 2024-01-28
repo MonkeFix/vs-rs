@@ -1,14 +1,14 @@
-use bevy::math::Vec2;
+use bevy::{math::Vec2, reflect::Reflect};
 
 use super::Rect;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub enum ColliderShapeType {
     Circle { radius: f32 },
     Box { width: f32, height: f32 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub struct ColliderShape {
     pub shape_type: ColliderShapeType,
     pub(crate) position: Vec2,

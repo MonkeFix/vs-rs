@@ -1,3 +1,6 @@
+use crate::collisions::colliders::Collider;
+use crate::collisions::colliders::ColliderBundle;
+use crate::collisions::shapes::ColliderShapeType;
 use crate::player::*;
 use crate::stats::*;
 use crate::steering::{SteerSeek, SteeringBundle, SteeringHost};
@@ -201,6 +204,7 @@ fn spawn(
                             SpriteBundle,
                             SteeringBundle,
                             Name,
+                            ColliderBundle,
                         )> = Vec::new();
 
                         for i in
@@ -255,6 +259,11 @@ fn spawn(
                                     },
                                 },
                                 Name::new(spawner.name.clone() + &i.to_string()),
+                                ColliderBundle {
+                                    collider: Collider::new(ColliderShapeType::Circle {
+                                        radius: 16.0,
+                                    }),
+                                },
                             ));
                             if let Some(true) = spawner.is_elite {
                                 break;
