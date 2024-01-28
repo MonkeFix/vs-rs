@@ -322,4 +322,50 @@ impl Rect {
 
         bounds_point
     }
+
+    /// Returns (Closest, EdgeNormal)
+    pub fn closest_point_on_border(&self, point: Vec2) -> (Vec2, Vec2) {
+        let mut edge_normal = Vec2::ZERO;
+
+        let mut res = Vec2::new(0.0, 0.0);
+        res.x = point.x.clamp(self.left(), self.right());
+        res.y = point.y.clamp(self.top(), self.bottom());
+
+        if self.contains(res) {
+            let dl = res.x - self.left();
+            let dr = self.right() - res.x;
+            let dt = res.y - self.top();
+            let db = self.bottom() - res.y;
+
+            let min = dl.min(dr.min(dt.min(db)));
+            if min == dt {
+                res.y = self.top();
+                edge_normal.y = -1.0;
+            } else if min == db {
+                res.y = self.bottom();
+                edge_normal.y = 1.0;
+            } else if min == dl {
+                res.x = self.left();
+                edge_normal.x = -1.0;
+            } else {
+                res.x = self.right();
+                edge_normal.x = 1.0;
+            }
+        } else {
+            if res.x == self.left() {
+                edge_normal.x = -1.0;
+            } 
+            if res.x == self.right() {
+                edge_normal.x = 1.0;
+            }
+            if res.y == self.top() {
+                edge_normal.y = -1.0;
+            }
+            if res.y == self.bottom() {
+                edge_normal.y = 1.0;
+            }
+        }
+
+        (res, edge_normal)
+    }
 }
