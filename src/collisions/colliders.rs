@@ -3,14 +3,12 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use bevy::{prelude::*, utils::HashMap};
 
 use super::{
-    circle_to_circle, rect_to_circle, rect_to_rect,
-    shapes::{ColliderShape, ColliderShapeType},
-    CollisionResultRef,
+    circle_to_circle, rect_to_circle, rect_to_rect, shapes::{ColliderShape, ColliderShapeType}, ColliderId, CollisionResultRef
 };
 
 pub const ALL_LAYERS: i32 = -1;
 
-#[derive(Debug, Clone, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect)]
 pub struct Collider {
     /// The underlying `ColliderShape` of the `Collider`.
     pub shape: ColliderShape,
@@ -211,7 +209,7 @@ impl Collider {
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Reflect, Hash)]
 pub struct ColliderComponent {
-    pub id: u32,
+    pub id: ColliderId,
 }
 
 impl ColliderComponent {
@@ -219,7 +217,7 @@ impl ColliderComponent {
         let collider = Collider::new(shape_type);
         let id = collider_set.register(collider);
 
-        Self { id }
+        Self { id: ColliderId(id) }
     }
 }
 
@@ -232,13 +230,13 @@ static COLLIDER_ID_GEN: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Resource, Default)]
 pub struct ColliderSet {
-    pub colliders: HashMap<u32, Collider>,
+    pub colliders: HashMap<ColliderId, Collider>,
 }
 
 impl ColliderSet {
     pub fn register(&mut self, collider: Collider) -> u32 {
         let id = COLLIDER_ID_GEN.fetch_add(1, Ordering::SeqCst);
-        self.colliders.insert(id, collider);
+        self.colliders.insert(ColliderId(id), collider);
         id
     }
 

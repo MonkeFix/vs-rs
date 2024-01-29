@@ -7,6 +7,9 @@ pub mod colliders;
 pub mod shapes;
 pub mod spatial_hash;
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
+pub struct ColliderId(pub u32);
+
 #[derive(Debug, Default, Clone)]
 pub struct CollisionResult {
     pub collider: Option<Collider>,
