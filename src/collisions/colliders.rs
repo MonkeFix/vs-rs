@@ -8,9 +8,23 @@ use super::{
     CollisionResultRef,
 };
 
+pub const ALL_LAYERS: i32 = -1;
+
 #[derive(Debug, Clone, Reflect)]
 pub struct Collider {
+    /// The underlying `ColliderShape` of the `Collider`.
     pub shape: ColliderShape,
+    /// If this collider is a trigger it will not cause collisions but it will still trigger events.
+    pub is_trigger: bool,
+    /// TODO. `local_offset` is added to `shape.position` to get the final position for the collider
+    /// geometry. This allows to add multiple Colliders to an Entity and position them separately
+    /// and also lets you set the point of scale.
+    pub local_offset: Vec2,
+    /// TODO: `physics_layer` can be used as a filter when dealing with collisions. It is a bitmask.
+    pub physics_layer: i32,
+    /// TODO: Layer mask of all the layers this Collider should collide with.
+    /// Default is all layers.
+    pub collides_with_layers: i32,
 }
 
 impl Collider {
@@ -29,7 +43,27 @@ impl Collider {
                 center: Vec2::ZERO,
                 bounds,
             },
+            is_trigger: false,
+            local_offset: Vec2::ZERO,
+            physics_layer: 1 << 0,
+            collides_with_layers: ALL_LAYERS,
         }
+    }
+
+    pub fn position(&self) -> Vec2 {
+        self.shape.position
+    }
+
+    pub fn absolute_position(&self) -> Vec2 {
+        self.shape.position + self.local_offset
+    }
+
+    pub fn bounds(&self) -> super::Rect {
+        self.shape.bounds
+    }
+
+    pub fn center(&self) -> Vec2 {
+        self.shape.center
     }
 
     /// Checks if this shape overlaps any other `Collider`.
@@ -76,6 +110,10 @@ impl Collider {
     /// Checks if this Collider collides with collider. If it does,
     /// true will be returned and result will be populated with collision data.
     pub fn collides_with<'a>(&self, other: &'a Collider) -> Option<CollisionResultRef<'a>> {
+        if self.is_trigger || other.is_trigger {
+            return None;
+        }
+
         let res = match self.shape.shape_type {
             ColliderShapeType::Circle { .. } => match other.shape.shape_type {
                 ColliderShapeType::Circle { .. } => {
@@ -111,21 +149,44 @@ impl Collider {
         motion: Vec2,
         other: &'a Collider,
     ) -> Option<CollisionResultRef<'a>> {
+        if self.is_trigger || other.is_trigger {
+            return None;
+        }
+
         // alter the shapes position so that it is in the place it would be after movement
         // so we can check for overlaps
         let old_pos = self.position();
         self.shape.position += motion;
+        self.shape.bounds.x += motion.x;
+        self.shape.bounds.y += motion.y;
 
         let res = self.collides_with(other);
 
         // return the shapes position to where it was before the check
         self.shape.position = old_pos;
+        self.shape.bounds.x = old_pos.x;
+        self.shape.bounds.y = old_pos.y;
 
         res
     }
 
-    fn position(&self) -> Vec2 {
-        self.shape.position
+    pub fn recalc_bounds(&mut self) {
+        match self.shape.shape_type {
+            ColliderShapeType::Circle { radius } => {
+                self.shape.bounds.x = self.shape.center.x - radius;
+                self.shape.bounds.y = self.shape.center.y - radius;
+                self.shape.bounds.width = radius * 2.0;
+                self.shape.bounds.height = radius * 2.0;
+            }
+            ColliderShapeType::Box { width, height } => {
+                let hw = width / 2.0;
+                let hh = height / 2.0;
+                self.shape.bounds.x = self.shape.position.x - hw;
+                self.shape.bounds.y = self.shape.position.y - hh;
+                self.shape.bounds.width = width;
+                self.shape.bounds.height = height;
+            }
+        };
     }
 
     pub(crate) fn update_from_transform(&mut self, transform: &Transform) {
@@ -137,25 +198,10 @@ impl Collider {
         self.shape.position.y = transform.translation.y;
         self.shape.center = self.shape.position;
 
-        match self.shape.shape_type {
-            ColliderShapeType::Circle { radius } => {
-                self.shape.bounds.x = self.shape.center.x - radius;
-                self.shape.bounds.y = self.shape.center.y - radius;
-                self.shape.bounds.width = radius * 2.0;
-                self.shape.bounds.height = radius * 2.0;
-            }
-            ColliderShapeType::Box { width, height } => {
-                let hw = width / 2.0;
-                let hh = height / 2.0;
-                self.shape.bounds.x = transform.translation.x - hw;
-                self.shape.bounds.y = transform.translation.y - hh;
-                self.shape.bounds.width = width;
-                self.shape.bounds.height = height;
-            }
-        }
+        self.recalc_bounds();
     }
 
-    pub(crate) fn needs_update(&self, transform: &Transform) -> bool {
+    fn needs_update(&self, transform: &Transform) -> bool {
         self.shape.position.x != transform.translation.x
             || self.shape.position.y != transform.translation.y
             || self.shape.center.x != transform.translation.x
@@ -219,17 +265,11 @@ impl ColliderSet {
     }
 
     pub fn get_neighbors<'a>(&'a self, component: &ColliderComponent) -> Vec<&'a Collider> {
-        let mut res = vec![];
-
-        for (id, collider) in &self.colliders {
-            if component.id == *id {
-                continue;
-            }
-
-            res.push(collider);
-        }
-
-        res
+        self.colliders
+            .iter()
+            .filter(|x| x.0 != &component.id)
+            .map(|x| x.1)
+            .collect()
     }
 
     pub fn get_neighbors_and_self<'a>(
