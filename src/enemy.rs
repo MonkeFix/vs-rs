@@ -1,5 +1,5 @@
-use crate::collisions::colliders::Collider;
 use crate::collisions::colliders::ColliderBundle;
+use crate::collisions::colliders::ColliderComponent;
 use crate::collisions::colliders::ColliderSet;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::player::*;
@@ -181,6 +181,7 @@ fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(spawners.clone());
 }
 fn spawn(
+    mut collider_set: ResMut<ColliderSet>,
     mut commands: Commands,
     mut spawn_map: ResMut<EnemySpawners>,
     mut player: Query<&mut Transform, With<Player>>,
@@ -261,9 +262,10 @@ fn spawn(
                                 },
                                 Name::new(spawner.name.clone() + &i.to_string()),
                                 ColliderBundle {
-                                    collider: Collider::new(ColliderShapeType::Circle {
-                                        radius: 16.0,
-                                    }),
+                                    collider: ColliderComponent::new(
+                                        &mut collider_set,
+                                        ColliderShapeType::Circle { radius: 16.0 },
+                                    ),
                                 },
                             ));
                             if let Some(true) = spawner.is_elite {
@@ -281,15 +283,19 @@ fn spawn(
     }
 }
 fn movement(
+    collider_set: Res<ColliderSet>,
     player: Query<&SteeringHost, With<Player>>,
     mut enemies: Query<
-        (&mut Transform, &mut SteeringHost, &Collider, Entity),
+        (
+            &mut Transform,
+            &mut SteeringHost,
+            &ColliderComponent,
+        ),
         (With<Enemy>, Without<Player>),
     >,
-    collider_set: Res<ColliderSet>,
 ) {
     if let Ok(pl) = player.get_single() {
-        for (mut t, mut st, collider, entity) in &mut enemies {
+        for (mut t, mut st, collider) in &mut enemies {
             st.steer(SteerSeek, &pl.position);
 
             if st.cur_velocity.x < 0.0 {
@@ -298,7 +304,7 @@ fn movement(
                 t.scale.x = 1.0
             }
 
-            let neighbors = get_neighbors(entity, &collider_set);
+            let (collider, neighbors) = collider_set.get_neighbors_and_self(collider);
 
             for n in neighbors {
                 if let Some(res) = collider.collides_with(&n) {
@@ -308,20 +314,6 @@ fn movement(
             }
         }
     }
-}
-
-fn get_neighbors<'a>(entity: Entity, collider_set: &'a Res<ColliderSet>) -> Vec<&'a Collider> {
-    let mut res = vec![];
-
-    for (index, collider) in &collider_set.map {
-        if entity.index() == *index {
-            continue;
-        }
-
-        res.push(collider);
-    }
-
-    res
 }
 
 fn check_health(

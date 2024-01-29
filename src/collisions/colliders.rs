@@ -1,4 +1,6 @@
-use bevy::{log, prelude::*, utils::HashMap};
+use std::sync::atomic::{AtomicU32, Ordering};
+
+use bevy::{prelude::*, utils::HashMap};
 
 use super::{
     circle_to_circle, rect_to_circle, rect_to_rect,
@@ -6,7 +8,7 @@ use super::{
     CollisionResultRef,
 };
 
-#[derive(Component, Debug, Clone, Reflect)]
+#[derive(Debug, Clone, Reflect)]
 pub struct Collider {
     pub shape: ColliderShape,
 }
@@ -127,6 +129,10 @@ impl Collider {
     }
 
     pub(crate) fn update_from_transform(&mut self, transform: &Transform) {
+        if !self.needs_update(transform) {
+            return;
+        }
+
         self.shape.position.x = transform.translation.x;
         self.shape.position.y = transform.translation.y;
         self.shape.center = self.shape.position;
@@ -157,35 +163,88 @@ impl Collider {
     }
 }
 
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Reflect, Hash)]
+pub struct ColliderComponent {
+    pub id: u32,
+}
+
+impl ColliderComponent {
+    pub fn new(collider_set: &mut ResMut<ColliderSet>, shape_type: ColliderShapeType) -> Self {
+        let collider = Collider::new(shape_type);
+        let id = collider_set.register(collider);
+
+        Self { id }
+    }
+}
+
 #[derive(Bundle)]
 pub struct ColliderBundle {
-    pub collider: Collider,
+    pub collider: ColliderComponent,
 }
+
+static COLLIDER_ID_GEN: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Resource, Default)]
 pub struct ColliderSet {
-    pub map: HashMap<u32, Collider>,
+    pub colliders: HashMap<u32, Collider>,
 }
 
 impl ColliderSet {
-    pub fn register(&mut self, collider: Collider, entity: Entity) {
-        log::info!("Entity {entity:?} | added collider: {collider:?}");
+    pub fn register(&mut self, collider: Collider) -> u32 {
+        let id = COLLIDER_ID_GEN.fetch_add(1, Ordering::SeqCst);
+        self.colliders.insert(id, collider);
+        id
+    }
 
-        match self.map.try_insert(entity.index(), collider) {
-            Ok(_res) => {}
-            Err(_err) => {
-                // log::error!("Error while registering collider: {err:?}");
-            }
+    pub fn get(&self, component: &ColliderComponent) -> Option<&Collider> {
+        self.colliders.get(&component.id)
+    }
+
+    pub fn get_mut(&mut self, component: &ColliderComponent) -> Option<&mut Collider> {
+        self.colliders.get_mut(&component.id)
+    }
+
+    pub fn deregister(&mut self, component: ColliderComponent) -> Option<Collider> {
+        self.colliders.remove(&component.id)
+    }
+
+    pub fn get_as_components(&self) -> Vec<ColliderComponent> {
+        let mut res = vec![];
+
+        for (id, _v) in &self.colliders {
+            res.push(ColliderComponent { id: *id });
         }
+
+        res
     }
 
-    pub fn deregister(&mut self, entity: Entity) {
-        self.map.remove(&entity.index());
+    pub fn get_neighbors<'a>(&'a self, component: &ColliderComponent) -> Vec<&'a Collider> {
+        let mut res = vec![];
+
+        for (id, collider) in &self.colliders {
+            if component.id == *id {
+                continue;
+            }
+
+            res.push(collider);
+        }
+
+        res
     }
 
-    pub fn update(&mut self, entity: Entity, transform: &Transform) {
-        let col = self.map.get_mut(&entity.index());
-        if let Some(col) = col {
+    pub fn get_neighbors_and_self<'a>(
+        &'a self,
+        component: &ColliderComponent,
+    ) -> (&'a Collider, Vec<&'a Collider>) {
+        (
+            self.get(component)
+                .expect(&format!("collider {component:?} was deregistered")),
+            self.get_neighbors(component),
+        )
+    }
+
+    pub(crate) fn update_single(&mut self, component: &ColliderComponent, transform: &Transform) {
+        if let Some(col) = self.get_mut(component) {
             col.update_from_transform(transform);
         }
     }
@@ -195,41 +254,16 @@ pub struct CollisionPlugin;
 
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ColliderSet::default()).add_systems(
-            FixedUpdate,
-            (
-                register_collider,
-                update_positions,
-                collider_changed_transform,
-            ),
-        );
+        app.insert_resource(ColliderSet::default())
+            .add_systems(FixedUpdate, (update_positions,));
     }
 }
 
-fn update_positions(mut colliders: Query<(&mut Collider, &Transform)>) {
-    for (mut collider, transform) in &mut colliders {
-        if collider.needs_update(transform) {
-            collider.update_from_transform(transform);
-        }
-    }
-}
-
-fn collider_changed_transform(
+fn update_positions(
     mut collider_set: ResMut<ColliderSet>,
-    changed_query: Query<(&Transform, Entity), Changed<Collider>>,
+    colliders: Query<(&ColliderComponent, &Transform), Changed<Transform>>,
 ) {
-    for (transform, entity) in &changed_query {
-        collider_set.update(entity, transform);
-    }
-}
-
-fn register_collider(
-    mut collider_set: ResMut<ColliderSet>,
-    colliders: Query<(&Collider, &Transform, Entity), Added<Collider>>,
-) {
-    for (col, transform, entity) in &colliders {
-        let mut col = col.clone();
-        col.update_from_transform(transform);
-        collider_set.register(col, entity);
+    for (collider, transform) in &colliders {
+        collider_set.update_single(collider, transform);
     }
 }

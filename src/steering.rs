@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 
-use crate::collisions::colliders::{Collider, ColliderSet};
-
 pub trait SteeringTarget {
     /// Returns target's position.
     fn position(&self) -> Vec2;
@@ -280,14 +278,9 @@ fn update_translation(mut host: Query<(&mut Transform, &SteeringHost)>) {
     }
 }
 
-fn update_position(
-    time: Res<Time>,
-    mut host: Query<(&mut SteeringHost, Entity)>,
-    mut colliders: Query<&mut Collider>,
-    collider_set: Res<ColliderSet>,
-) {
-    for (mut host, entity) in &mut host {
-        let mut movement = host.cur_velocity * time.delta_seconds();
+fn update_position(time: Res<Time>, mut host: Query<(&mut SteeringHost, Entity)>) {
+    for (mut host, _entity) in &mut host {
+        let movement = host.cur_velocity * time.delta_seconds();
         //calc_movement(&mut movement, &mut colliders, entity, &collider_set);
 
         host.position += movement;

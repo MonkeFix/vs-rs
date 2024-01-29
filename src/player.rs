@@ -1,4 +1,4 @@
-use crate::collisions::colliders::{Collider, ColliderBundle};
+use crate::collisions::colliders::{ColliderBundle, ColliderComponent, ColliderSet};
 use crate::collisions::shapes::ColliderShapeType;
 use crate::enemy::Enemy;
 use crate::stats::*;
@@ -43,7 +43,11 @@ impl PlayerBundle {
     }
 }
 
-fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn(
+    mut collider_set: ResMut<ColliderSet>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
     let texture_handle: Handle<Image> = asset_server.load("player.png");
     commands.spawn((
         PlayerBundle::new(),
@@ -57,20 +61,23 @@ fn spawn(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Name::new("player"),
         ColliderBundle {
-            collider: Collider::new(ColliderShapeType::Circle { radius: 16.0 }),
+            collider: ColliderComponent::new(
+                &mut collider_set,
+                ColliderShapeType::Circle { radius: 16.0 },
+            ),
         },
     ));
 }
 
 fn movement(
     keyboard_input: Res<Input<KeyCode>>,
+    collider_set: Res<ColliderSet>,
     mut steering_host: Query<&mut SteeringHost, With<Player>>,
     gamepad_axes: Res<Axis<GamepadAxis>>,
     gamepad_settings: Res<GamepadSettings>,
     gamepads: Res<Gamepads>,
     controls: Res<PlayerControls>,
-    player_collider: Query<&Collider, With<Player>>,
-    other_colliders: Query<&Collider, Without<Player>>,
+    player_collider: Query<&ColliderComponent, With<Player>>,
 ) {
     let mut direction = Vec2::ZERO;
 
@@ -131,11 +138,12 @@ fn movement(
         host.steer(SteerSeek, &target);
 
         if let Ok(player_collider) = player_collider.get_single() {
-            for collider in &other_colliders {
+            let (player_collider, neighbors) = collider_set.get_neighbors_and_self(player_collider);
+
+            for collider in neighbors {
                 let col = player_collider.collides_with(collider);
-                if let Some(mut col) = col {
-                    col.invert();
-                    let target = host.position + col.min_translation;
+                if let Some(col) = col {
+                    let target = host.position - col.min_translation;
                     host.steer(SteerSeek, &target);
                 }
             }
