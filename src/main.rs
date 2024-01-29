@@ -24,6 +24,8 @@ use player::PlayerPlugin;
 use steering::SteeringPlugin;
 use tilemap::TileMapPlugin;
 
+pub const FIXED_TIMESTEP: f64 = 1.0 / 60.0;
+
 fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -42,7 +44,8 @@ fn main() {
     .add_plugins(SteeringPlugin)
     .add_plugins(EnemyPlugin)
     .add_plugins(CollisionPlugin)
-    .add_systems(Startup, (spawn_camera, setup_gamepad));
+    .add_systems(Startup, (spawn_camera, setup_gamepad))
+    .insert_resource(Time::<Fixed>::from_seconds(FIXED_TIMESTEP));
 
     #[cfg(debug_assertions)]
     app.add_plugins(DebugPlugin);

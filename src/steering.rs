@@ -1,9 +1,6 @@
 use bevy::prelude::*;
 
-use crate::collisions::{
-    colliders::{Collider, ColliderSet},
-    CollisionResult,
-};
+use crate::collisions::colliders::{Collider, ColliderSet};
 
 pub trait SteeringTarget {
     /// Returns target's position.
@@ -312,7 +309,7 @@ fn steer(mut host: Query<&mut SteeringHost>) {
             crate::math::truncate_vec2(host.cur_velocity + steering, host.max_velocity);
     }
 }
-
+/*
 fn calc_movement(
     motion: &mut Vec2,
     colliders: &mut Query<&mut Collider>,
@@ -352,3 +349,4 @@ fn get_neighbors(entity: Entity, collider_set: &Res<ColliderSet>) -> Vec<Collide
 
     res
 }
+ */

@@ -18,13 +18,13 @@ pub struct ColliderShape {
 
 pub mod collisions {
     use super::{ColliderShape, ColliderShapeType};
-    use crate::collisions::{CollisionResult, RaycastHit, Rect};
+    use crate::collisions::{CollisionResultRef, RaycastHitRef, Rect};
     use bevy::math::Vec2;
 
-    pub fn box_to_box(first: &ColliderShape, second: &ColliderShape) -> Option<CollisionResult> {
-        let mut res = CollisionResult::default();
+    pub fn box_to_box<'a>(first: &ColliderShape, second: &ColliderShape) -> Option<CollisionResultRef<'a>> {
+        let mut res = CollisionResultRef::default();
 
-        let diff = minkowsi_diff(first, second);
+        let diff = minkowski_diff(first, second);
         if diff.contains(Vec2::ZERO) {
             res.min_translation = diff.closest_point_to_origin();
 
@@ -41,14 +41,14 @@ pub mod collisions {
         None
     }
 
-    pub fn circle_to_circle(
+    pub fn circle_to_circle<'a>(
         first: &ColliderShape,
         second: &ColliderShape,
-    ) -> Option<CollisionResult> {
+    ) -> Option<CollisionResultRef<'a>> {
         match first.shape_type {
             ColliderShapeType::Circle { radius: r1 } => match second.shape_type {
                 ColliderShapeType::Circle { radius: r2 } => {
-                    let mut res = CollisionResult::default();
+                    let mut res = CollisionResultRef::default();
 
                     let dist_sqr = Vec2::distance_squared(first.position, second.position);
                     let sum_of_radii = r1 + r2;
@@ -71,10 +71,10 @@ pub mod collisions {
         }
     }
 
-    pub fn circle_to_box(circle: &ColliderShape, bx: &ColliderShape) -> Option<CollisionResult> {
+    pub fn circle_to_box<'a>(circle: &ColliderShape, bx: &ColliderShape) -> Option<CollisionResultRef<'a>> {
         match circle.shape_type {
             ColliderShapeType::Circle { radius } => {
-                let mut res = CollisionResult::default();
+                let mut res = CollisionResultRef::default();
 
                 let (closest_point, normal) = bx.bounds.closest_point_on_border(circle.position);
                 res.normal = normal;
@@ -108,10 +108,10 @@ pub mod collisions {
         }
     }
 
-    pub fn line_to_circle(start: Vec2, end: Vec2, s: &ColliderShape) -> Option<RaycastHit> {
+    pub fn line_to_circle<'a>(start: Vec2, end: Vec2, s: &ColliderShape) -> Option<RaycastHitRef<'a>> {
         match s.shape_type {
             ColliderShapeType::Circle { radius } => {
-                let mut hit = RaycastHit::default();
+                let mut hit = RaycastHitRef::default();
 
                 let length = start.distance(end);
                 let d = (end - start) / length;
@@ -147,7 +147,7 @@ pub mod collisions {
         }
     }
 
-    fn minkowsi_diff(first: &ColliderShape, second: &ColliderShape) -> Rect {
+    fn minkowski_diff(first: &ColliderShape, second: &ColliderShape) -> Rect {
         let pos_offset = first.position - (first.bounds.location() + first.bounds.size() / 2.0);
         let top_left = first.bounds.location() + pos_offset - second.bounds.max();
         let full_size = first.bounds.size() + second.bounds.size();

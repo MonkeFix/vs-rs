@@ -15,7 +15,7 @@ pub struct CollisionResult {
     pub point: Vec2,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct CollisionResultRef<'a> {
     pub collider: Option<&'a Collider>,
     pub normal: Vec2,
@@ -24,6 +24,16 @@ pub struct CollisionResultRef<'a> {
 }
 
 impl CollisionResult {
+    pub fn invert(&mut self) {
+        self.normal.x = -self.normal.x;
+        self.normal.y = -self.normal.y;
+
+        self.min_translation.x = -self.min_translation.x;
+        self.min_translation.y = -self.min_translation.y;
+    }
+}
+
+impl<'a> CollisionResultRef<'a> {
     pub fn invert(&mut self) {
         self.normal.x = -self.normal.x;
         self.normal.y = -self.normal.y;
@@ -50,9 +60,19 @@ impl Ray2D {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RaycastHit {
     pub collider: Option<Collider>,
+    pub fraction: f32,
+    pub distance: f32,
+    pub point: Vec2,
+    pub normal: Vec2,
+    pub centroid: Vec2,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct RaycastHitRef<'a> {
+    pub collider: Option<&'a Collider>,
     pub fraction: f32,
     pub distance: f32,
     pub point: Vec2,

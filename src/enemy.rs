@@ -310,7 +310,7 @@ fn movement(
     }
 }
 
-fn get_neighbors(entity: Entity, collider_set: &Res<ColliderSet>) -> Vec<Collider> {
+fn get_neighbors<'a>(entity: Entity, collider_set: &'a Res<ColliderSet>) -> Vec<&'a Collider> {
     let mut res = vec![];
 
     for (index, collider) in &collider_set.map {
@@ -318,7 +318,7 @@ fn get_neighbors(entity: Entity, collider_set: &Res<ColliderSet>) -> Vec<Collide
             continue;
         }
 
-        res.push(collider.clone());
+        res.push(collider);
     }
 
     res

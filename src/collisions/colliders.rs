@@ -3,7 +3,7 @@ use bevy::{log, prelude::*, utils::HashMap};
 use super::{
     circle_to_circle, rect_to_circle, rect_to_rect,
     shapes::{ColliderShape, ColliderShapeType},
-    CollisionResult,
+    CollisionResultRef,
 };
 
 #[derive(Component, Debug, Clone, Reflect)]
@@ -73,7 +73,7 @@ impl Collider {
 
     /// Checks if this Collider collides with collider. If it does,
     /// true will be returned and result will be populated with collision data.
-    pub fn collides_with(&self, other: &Collider) -> Option<CollisionResult> {
+    pub fn collides_with<'a>(&self, other: &'a Collider) -> Option<CollisionResultRef<'a>> {
         let res = match self.shape.shape_type {
             ColliderShapeType::Circle { .. } => match other.shape.shape_type {
                 ColliderShapeType::Circle { .. } => {
@@ -94,7 +94,7 @@ impl Collider {
         };
 
         if let Some(mut res) = res {
-            res.collider = Some(other.clone());
+            res.collider = Some(other);
             return Some(res);
         }
 
@@ -104,11 +104,11 @@ impl Collider {
     /// Checks if this Collider with motion applied (delta movement vector) collides
     /// with collider. If it does, true will be returned and result will be populated
     ///  with collision data.
-    pub fn collides_with_motion(
+    pub fn collides_with_motion<'a>(
         &mut self,
         motion: Vec2,
-        other: &Collider,
-    ) -> Option<CollisionResult> {
+        other: &'a Collider,
+    ) -> Option<CollisionResultRef<'a>> {
         // alter the shapes position so that it is in the place it would be after movement
         // so we can check for overlaps
         let old_pos = self.position();
@@ -127,9 +127,9 @@ impl Collider {
     }
 
     pub(crate) fn update_from_transform(&mut self, transform: &Transform) {
-        self.shape.center = self.shape.position;
         self.shape.position.x = transform.translation.x;
         self.shape.position.y = transform.translation.y;
+        self.shape.center = self.shape.position;
 
         match self.shape.shape_type {
             ColliderShapeType::Circle { radius } => {
@@ -147,6 +147,13 @@ impl Collider {
                 self.shape.bounds.height = height;
             }
         }
+    }
+
+    pub(crate) fn needs_update(&self, transform: &Transform) -> bool {
+        self.shape.position.x != transform.translation.x
+            || self.shape.position.y != transform.translation.y
+            || self.shape.center.x != transform.translation.x
+            || self.shape.center.y != transform.translation.y
     }
 }
 
@@ -176,7 +183,7 @@ impl ColliderSet {
         self.map.remove(&entity.index());
     }
 
-    pub fn update(&mut self, entity: Entity, collider: &Collider, transform: &Transform) {
+    pub fn update(&mut self, entity: Entity, transform: &Transform) {
         let col = self.map.get_mut(&entity.index());
         if let Some(col) = col {
             col.update_from_transform(transform);
@@ -188,26 +195,31 @@ pub struct CollisionPlugin;
 
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ColliderSet::default());
-        app.add_systems(
-            Update,
-            (register_collider, update_positions, update_collider_set),
+        app.insert_resource(ColliderSet::default()).add_systems(
+            FixedUpdate,
+            (
+                register_collider,
+                update_positions,
+                collider_changed_transform,
+            ),
         );
     }
 }
 
 fn update_positions(mut colliders: Query<(&mut Collider, &Transform)>) {
     for (mut collider, transform) in &mut colliders {
-        collider.update_from_transform(transform);
+        if collider.needs_update(transform) {
+            collider.update_from_transform(transform);
+        }
     }
 }
 
-fn update_collider_set(
+fn collider_changed_transform(
     mut collider_set: ResMut<ColliderSet>,
-    colliders: Query<(&Collider, &Transform, Entity)>,
+    changed_query: Query<(&Transform, Entity), Changed<Collider>>,
 ) {
-    for (col, transform, entity) in &colliders {
-        collider_set.update(entity, col, transform);
+    for (transform, entity) in &changed_query {
+        collider_set.update(entity, transform);
     }
 }
 
