@@ -1,5 +1,6 @@
 use crate::collisions::colliders::Collider;
 use crate::collisions::colliders::ColliderBundle;
+use crate::collisions::colliders::ColliderSet;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::player::*;
 use crate::stats::*;
@@ -281,18 +282,46 @@ fn spawn(
 }
 fn movement(
     player: Query<&SteeringHost, With<Player>>,
-    mut enemies: Query<(&mut Transform, &mut SteeringHost), (With<Enemy>, Without<Player>)>,
+    mut enemies: Query<
+        (&mut Transform, &mut SteeringHost, &Collider, Entity),
+        (With<Enemy>, Without<Player>),
+    >,
+    collider_set: Res<ColliderSet>,
 ) {
     if let Ok(pl) = player.get_single() {
-        for (mut t, mut st) in &mut enemies {
+        for (mut t, mut st, collider, entity) in &mut enemies {
             st.steer(SteerSeek, &pl.position);
+
             if st.cur_velocity.x < 0.0 {
                 t.scale.x = -1.0;
             } else {
                 t.scale.x = 1.0
             }
+
+            let neighbors = get_neighbors(entity, &collider_set);
+
+            for n in neighbors {
+                if let Some(res) = collider.collides_with(&n) {
+                    let target = st.position - res.min_translation;
+                    st.steer(SteerSeek, &target);
+                }
+            }
         }
     }
+}
+
+fn get_neighbors(entity: Entity, collider_set: &Res<ColliderSet>) -> Vec<Collider> {
+    let mut res = vec![];
+
+    for (index, collider) in &collider_set.map {
+        if entity.index() == *index {
+            continue;
+        }
+
+        res.push(collider.clone());
+    }
+
+    res
 }
 
 fn check_health(

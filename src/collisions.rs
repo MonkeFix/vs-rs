@@ -7,7 +7,7 @@ pub mod colliders;
 pub mod shapes;
 pub mod spatial_hash;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct CollisionResult {
     pub collider: Option<Collider>,
     pub normal: Vec2,
@@ -354,7 +354,7 @@ impl Rect {
         } else {
             if res.x == self.left() {
                 edge_normal.x = -1.0;
-            } 
+            }
             if res.x == self.right() {
                 edge_normal.x = 1.0;
             }

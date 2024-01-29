@@ -1,5 +1,10 @@
 use bevy::prelude::*;
 
+use crate::collisions::{
+    colliders::{Collider, ColliderSet},
+    CollisionResult,
+};
+
 pub trait SteeringTarget {
     /// Returns target's position.
     fn position(&self) -> Vec2;
@@ -278,10 +283,17 @@ fn update_translation(mut host: Query<(&mut Transform, &SteeringHost)>) {
     }
 }
 
-fn update_position(time: Res<Time>, mut host: Query<&mut SteeringHost>) {
-    for mut host in &mut host {
-        let dt = host.cur_velocity * time.delta_seconds();
-        host.position += dt;
+fn update_position(
+    time: Res<Time>,
+    mut host: Query<(&mut SteeringHost, Entity)>,
+    mut colliders: Query<&mut Collider>,
+    collider_set: Res<ColliderSet>,
+) {
+    for (mut host, entity) in &mut host {
+        let mut movement = host.cur_velocity * time.delta_seconds();
+        //calc_movement(&mut movement, &mut colliders, entity, &collider_set);
+
+        host.position += movement;
 
         let friction = host.friction;
         host.cur_velocity *= friction;
@@ -299,4 +311,44 @@ fn steer(mut host: Query<&mut SteeringHost>) {
         host.cur_velocity =
             crate::math::truncate_vec2(host.cur_velocity + steering, host.max_velocity);
     }
+}
+
+fn calc_movement(
+    motion: &mut Vec2,
+    colliders: &mut Query<&mut Collider>,
+    entity: Entity,
+    collider_set: &Res<ColliderSet>,
+) -> Option<CollisionResult> {
+    let mut res = None;
+
+    for mut collider in colliders {
+        let mut bounds = collider.shape.bounds;
+        bounds.x += motion.x;
+        bounds.y += motion.y;
+        let neighbors = get_neighbors(entity, &collider_set);
+
+        for neighbor in neighbors {
+            if let Some(collision) = collider.collides_with_motion(*motion, &neighbor) {
+                *motion -= collision.min_translation;
+                let col: CollisionResult = collision.clone();
+                res = Some(col);
+            }
+        }
+    }
+
+    res
+}
+
+fn get_neighbors(entity: Entity, collider_set: &Res<ColliderSet>) -> Vec<Collider> {
+    let mut res = vec![];
+
+    for (index, collider) in &collider_set.map {
+        if entity.index() == *index {
+            continue;
+        }
+
+        res.push(collider.clone());
+    }
+
+    res
 }
