@@ -25,9 +25,9 @@ pub struct Collider {
     /// geometry. This allows to add multiple Colliders to an Entity and position them separately
     /// and also lets you set the point of scale.
     pub local_offset: Vec2,
-    /// TODO: `physics_layer` can be used as a filter when dealing with collisions. It is a bitmask.
+    /// `physics_layer` can be used as a filter when dealing with collisions. It is a bitmask.
     pub physics_layer: i32,
-    /// TODO: Layer mask of all the layers this Collider should collide with.
+    /// Layer mask of all the layers this Collider should collide with.
     /// Default is all layers.
     pub collides_with_layers: i32,
 }
@@ -346,7 +346,7 @@ impl ColliderSet {
     }
 
     pub fn aabb_broadphase(
-        &mut self,
+        &self,
         rect: super::Rect,
         layer_mask: Option<i32>,
     ) -> HashSet<ColliderId> {
@@ -360,7 +360,7 @@ impl ColliderSet {
     }
 
     pub fn aabb_broadphase_excluding_self(
-        &mut self,
+        &self,
         self_collider: ColliderId,
         rect: super::Rect,
         layer_mask: Option<i32>,

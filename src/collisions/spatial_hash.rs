@@ -1,7 +1,7 @@
 use bevy::{
     log,
     math::Vec2,
-    utils::{hashbrown::HashSet, HashMap, Instant},
+    utils::{hashbrown::HashSet, HashMap},
 };
 
 use crate::math::{self, approach};
@@ -44,7 +44,7 @@ impl SpatialHash {
 
         for x in (p1.x as i32)..=(p2.x as i32) {
             for y in (p1.y as i32)..=(p2.y as i32) {
-                if let Some(c) = self.get_cell(x, y) {
+                if let Some(c) = self.get_cell_mut(x, y) {
                     c.push(collider.id);
                 } else {
                     let c = vec![collider.id];
@@ -62,7 +62,7 @@ impl SpatialHash {
 
         for x in (p1.x as i32)..=(p2.x as i32) {
             for y in (p1.y as i32)..=(p2.y as i32) {
-                if let Some(c) = self.get_cell(x, y) {
+                if let Some(c) = self.get_cell_mut(x, y) {
                     c.retain(|&x| x != collider.id);
                 } else {
                     log::error!(
@@ -79,7 +79,7 @@ impl SpatialHash {
     }
 
     pub fn aabb_broadphase<'a, F>(
-        &'a mut self,
+        &'a self,
         bounds: &Rect,
         exclude_collider: Option<ColliderId>,
         layer_mask: i32,
@@ -123,7 +123,7 @@ impl SpatialHash {
     }
 
     pub fn linecast<'a, F>(
-        &mut self,
+        &self,
         start: Vec2,
         end: Vec2,
         //hits: &'a mut [RaycastHit<'a>],
@@ -218,7 +218,7 @@ impl SpatialHash {
     }
 
     pub fn overlap_rectangle<'a, F>(
-        &'a mut self,
+        &'a self,
         rect: &Rect,
         results: &mut [ColliderId],
         layer_mask: i32,
@@ -261,7 +261,7 @@ impl SpatialHash {
     }
 
     pub fn overlap_circle<'a, F>(
-        &'a mut self,
+        &'a self,
         circle_center: Vec2,
         radius: f32,
         results: &mut [ColliderId],
@@ -318,7 +318,15 @@ impl SpatialHash {
         )
     }
 
-    fn get_cell(&mut self, x: i32, y: i32) -> Option<&mut Vec<ColliderId>> {
+    fn get_cell(&self, x: i32, y: i32) -> Option<&Vec<ColliderId>> {
+        if let Some(collider) = self.cell_map.get(x, y) {
+            return Some(collider);
+        }
+
+        None
+    }
+
+    fn get_cell_mut(&mut self, x: i32, y: i32) -> Option<&mut Vec<ColliderId>> {
         if let Some(collider) = self.cell_map.get_mut(x, y) {
             return Some(collider);
         }
