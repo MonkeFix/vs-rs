@@ -30,6 +30,7 @@ pub struct Collider {
     /// Layer mask of all the layers this Collider should collide with.
     /// Default is all layers.
     pub collides_with_layers: i32,
+    pub(crate) is_registered: bool,
 }
 
 impl Collider {
@@ -53,6 +54,7 @@ impl Collider {
             local_offset: Vec2::ZERO,
             physics_layer: 1 << 0,
             collides_with_layers: ALL_LAYERS,
+            is_registered: false,
         }
     }
 
@@ -231,7 +233,8 @@ impl Collider {
     }
 
     fn needs_update(&self, transform: &Transform) -> bool {
-        self.shape.position.x != transform.translation.x
+        !self.is_registered
+            || self.shape.position.x != transform.translation.x
             || self.shape.position.y != transform.translation.y
             || self.shape.center.x != transform.translation.x
             || self.shape.center.y != transform.translation.y
@@ -310,12 +313,15 @@ impl ColliderSet {
     }
 
     pub fn remove(&mut self, component: ColliderComponent) -> Option<Collider> {
-        let col = self.colliders.get(&component.id);
+        let col = self.colliders.get_mut(&component.id);
         if col.is_none() {
             return None;
         }
 
-        self.spatial_hash.remove(&col.unwrap());
+        let col: &mut Collider = col.unwrap();
+        col.is_registered = false;
+
+        self.spatial_hash.remove(&col);
         self.colliders.remove(&component.id)
     }
 
@@ -360,16 +366,60 @@ impl ColliderSet {
             })
     }
 
+    pub fn linecast(
+        &self,
+        start: Vec2,
+        end: Vec2,
+        layer_mask: Option<i32>,
+    ) -> (i32, Vec<RaycastHit>) {
+        let layer_mask = match layer_mask {
+            Some(val) => val,
+            None => ALL_LAYERS,
+        };
+
+        self.spatial_hash
+            .linecast(start, end, layer_mask, |id| self.colliders.get(id))
+    }
+
+    pub fn overlap_circle(&self, circle_center: Vec2, radius: f32, layer_mask: Option<i32>) -> i32 {
+        let layer_mask = match layer_mask {
+            Some(val) => val,
+            None => ALL_LAYERS,
+        };
+
+        let mut results = vec![ColliderId(0); 1];
+
+        self.spatial_hash
+            .overlap_circle(circle_center, radius, &mut results, layer_mask, |id| {
+                self.colliders.get(id)
+            })
+    }
+
+    pub fn overlap_rectangle(&self, rect: super::Rect, layer_mask: Option<i32>) -> i32 {
+        let layer_mask = match layer_mask {
+            Some(val) => val,
+            None => ALL_LAYERS,
+        };
+
+        let mut results = vec![ColliderId(0); 1];
+
+        self.spatial_hash
+            .overlap_rectangle(&rect, &mut results, layer_mask, |id| self.colliders.get(id))
+    }
+
     pub(crate) fn clear_hash(&mut self) {
         self.spatial_hash.clear();
     }
 
     pub(crate) fn update_single(&mut self, component: &ColliderComponent, transform: &Transform) {
         if let Some(col) = self.colliders.get(&component.id) {
-            self.spatial_hash.remove(col);
+            if col.is_registered {
+                self.spatial_hash.remove(col);
+            }
         }
 
         if let Some(col) = self.get_mut(component.id) {
+            col.is_registered = true;
             col.update_from_transform(transform);
         }
 
@@ -384,6 +434,7 @@ impl ColliderSet {
         transform: &Transform,
     ) {
         if let Some(col) = self.get_mut(component.id) {
+            col.is_registered = true;
             col.update_from_transform(transform);
         }
 
@@ -416,7 +467,6 @@ fn update_positions(
     mut collider_set: ResMut<ColliderSet>,
     colliders: Query<(&ColliderComponent, &Transform), Changed<Transform>>,
 ) {
-    //collider_set.clear_hash(); // TODO: Remove this
     for (collider, transform) in &colliders {
         collider_set.update_single(collider, transform);
     }
@@ -427,10 +477,6 @@ fn on_collider_added(
     colliders: Query<(&ColliderComponent, &Transform), Added<ColliderComponent>>,
 ) {
     for (col, transform) in &colliders {
-        /* bevy::log::info!(
-            "Created ColliderComponent: {col:?} | {:?}",
-            transform.translation
-        ); */
         collider_set.added_with_transform(col, transform);
     }
 }

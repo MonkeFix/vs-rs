@@ -141,8 +141,7 @@ fn movement(
 
         if let Ok(player_collider_id) = player_collider.get_single() {
             let player_collider = collider_set.get(player_collider_id.id).unwrap();
-            /*             let (player_collider, neighbors) = collider_set.get_neighbors_and_self(player_collider);
-
+            /*
             for collider in neighbors {
                 let col = player_collider.collides_with(collider);
                 if let Some(col) = col {
@@ -152,12 +151,12 @@ fn movement(
             } */
 
             let rect = player_collider.bounds();
-            let neighbors = collider_set.aabb_broadphase_excluding_self(player_collider_id.id, rect, None);
+            let neighbors =
+                collider_set.aabb_broadphase_excluding_self(player_collider_id.id, rect, None);
             for collider_id in neighbors {
-                let collider = collider_set.get(collider_id);
-                log::info!("collided with {collider_id:?}")
+                let _collider = collider_set.get(collider_id);
+                // collision resolve here
             }
-            //log::info!("{neighbors:?}");
         }
     }
 }

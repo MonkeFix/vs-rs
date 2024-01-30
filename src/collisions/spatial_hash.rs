@@ -130,7 +130,7 @@ impl SpatialHash {
         find_collider: F,
     ) -> (i32, Vec<RaycastHit>)
     where
-        F: Fn(&ColliderId) -> &'a Collider,
+        F: Fn(&ColliderId) -> Option<&'a Collider>,
     {
         let mut res = Vec::new();
         let ray = Ray2D::new(start, end);
@@ -421,13 +421,13 @@ impl RaycastResultParser {
         raycasts: &mut Vec<RaycastHit>,
     ) -> bool
     where
-        F: Fn(&ColliderId) -> &'a Collider,
+        F: Fn(&ColliderId) -> Option<&'a Collider>,
     {
         let ray = self.ray.unwrap();
 
         for i in 0..cell.len() {
             let potential = &cell[i];
-            let potential = find_collider(potential);
+            let potential = find_collider(potential).unwrap();
 
             if self.checked_colliders.contains(&potential.id) {
                 continue;

@@ -135,7 +135,7 @@ const SPAWN_DISTANCE: MinMaxStruct<f32> = MinMaxStruct {
     max: 800.0,
 };
 
-const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 60, max: 200 };
+const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 5, max: 20 };
 #[derive(Resource)]
 struct GlobalTimeTickerResource(Timer);
 
