@@ -1,7 +1,7 @@
 use crate::collisions::colliders::ColliderBundle;
 use crate::collisions::colliders::ColliderComponent;
 use crate::collisions::colliders::ColliderIdResolver;
-use crate::collisions::colliders::ColliderSet;
+use crate::collisions::colliders::ColliderStore;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::player::*;
 use crate::stats::*;
@@ -246,7 +246,7 @@ fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(spawners.clone());
 }
 fn spawn(
-    mut collider_set: ResMut<ColliderSet>,
+    mut collider_set: ResMut<ColliderStore>,
     mut commands: Commands,
     mut spawn_map: ResMut<EnemySpawners>,
     mut player: Query<&mut Transform, With<Player>>,
@@ -348,7 +348,7 @@ fn spawn(
     }
 }
 fn movement(
-    collider_set: Res<ColliderSet>,
+    collider_set: Res<ColliderStore>,
     player: Query<&SteeringHost, With<Player>>,
     mut enemies: Query<
         (&mut Transform, &mut SteeringHost, &ColliderComponent),

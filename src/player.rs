@@ -1,5 +1,5 @@
 use crate::collisions::colliders::{
-    ColliderBundle, ColliderComponent, ColliderIdResolver, ColliderSet,
+    ColliderBundle, ColliderComponent, ColliderIdResolver, ColliderStore,
 };
 use crate::collisions::shapes::ColliderShapeType;
 use crate::enemy::Enemy;
@@ -46,7 +46,7 @@ impl PlayerBundle {
 }
 
 fn spawn(
-    mut collider_set: ResMut<ColliderSet>,
+    mut collider_set: ResMut<ColliderStore>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
@@ -73,7 +73,7 @@ fn spawn(
 
 fn movement(
     keyboard_input: Res<Input<KeyCode>>,
-    collider_set: Res<ColliderSet>,
+    collider_set: Res<ColliderStore>,
     mut steering_host: Query<&mut SteeringHost, With<Player>>,
     gamepad_axes: Res<Axis<GamepadAxis>>,
     gamepad_settings: Res<GamepadSettings>,

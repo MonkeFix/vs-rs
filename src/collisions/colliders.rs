@@ -247,7 +247,7 @@ pub struct ColliderComponent {
 }
 
 impl ColliderComponent {
-    pub fn new(collider_set: &mut ColliderSet, shape_type: ColliderShapeType) -> Self {
+    pub fn new(collider_set: &mut ColliderStore, shape_type: ColliderShapeType) -> Self {
         collider_set.create_and_register(shape_type)
     }
 }
@@ -265,12 +265,12 @@ pub trait ColliderIdResolver {
 static COLLIDER_ID_GEN: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Resource)]
-pub struct ColliderSet {
+pub struct ColliderStore {
     pub colliders: HashMap<ColliderId, Collider>,
     spatial_hash: SpatialHash,
 }
 
-impl Default for ColliderSet {
+impl Default for ColliderStore {
     fn default() -> Self {
         Self {
             colliders: HashMap::new(),
@@ -279,7 +279,7 @@ impl Default for ColliderSet {
     }
 }
 
-impl ColliderSet {
+impl ColliderStore {
     pub fn new(cell_size: i32) -> Self {
         Self {
             spatial_hash: SpatialHash::new(cell_size),
@@ -444,7 +444,7 @@ impl ColliderSet {
     }
 }
 
-impl ColliderIdResolver for ColliderSet {
+impl ColliderIdResolver for ColliderStore {
     fn get(&self, id: ColliderId) -> Option<&Collider> {
         self.colliders.get(&id)
     }
@@ -458,13 +458,13 @@ pub struct CollisionPlugin;
 
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ColliderSet::default())
+        app.insert_resource(ColliderStore::default())
             .add_systems(FixedUpdate, (update_positions, on_collider_added));
     }
 }
 
 fn update_positions(
-    mut collider_set: ResMut<ColliderSet>,
+    mut collider_set: ResMut<ColliderStore>,
     colliders: Query<(&ColliderComponent, &Transform), Changed<Transform>>,
 ) {
     for (collider, transform) in &colliders {
@@ -473,7 +473,7 @@ fn update_positions(
 }
 
 fn on_collider_added(
-    mut collider_set: ResMut<ColliderSet>,
+    mut collider_set: ResMut<ColliderStore>,
     colliders: Query<(&ColliderComponent, &Transform), Added<ColliderComponent>>,
 ) {
     for (col, transform) in &colliders {
