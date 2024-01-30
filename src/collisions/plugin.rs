@@ -1,5 +1,5 @@
 use super::{shapes::ColliderShapeType, store::ColliderStore, ColliderId};
-use bevy::prelude::*;
+use bevy::{ecs::system::EntityCommands, prelude::*};
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Reflect, Hash)]
 pub struct ColliderComponent {
@@ -41,5 +41,38 @@ fn on_collider_added(
 ) {
     for (col, transform) in &colliders {
         collider_set.added_with_transform(col.id, transform);
+    }
+}
+
+pub trait ColliderDespawnable {
+    fn despawn_and_unregister(
+        &mut self,
+        collider_store: &mut ColliderStore,
+        collider_id: ColliderId,
+    );
+    fn despawn_recursive_and_unregister(
+        self,
+        collider_store: &mut ColliderStore,
+        collider_id: ColliderId,
+    );
+}
+
+impl<'w, 's, 'a> ColliderDespawnable for EntityCommands<'w, 's, 'a> {
+    fn despawn_and_unregister(
+        &mut self,
+        collider_store: &mut ColliderStore,
+        collider_id: ColliderId,
+    ) {
+        self.despawn();
+        collider_store.remove(collider_id);
+    }
+
+    fn despawn_recursive_and_unregister(
+        self,
+        collider_store: &mut ColliderStore,
+        collider_id: ColliderId,
+    ) {
+        collider_store.remove(collider_id);
+        self.despawn_recursive();
     }
 }
