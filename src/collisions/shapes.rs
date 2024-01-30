@@ -18,10 +18,13 @@ pub struct ColliderShape {
 
 pub mod collisions {
     use super::{ColliderShape, ColliderShapeType};
-    use crate::collisions::{CollisionResultRef, RaycastHitRef, Rect};
+    use crate::collisions::{CollisionResultRef, RaycastHit, Rect};
     use bevy::math::Vec2;
 
-    pub fn box_to_box<'a>(first: &ColliderShape, second: &ColliderShape) -> Option<CollisionResultRef<'a>> {
+    pub fn box_to_box<'a>(
+        first: &ColliderShape,
+        second: &ColliderShape,
+    ) -> Option<CollisionResultRef<'a>> {
         let mut res = CollisionResultRef::default();
 
         let diff = minkowski_diff(first, second);
@@ -71,7 +74,10 @@ pub mod collisions {
         }
     }
 
-    pub fn circle_to_box<'a>(circle: &ColliderShape, bx: &ColliderShape) -> Option<CollisionResultRef<'a>> {
+    pub fn circle_to_box<'a>(
+        circle: &ColliderShape,
+        bx: &ColliderShape,
+    ) -> Option<CollisionResultRef<'a>> {
         match circle.shape_type {
             ColliderShapeType::Circle { radius } => {
                 let mut res = CollisionResultRef::default();
@@ -108,10 +114,10 @@ pub mod collisions {
         }
     }
 
-    pub fn line_to_circle<'a>(start: Vec2, end: Vec2, s: &ColliderShape) -> Option<RaycastHitRef<'a>> {
+    pub fn line_to_circle<'a>(start: Vec2, end: Vec2, s: &ColliderShape) -> Option<RaycastHit> {
         match s.shape_type {
             ColliderShapeType::Circle { radius } => {
-                let mut hit = RaycastHitRef::default();
+                let mut hit = RaycastHit::default();
 
                 let length = start.distance(end);
                 let d = (end - start) / length;

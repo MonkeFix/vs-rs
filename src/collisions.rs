@@ -46,7 +46,7 @@ impl<'a> CollisionResultRef<'a> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Ray2D {
     pub start: Vec2,
     pub end: Vec2,
@@ -63,9 +63,9 @@ impl Ray2D {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct RaycastHit {
-    pub collider: Option<Collider>,
+    pub collider: Option<ColliderId>,
     pub fraction: f32,
     pub distance: f32,
     pub point: Vec2,
@@ -73,7 +73,7 @@ pub struct RaycastHit {
     pub centroid: Vec2,
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+/* #[derive(Debug, Default, Clone, Copy)]
 pub struct RaycastHitRef<'a> {
     pub collider: Option<&'a Collider>,
     pub fraction: f32,
@@ -82,7 +82,7 @@ pub struct RaycastHitRef<'a> {
     pub normal: Vec2,
     pub centroid: Vec2,
 }
-
+ */
 #[derive(Debug, Eq, PartialEq, FromPrimitive)]
 #[repr(u8)]
 pub enum PointSectors {
@@ -320,6 +320,23 @@ impl Rect {
             && self.top() < other.bottom()
     }
 
+    pub fn union(&self, other: &Rect) -> Rect {
+        let x = self.x.min(other.x);
+        let y = self.y.min(other.y);
+
+        Rect::new(
+            x,
+            y,
+            self.right().max(other.right()) - x,
+            self.bottom().max(other.bottom()) - y,
+        )
+    }
+
+    pub fn union_vec2(&self, vec: &Vec2) -> Rect {
+        let rect = Rect::new(vec.x, vec.y, 0.0, 0.0);
+        self.union(&rect)
+    }
+
     pub fn closest_point_to_origin(&self) -> Vec2 {
         let max = self.max();
         let mut min_dist = self.x.abs();
@@ -390,5 +407,54 @@ impl Rect {
         }
 
         (res, edge_normal)
+    }
+
+    fn ray_intersects(&self, ray: &Ray2D) -> Option<f32> {
+        let mut distance = 0.0;
+        let mut max = f32::MAX;
+
+        if ray.direction.x.abs() < 1e-06 {
+            if ray.start.x < self.x || ray.start.x > self.x + self.width {
+                return None;
+            }
+        } else {
+            let inv_x = 1.0 / ray.direction.x;
+            let mut left = (self.x - ray.start.x) * inv_x;
+            let mut right = (self.x + self.width - ray.start.x) * inv_x;
+            if left > right {
+                let tmp = left;
+                left = right;
+                right = tmp;
+            }
+
+            distance = left.max(distance);
+            max = right.min(max);
+            if distance > max {
+                return None;
+            }
+        }
+
+        if ray.direction.y.abs() < 1e-06 {
+            if ray.start.y < self.y || ray.start.y > self.y + self.height {
+                return None;
+            }
+        } else {
+            let inv_y = 1.0 / ray.direction.y;
+            let mut top = (self.y - ray.start.y) * inv_y;
+            let mut bottom = (self.y + self.height - ray.start.y) * inv_y;
+            if top > bottom {
+                let tmp = top;
+                top = bottom;
+                bottom = tmp;
+            }
+
+            distance = top.max(distance);
+            max = bottom.min(max);
+            if distance > max {
+                return None;
+            }
+        }
+
+        Some(distance)
     }
 }

@@ -1,15 +1,22 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{
+    prelude::*,
+    utils::{hashbrown::HashSet, HashMap},
+};
 
 use super::{
-    circle_to_circle, rect_to_circle, rect_to_rect, shapes::{ColliderShape, ColliderShapeType}, ColliderId, CollisionResultRef
+    circle_to_circle, rect_to_circle, rect_to_rect,
+    shapes::{ColliderShape, ColliderShapeType},
+    spatial_hash::SpatialHash,
+    ColliderId, CollisionResultRef, RaycastHit,
 };
 
 pub const ALL_LAYERS: i32 = -1;
 
 #[derive(Debug, Clone, PartialEq, Reflect)]
 pub struct Collider {
+    pub id: ColliderId,
     /// The underlying `ColliderShape` of the `Collider`.
     pub shape: ColliderShape,
     /// If this collider is a trigger it will not cause collisions but it will still trigger events.
@@ -35,6 +42,7 @@ impl Collider {
         };
 
         Self {
+            id: ColliderId(0),
             shape: ColliderShape {
                 shape_type,
                 position: Vec2::ZERO,
@@ -187,6 +195,24 @@ impl Collider {
         };
     }
 
+    pub fn collides_with_line(&self, start: Vec2, end: Vec2) -> Option<RaycastHit> {
+        match self.shape.shape_type {
+            ColliderShapeType::Circle { .. } => {
+                super::shapes::collisions::line_to_circle(start, end, &self.shape)
+            }
+            ColliderShapeType::Box { .. } => todo!(),
+        }
+    }
+
+    pub fn contains_point(&self, point: Vec2) -> bool {
+        match self.shape.shape_type {
+            ColliderShapeType::Circle { radius } => {
+                (point - self.shape.position).length_squared() <= radius * radius
+            }
+            ColliderShapeType::Box { .. } => self.bounds().contains(point),
+        }
+    }
+
     pub(crate) fn update_from_transform(&mut self, transform: &Transform) {
         if !self.needs_update(transform) {
             return;
@@ -213,11 +239,8 @@ pub struct ColliderComponent {
 }
 
 impl ColliderComponent {
-    pub fn new(collider_set: &mut ResMut<ColliderSet>, shape_type: ColliderShapeType) -> Self {
-        let collider = Collider::new(shape_type);
-        let id = collider_set.register(collider);
-
-        Self { id: ColliderId(id) }
+    pub fn new(collider_set: &mut ColliderSet, shape_type: ColliderShapeType) -> Self {
+        collider_set.create_and_register(shape_type)
     }
 }
 
@@ -226,29 +249,70 @@ pub struct ColliderBundle {
     pub collider: ColliderComponent,
 }
 
+pub trait ColliderIdResolver {
+    fn get(&self, id: ColliderId) -> Option<&Collider>;
+    fn get_mut(&mut self, id: ColliderId) -> Option<&mut Collider>;
+}
+
 static COLLIDER_ID_GEN: AtomicU32 = AtomicU32::new(0);
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct ColliderSet {
     pub colliders: HashMap<ColliderId, Collider>,
+    spatial_hash: SpatialHash,
+}
+
+impl Default for ColliderSet {
+    fn default() -> Self {
+        Self {
+            colliders: HashMap::new(),
+            spatial_hash: SpatialHash::new(100),
+        }
+    }
 }
 
 impl ColliderSet {
-    pub fn register(&mut self, collider: Collider) -> u32 {
+    pub fn new(cell_size: i32) -> Self {
+        Self {
+            colliders: HashMap::new(),
+            spatial_hash: SpatialHash::new(cell_size),
+        }
+    }
+
+    pub fn create_and_register(&mut self, shape_type: ColliderShapeType) -> ColliderComponent {
+        let collider = Collider::new(shape_type);
+        let id = self.register(collider);
+
+        ColliderComponent { id }
+    }
+
+    pub fn register(&mut self, mut collider: Collider) -> ColliderId {
         let id = COLLIDER_ID_GEN.fetch_add(1, Ordering::SeqCst);
-        self.colliders.insert(ColliderId(id), collider);
+        let id = ColliderId(id);
+        collider.id = id;
+
+        self.spatial_hash.register(&collider, id);
+
+        self.colliders.insert(id, collider);
+
         id
     }
 
-    pub fn get(&self, component: &ColliderComponent) -> Option<&Collider> {
+    pub fn from_component(&self, component: &ColliderComponent) -> Option<&Collider> {
         self.colliders.get(&component.id)
     }
 
-    pub fn get_mut(&mut self, component: &ColliderComponent) -> Option<&mut Collider> {
+    pub fn from_component_mut(&mut self, component: &ColliderComponent) -> Option<&mut Collider> {
         self.colliders.get_mut(&component.id)
     }
 
-    pub fn deregister(&mut self, component: ColliderComponent) -> Option<Collider> {
+    pub fn remove(&mut self, component: ColliderComponent) -> Option<Collider> {
+        let col = self.colliders.get(&component.id);
+        if col.is_none() {
+            return None;
+        }
+
+        self.spatial_hash.remove(&col.unwrap(), component.id);
         self.colliders.remove(&component.id)
     }
 
@@ -275,16 +339,40 @@ impl ColliderSet {
         component: &ColliderComponent,
     ) -> (&'a Collider, Vec<&'a Collider>) {
         (
-            self.get(component)
+            self.get(component.id)
                 .expect(&format!("collider {component:?} was deregistered")),
             self.get_neighbors(component),
         )
     }
 
+    pub fn aabb_broadphase(
+        &mut self,
+        rect: super::Rect,
+        layer_mask: Option<i32>,
+    ) -> HashSet<ColliderId> {
+        let layer_mask = match layer_mask {
+            Some(val) => val,
+            None => ALL_LAYERS,
+        };
+
+        self.spatial_hash
+            .aabb_broadphase(&rect, None, layer_mask, |id| self.colliders.get(id))
+    }
+
     pub(crate) fn update_single(&mut self, component: &ColliderComponent, transform: &Transform) {
-        if let Some(col) = self.get_mut(component) {
+        if let Some(col) = self.get_mut(component.id) {
             col.update_from_transform(transform);
         }
+    }
+}
+
+impl ColliderIdResolver for ColliderSet {
+    fn get(&self, id: ColliderId) -> Option<&Collider> {
+        self.colliders.get(&id)
+    }
+
+    fn get_mut(&mut self, id: ColliderId) -> Option<&mut Collider> {
+        self.colliders.get_mut(&id)
     }
 }
 

@@ -12,3 +12,11 @@ pub fn truncate_vec2(vec2: Vec2, max: f32) -> Vec2 {
 pub fn floor_to_int(f: f32) -> i32 {
     (f as f64).floor() as i32
 }
+
+pub fn approach(start: f32, end: f32, shift: f32) -> f32 {
+    if start < end {
+        return end.min(start + shift);
+    }
+
+    end.max(start - shift)
+}
