@@ -39,6 +39,7 @@ fn main() {
         ..default()
     }))
     .add_plugins(FrameTimeDiagnosticsPlugin)
+    .add_plugins(bevy_framepace::FramepacePlugin)
     .add_plugins(input::InputPlugin)
     .add_plugins(TileMapPlugin)
     .add_plugins(CameraMovementPlugin)
@@ -46,7 +47,7 @@ fn main() {
     .add_plugins(SteeringPlugin)
     .add_plugins(EnemyPlugin)
     .add_plugins(CollisionPlugin)
-    .add_systems(Startup, (spawn_camera, setup_gamepad))
+    .add_systems(Startup, (spawn_camera, setup_gamepad, setup_framepace))
     .insert_resource(Time::<Fixed>::from_seconds(FIXED_TIMESTEP));
 
     #[cfg(debug_assertions)]
@@ -64,4 +65,8 @@ fn setup_gamepad(mut gamepad_settings: ResMut<GamepadSettings>) {
     let settings = settings.unwrap();
 
     gamepad_settings.default_axis_settings = settings.clone();
+}
+
+fn setup_framepace(mut settings: ResMut<bevy_framepace::FramepaceSettings>) {
+    settings.limiter = bevy_framepace::Limiter::from_framerate(60.0);
 }
