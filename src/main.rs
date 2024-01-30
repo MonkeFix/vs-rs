@@ -1,4 +1,5 @@
 use bevy::{
+    diagnostic::FrameTimeDiagnosticsPlugin,
     input::gamepad::{AxisSettings, GamepadSettings},
     prelude::*,
 };
@@ -37,6 +38,7 @@ fn main() {
         }),
         ..default()
     }))
+    .add_plugins(FrameTimeDiagnosticsPlugin)
     .add_plugins(input::InputPlugin)
     .add_plugins(TileMapPlugin)
     .add_plugins(CameraMovementPlugin)

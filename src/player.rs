@@ -73,7 +73,7 @@ fn spawn(
 
 fn movement(
     keyboard_input: Res<Input<KeyCode>>,
-    mut collider_set: ResMut<ColliderSet>,
+    collider_set: Res<ColliderSet>,
     mut steering_host: Query<&mut SteeringHost, With<Player>>,
     gamepad_axes: Res<Axis<GamepadAxis>>,
     gamepad_settings: Res<GamepadSettings>,

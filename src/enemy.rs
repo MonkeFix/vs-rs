@@ -1,10 +1,13 @@
 use crate::collisions::colliders::ColliderBundle;
 use crate::collisions::colliders::ColliderComponent;
+use crate::collisions::colliders::ColliderIdResolver;
 use crate::collisions::colliders::ColliderSet;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::player::*;
 use crate::stats::*;
 use crate::steering::{SteerSeek, SteeringBundle, SteeringHost};
+use bevy::diagnostic::DiagnosticsStore;
+use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::*;
 use bevy::time::TimerMode::Repeating;
 use rand::{thread_rng, Rng};
@@ -35,7 +38,7 @@ Die. [V]
 
 // TODO: Move to config?
 const WAVE_DURATION_SEC: u64 = 30;
-const GLOBAL_TIME_TICKER_SEC: u64 = 5;
+const GLOBAL_TIME_TICKER_SEC: u64 = 1;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CurrentWave {
@@ -47,7 +50,7 @@ impl Plugin for EnemyPlugin {
             Duration::from_secs(GLOBAL_TIME_TICKER_SEC),
             TimerMode::Repeating,
         )))
-        .add_systems(Startup, enemy_factory)
+        .add_systems(Startup, (enemy_factory, add_enemy_count))
         .add_systems(
             Update,
             (
@@ -56,8 +59,70 @@ impl Plugin for EnemyPlugin {
                 check_health,
                 change_wave,
                 global_timer_tick,
+                update_enemy_count,
+                update_fps,
             ),
         );
+    }
+}
+
+fn add_enemy_count(mut commands: Commands) {
+    commands.spawn(
+        TextBundle::from_section(
+            "Capybaras: ",
+            TextStyle {
+                font_size: 40.0,
+                color: Color::BLACK,
+                ..default()
+            },
+        )
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(5.0),
+            left: Val::Px(5.0),
+            ..default()
+        }),
+    );
+
+    commands.spawn((
+        TextBundle::from_sections([
+            TextSection::new(
+                "FPS: ",
+                TextStyle {
+                    font_size: 40.0,
+                    color: Color::BLACK,
+                    ..default()
+                },
+            ),
+            TextSection::from_style(TextStyle {
+                font_size: 40.0,
+                color: Color::BLACK,
+                ..default()
+            }),
+        ]),
+        FpsText,
+    ));
+}
+
+fn update_enemy_count(
+    enemies: Query<(With<Enemy>, Without<Player>)>,
+    mut text: Query<&mut Text, Without<FpsText>>,
+) {
+    if let Ok(mut text) = text.get_single_mut() {
+        text.sections[0].value = format!("Capybaras: {}", enemies.iter().count());
+    }
+}
+
+#[derive(Component)]
+struct FpsText;
+
+fn update_fps(diagnostics: Res<DiagnosticsStore>, mut fps_text: Query<&mut Text, With<FpsText>>) {
+    if let Ok(mut text) = fps_text.get_single_mut() {
+        if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+            if let Some(value) = fps.smoothed() {
+                text.sections[1].value = format!("{value:.2}");
+            }
+        }
     }
 }
 
@@ -70,7 +135,7 @@ const SPAWN_DISTANCE: MinMaxStruct<f32> = MinMaxStruct {
     max: 800.0,
 };
 
-const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 6, max: 20 };
+const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 60, max: 200 };
 #[derive(Resource)]
 struct GlobalTimeTickerResource(Timer);
 
@@ -286,16 +351,12 @@ fn movement(
     collider_set: Res<ColliderSet>,
     player: Query<&SteeringHost, With<Player>>,
     mut enemies: Query<
-        (
-            &mut Transform,
-            &mut SteeringHost,
-            &ColliderComponent,
-        ),
+        (&mut Transform, &mut SteeringHost, &ColliderComponent),
         (With<Enemy>, Without<Player>),
     >,
 ) {
     if let Ok(pl) = player.get_single() {
-        for (mut t, mut st, collider) in &mut enemies {
+        for (mut t, mut st, collider_id) in &mut enemies {
             st.steer(SteerSeek, &pl.position);
 
             if st.cur_velocity.x < 0.0 {
@@ -304,14 +365,25 @@ fn movement(
                 t.scale.x = 1.0
             }
 
-            let (collider, neighbors) = collider_set.get_neighbors_and_self(collider);
+            let collider = collider_set.get(collider_id.id).unwrap();
+            let rect = collider.bounds();
+            let neighbors = collider_set.aabb_broadphase_excluding_self(collider_id.id, rect, None);
+            for n in neighbors {
+                let n = collider_set.get(n).unwrap();
+                if let Some(res) = collider.collides_with(n) {
+                    let target = st.position - res.min_translation;
+                    st.steer(SteerSeek, &target);
+                }
+            }
+
+            /* let (collider, neighbors) = collider_set.get_neighbors_and_self(collider);
 
             for n in neighbors {
                 if let Some(res) = collider.collides_with(&n) {
                     let target = st.position - res.min_translation;
                     st.steer(SteerSeek, &target);
                 }
-            }
+            } */
         }
     }
 }
