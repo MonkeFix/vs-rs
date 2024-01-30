@@ -1,6 +1,7 @@
 use bevy::{
+    log,
     math::Vec2,
-    utils::{hashbrown::HashSet, HashMap},
+    utils::{hashbrown::HashSet, HashMap, Instant},
 };
 
 use crate::math::{self, approach};
@@ -27,8 +28,9 @@ impl SpatialHash {
         }
     }
 
-    pub fn register(&mut self, collider: &Collider, collider_id: ColliderId) {
+    pub fn register(&mut self, collider: &Collider) {
         let bounds = collider.bounds();
+        // TODO: Register AFTER collider got it's correct position
 
         let p1 = self.cell_coords(bounds.x, bounds.y);
         let p2 = self.cell_coords(bounds.right(), bounds.bottom());
@@ -43,16 +45,16 @@ impl SpatialHash {
         for x in (p1.x as i32)..=(p2.x as i32) {
             for y in (p1.y as i32)..=(p2.y as i32) {
                 if let Some(c) = self.get_cell(x, y) {
-                    c.push(collider_id);
+                    c.push(collider.id);
                 } else {
-                    let c = vec![collider_id];
+                    let c = vec![collider.id];
                     self.cell_map.insert(x, y, c);
                 }
             }
         }
     }
 
-    pub fn remove(&mut self, collider: &Collider, collider_id: ColliderId) {
+    pub fn remove(&mut self, collider: &Collider) {
         let bounds = collider.bounds();
 
         let p1 = self.cell_coords(bounds.x, bounds.y);
@@ -61,14 +63,19 @@ impl SpatialHash {
         for x in (p1.x as i32)..=(p2.x as i32) {
             for y in (p1.y as i32)..=(p2.y as i32) {
                 if let Some(c) = self.get_cell(x, y) {
-                    c.retain(|&x| x != collider_id);
+                    c.retain(|&x| x != collider.id);
                 } else {
-                    panic!(
-                        "removing collider {collider_id:?} from a cell that is is not present in"
+                    log::error!(
+                        "removing collider {:?} from a cell that is is not present in",
+                        collider.id
                     );
                 }
             }
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.cell_map.clear();
     }
 
     pub fn aabb_broadphase<'a, F>(
@@ -328,7 +335,8 @@ struct IntIntMap {
 
 fn get_key(x: i32, y: i32) -> i64 {
     let shl = (x as i64).overflowing_shl(32);
-    shl.0 | ((y as u32) as i64)
+    let res = shl.0 | ((y as u32) as i64);
+    res
 }
 
 impl IntIntMap {

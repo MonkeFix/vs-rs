@@ -1,4 +1,6 @@
-use crate::collisions::colliders::{ColliderBundle, ColliderComponent, ColliderSet};
+use crate::collisions::colliders::{
+    ColliderBundle, ColliderComponent, ColliderIdResolver, ColliderSet,
+};
 use crate::collisions::shapes::ColliderShapeType;
 use crate::enemy::Enemy;
 use crate::stats::*;
@@ -71,7 +73,7 @@ fn spawn(
 
 fn movement(
     keyboard_input: Res<Input<KeyCode>>,
-    collider_set: Res<ColliderSet>,
+    mut collider_set: ResMut<ColliderSet>,
     mut steering_host: Query<&mut SteeringHost, With<Player>>,
     gamepad_axes: Res<Axis<GamepadAxis>>,
     gamepad_settings: Res<GamepadSettings>,
@@ -137,8 +139,9 @@ fn movement(
         let target = host.position + direction;
         host.steer(SteerSeek, &target);
 
-        if let Ok(player_collider) = player_collider.get_single() {
-            let (player_collider, neighbors) = collider_set.get_neighbors_and_self(player_collider);
+        if let Ok(player_collider_id) = player_collider.get_single() {
+            let player_collider = collider_set.get(player_collider_id.id).unwrap();
+            /*             let (player_collider, neighbors) = collider_set.get_neighbors_and_self(player_collider);
 
             for collider in neighbors {
                 let col = player_collider.collides_with(collider);
@@ -146,7 +149,15 @@ fn movement(
                     let target = host.position - col.min_translation;
                     host.steer(SteerSeek, &target);
                 }
+            } */
+
+            let rect = player_collider.bounds();
+            let neighbors = collider_set.aabb_broadphase_excluding_self(player_collider_id.id, rect, None);
+            for collider_id in neighbors {
+                let collider = collider_set.get(collider_id);
+                log::info!("collided with {collider_id:?}")
             }
+            //log::info!("{neighbors:?}");
         }
     }
 }

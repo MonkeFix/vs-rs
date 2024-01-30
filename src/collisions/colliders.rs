@@ -291,7 +291,7 @@ impl ColliderSet {
         let id = ColliderId(id);
         collider.id = id;
 
-        self.spatial_hash.register(&collider, id);
+        //self.spatial_hash.register(&collider);
 
         self.colliders.insert(id, collider);
 
@@ -312,7 +312,7 @@ impl ColliderSet {
             return None;
         }
 
-        self.spatial_hash.remove(&col.unwrap(), component.id);
+        self.spatial_hash.remove(&col.unwrap());
         self.colliders.remove(&component.id)
     }
 
@@ -359,9 +359,34 @@ impl ColliderSet {
             .aabb_broadphase(&rect, None, layer_mask, |id| self.colliders.get(id))
     }
 
+    pub fn aabb_broadphase_excluding_self(
+        &mut self,
+        self_collider: ColliderId,
+        rect: super::Rect,
+        layer_mask: Option<i32>,
+    ) -> HashSet<ColliderId> {
+        let layer_mask = match layer_mask {
+            Some(val) => val,
+            None => ALL_LAYERS,
+        };
+
+        self.spatial_hash
+            .aabb_broadphase(&rect, Some(self_collider), layer_mask, |id| {
+                self.colliders.get(id)
+            })
+    }
+
     pub(crate) fn update_single(&mut self, component: &ColliderComponent, transform: &Transform) {
         if let Some(col) = self.get_mut(component.id) {
             col.update_from_transform(transform);
+        }
+
+        if let Some(col) = self.colliders.get(&component.id) {
+            //self.spatial_hash.remove(col);
+
+            // TODO: Replace this .clear() to replace when all colliders are registering correctly
+            self.spatial_hash.clear();
+            self.spatial_hash.register(col);
         }
     }
 }
