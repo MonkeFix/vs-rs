@@ -25,7 +25,8 @@ use player::PlayerPlugin;
 use steering::SteeringPlugin;
 use tilemap::TileMapPlugin;
 
-pub const FIXED_TIMESTEP: f64 = 1.0 / 60.0;
+pub const FRAMERATE: f64 = 60.0;
+pub const FIXED_TIMESTEP: f64 = 1.0 / FRAMERATE;
 
 fn main() {
     let mut app = App::new();
@@ -68,5 +69,5 @@ fn setup_gamepad(mut gamepad_settings: ResMut<GamepadSettings>) {
 }
 
 fn setup_framepace(mut settings: ResMut<bevy_framepace::FramepaceSettings>) {
-    settings.limiter = bevy_framepace::Limiter::from_framerate(60.0);
+    settings.limiter = bevy_framepace::Limiter::from_framerate(FRAMERATE);
 }
