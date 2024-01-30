@@ -6,12 +6,8 @@ use bevy::{
 };
 
 use super::{
-    circle_to_circle,
-    colliders::{Collider, ColliderComponent},
-    rect_to_circle, rect_to_rect,
-    shapes::{ColliderShape, ColliderShapeType},
-    spatial_hash::SpatialHash,
-    ColliderId, CollisionResultRef, RaycastHit,
+    colliders::Collider, plugin::ColliderComponent, shapes::ColliderShapeType,
+    spatial_hash::SpatialHash, ColliderId, RaycastHit,
 };
 
 pub const ALL_LAYERS: i32 = -1;
@@ -71,8 +67,8 @@ impl ColliderStore {
         self.colliders.get_mut(&component.id)
     }
 
-    pub fn remove(&mut self, component: ColliderComponent) -> Option<Collider> {
-        let col = self.colliders.get_mut(&component.id);
+    pub fn remove(&mut self, id: ColliderId) -> Option<Collider> {
+        let col = self.colliders.get_mut(&id);
         if col.is_none() {
             return None;
         }
@@ -81,17 +77,7 @@ impl ColliderStore {
         col.is_registered = false;
 
         self.spatial_hash.remove(&col);
-        self.colliders.remove(&component.id)
-    }
-
-    pub fn get_as_components(&self) -> Vec<ColliderComponent> {
-        let mut res = vec![];
-
-        for (id, _v) in &self.colliders {
-            res.push(ColliderComponent { id: *id });
-        }
-
-        res
+        self.colliders.remove(&id)
     }
 
     pub fn aabb_broadphase(
@@ -170,34 +156,30 @@ impl ColliderStore {
         self.spatial_hash.clear();
     }
 
-    pub(crate) fn update_single(&mut self, component: &ColliderComponent, transform: &Transform) {
-        if let Some(col) = self.colliders.get(&component.id) {
+    pub(crate) fn update_single(&mut self, id: ColliderId, transform: &Transform) {
+        if let Some(col) = self.colliders.get(&id) {
             if col.is_registered {
                 self.spatial_hash.remove(col);
             }
         }
 
-        if let Some(col) = self.get_mut(component.id) {
+        if let Some(col) = self.get_mut(id) {
             col.is_registered = true;
             col.update_from_transform(transform);
         }
 
-        if let Some(col) = self.colliders.get(&component.id) {
+        if let Some(col) = self.colliders.get(&id) {
             self.spatial_hash.register(col);
         }
     }
 
-    pub(crate) fn added_with_transform(
-        &mut self,
-        component: &ColliderComponent,
-        transform: &Transform,
-    ) {
-        if let Some(col) = self.get_mut(component.id) {
+    pub(crate) fn added_with_transform(&mut self, id: ColliderId, transform: &Transform) {
+        if let Some(col) = self.get_mut(id) {
             col.is_registered = true;
             col.update_from_transform(transform);
         }
 
-        if let Some(col) = self.colliders.get(&component.id) {
+        if let Some(col) = self.colliders.get(&id) {
             self.spatial_hash.register(col);
         }
     }

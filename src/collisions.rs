@@ -4,6 +4,7 @@ use num_enum::FromPrimitive;
 use self::colliders::Collider;
 
 pub mod colliders;
+pub mod plugin;
 pub mod shapes;
 pub mod spatial_hash;
 pub mod store;

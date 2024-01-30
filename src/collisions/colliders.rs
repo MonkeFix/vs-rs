@@ -1,15 +1,11 @@
-use std::sync::atomic::{AtomicU32, Ordering};
-
-use bevy::{
-    prelude::*,
-    utils::{hashbrown::HashSet, HashMap},
-};
+use bevy::prelude::*;
 
 use super::{
-    circle_to_circle, rect_to_circle, rect_to_rect, shapes::{ColliderShape, ColliderShapeType}, spatial_hash::SpatialHash, store::{ColliderStore, ALL_LAYERS}, ColliderId, CollisionResultRef, RaycastHit
+    circle_to_circle, rect_to_circle, rect_to_rect,
+    shapes::{ColliderShape, ColliderShapeType},
+    store::ALL_LAYERS,
+    ColliderId, CollisionResultRef, RaycastHit,
 };
-
-
 
 #[derive(Debug, Clone, PartialEq, Reflect)]
 pub struct Collider {
@@ -235,49 +231,5 @@ impl Collider {
             || self.shape.position.y != transform.translation.y
             || self.shape.center.x != transform.translation.x
             || self.shape.center.y != transform.translation.y
-    }
-}
-
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Reflect, Hash)]
-pub struct ColliderComponent {
-    pub id: ColliderId,
-}
-
-impl ColliderComponent {
-    pub fn new(collider_set: &mut ColliderStore, shape_type: ColliderShapeType) -> Self {
-        collider_set.create_and_register(shape_type)
-    }
-}
-
-#[derive(Bundle)]
-pub struct ColliderBundle {
-    pub collider: ColliderComponent,
-}
-
-
-pub struct CollisionPlugin;
-
-impl Plugin for CollisionPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(ColliderStore::default())
-            .add_systems(FixedUpdate, (update_positions, on_collider_added));
-    }
-}
-
-fn update_positions(
-    mut collider_set: ResMut<ColliderStore>,
-    colliders: Query<(&ColliderComponent, &Transform), Changed<Transform>>,
-) {
-    for (collider, transform) in &colliders {
-        collider_set.update_single(collider, transform);
-    }
-}
-
-fn on_collider_added(
-    mut collider_set: ResMut<ColliderStore>,
-    colliders: Query<(&ColliderComponent, &Transform), Added<ColliderComponent>>,
-) {
-    for (col, transform) in &colliders {
-        collider_set.added_with_transform(col, transform);
     }
 }

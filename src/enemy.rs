@@ -1,5 +1,5 @@
-use crate::collisions::colliders::ColliderBundle;
-use crate::collisions::colliders::ColliderComponent;
+use crate::collisions::plugin::ColliderBundle;
+use crate::collisions::plugin::ColliderComponent;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::ColliderIdResolver;
 use crate::collisions::store::ColliderStore;

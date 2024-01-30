@@ -3,6 +3,7 @@ use bevy::{
     input::gamepad::{AxisSettings, GamepadSettings},
     prelude::*,
 };
+use collisions::plugin::CollisionPlugin;
 
 mod camera;
 mod collisions;
@@ -18,7 +19,6 @@ mod stats;
 
 use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;
-use collisions::colliders::CollisionPlugin;
 #[cfg(debug_assertions)]
 use debug::DebugPlugin;
 use player::PlayerPlugin;
