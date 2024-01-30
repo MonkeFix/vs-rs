@@ -213,14 +213,19 @@ impl Collider {
         }
     }
 
+    pub fn set_position(&mut self, position: Vec2) {
+        self.shape.position = position;
+        self.shape.center = self.shape.position;
+
+        self.recalc_bounds();
+    }
+
     pub(crate) fn update_from_transform(&mut self, transform: &Transform) {
         if !self.needs_update(transform) {
             return;
         }
 
-        self.shape.position.x = transform.translation.x;
-        self.shape.position.y = transform.translation.y;
-        self.shape.center = self.shape.position;
+        self.set_position(Vec2::new(transform.translation.x, transform.translation.y));
 
         self.recalc_bounds();
     }
@@ -274,8 +279,8 @@ impl Default for ColliderSet {
 impl ColliderSet {
     pub fn new(cell_size: i32) -> Self {
         Self {
-            colliders: HashMap::new(),
             spatial_hash: SpatialHash::new(cell_size),
+            ..default()
         }
     }
 
@@ -290,8 +295,6 @@ impl ColliderSet {
         let id = COLLIDER_ID_GEN.fetch_add(1, Ordering::SeqCst);
         let id = ColliderId(id);
         collider.id = id;
-
-        //self.spatial_hash.register(&collider);
 
         self.colliders.insert(id, collider);
 
@@ -326,25 +329,6 @@ impl ColliderSet {
         res
     }
 
-    pub fn get_neighbors<'a>(&'a self, component: &ColliderComponent) -> Vec<&'a Collider> {
-        self.colliders
-            .iter()
-            .filter(|x| x.0 != &component.id)
-            .map(|x| x.1)
-            .collect()
-    }
-
-    pub fn get_neighbors_and_self<'a>(
-        &'a self,
-        component: &ColliderComponent,
-    ) -> (&'a Collider, Vec<&'a Collider>) {
-        (
-            self.get(component.id)
-                .expect(&format!("collider {component:?} was deregistered")),
-            self.get_neighbors(component),
-        )
-    }
-
     pub fn aabb_broadphase(
         &self,
         rect: super::Rect,
@@ -376,16 +360,34 @@ impl ColliderSet {
             })
     }
 
+    pub(crate) fn clear_hash(&mut self) {
+        self.spatial_hash.clear();
+    }
+
     pub(crate) fn update_single(&mut self, component: &ColliderComponent, transform: &Transform) {
+        if let Some(col) = self.colliders.get(&component.id) {
+            self.spatial_hash.remove(col);
+        }
+
         if let Some(col) = self.get_mut(component.id) {
             col.update_from_transform(transform);
         }
 
         if let Some(col) = self.colliders.get(&component.id) {
-            //self.spatial_hash.remove(col);
+            self.spatial_hash.register(col);
+        }
+    }
 
-            // TODO: Replace this .clear() to replace when all colliders are registering correctly
-            self.spatial_hash.clear();
+    pub(crate) fn added_with_transform(
+        &mut self,
+        component: &ColliderComponent,
+        transform: &Transform,
+    ) {
+        if let Some(col) = self.get_mut(component.id) {
+            col.update_from_transform(transform);
+        }
+
+        if let Some(col) = self.colliders.get(&component.id) {
             self.spatial_hash.register(col);
         }
     }
@@ -406,7 +408,7 @@ pub struct CollisionPlugin;
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ColliderSet::default())
-            .add_systems(FixedUpdate, (update_positions,));
+            .add_systems(FixedUpdate, (update_positions, on_collider_added));
     }
 }
 
@@ -414,7 +416,21 @@ fn update_positions(
     mut collider_set: ResMut<ColliderSet>,
     colliders: Query<(&ColliderComponent, &Transform), Changed<Transform>>,
 ) {
+    //collider_set.clear_hash(); // TODO: Remove this
     for (collider, transform) in &colliders {
         collider_set.update_single(collider, transform);
+    }
+}
+
+fn on_collider_added(
+    mut collider_set: ResMut<ColliderSet>,
+    colliders: Query<(&ColliderComponent, &Transform), Added<ColliderComponent>>,
+) {
+    for (col, transform) in &colliders {
+        /* bevy::log::info!(
+            "Created ColliderComponent: {col:?} | {:?}",
+            transform.translation
+        ); */
+        collider_set.added_with_transform(col, transform);
     }
 }

@@ -30,7 +30,6 @@ impl SpatialHash {
 
     pub fn register(&mut self, collider: &Collider) {
         let bounds = collider.bounds();
-        // TODO: Register AFTER collider got it's correct position
 
         let p1 = self.cell_coords(bounds.x, bounds.y);
         let p2 = self.cell_coords(bounds.right(), bounds.bottom());
