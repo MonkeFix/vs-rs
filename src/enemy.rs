@@ -1,8 +1,8 @@
 use crate::collisions::colliders::ColliderBundle;
 use crate::collisions::colliders::ColliderComponent;
-use crate::collisions::colliders::ColliderIdResolver;
-use crate::collisions::colliders::ColliderStore;
 use crate::collisions::shapes::ColliderShapeType;
+use crate::collisions::store::ColliderIdResolver;
+use crate::collisions::store::ColliderStore;
 use crate::player::*;
 use crate::stats::*;
 use crate::steering::{SteerSeek, SteeringBundle, SteeringHost};

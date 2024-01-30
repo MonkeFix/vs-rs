@@ -6,6 +6,7 @@ use self::colliders::Collider;
 pub mod colliders;
 pub mod shapes;
 pub mod spatial_hash;
+pub mod store;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
 pub struct ColliderId(pub u32);

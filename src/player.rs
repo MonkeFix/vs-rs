@@ -1,7 +1,6 @@
-use crate::collisions::colliders::{
-    ColliderBundle, ColliderComponent, ColliderIdResolver, ColliderStore,
-};
+use crate::collisions::colliders::{ColliderBundle, ColliderComponent};
 use crate::collisions::shapes::ColliderShapeType;
+use crate::collisions::store::{ColliderIdResolver, ColliderStore};
 use crate::enemy::Enemy;
 use crate::stats::*;
 use crate::{
