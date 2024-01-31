@@ -14,7 +14,7 @@ pub struct Collider {
     pub shape: ColliderShape,
     /// If this collider is a trigger it will not cause collisions but it will still trigger events.
     pub is_trigger: bool,
-    /// TODO. `local_offset` is added to `shape.position` to get the final position for the collider
+    /// `local_offset` is added to `shape.position` to get the final position for the collider
     /// geometry. This allows to add multiple Colliders to an Entity and position them separately
     /// and also lets you set the point of scale.
     pub local_offset: Vec2,
@@ -120,22 +120,28 @@ impl Collider {
                 ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_circle(
                     &self.shape,
                     &other.shape,
-                    None,
-                    None,
+                    self.local_offset,
+                    other.local_offset,
                 ),
-                ColliderShapeType::Box { .. } => {
-                    super::shapes::collisions::circle_to_box(&self.shape, &other.shape, None, None)
-                }
+                ColliderShapeType::Box { .. } => super::shapes::collisions::circle_to_box(
+                    &self.shape,
+                    &other.shape,
+                    self.local_offset,
+                    other.local_offset,
+                ),
             },
             ColliderShapeType::Box { .. } => match other.shape.shape_type {
-                ColliderShapeType::Circle { .. } => {
-                    super::shapes::collisions::circle_to_box(&other.shape, &self.shape, None, None)
-                }
-                ColliderShapeType::Box { .. } => super::shapes::collisions::circle_to_circle(
+                ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_box(
                     &other.shape,
                     &self.shape,
-                    None,
-                    None,
+                    other.local_offset,
+                    self.local_offset,
+                ),
+                ColliderShapeType::Box { .. } => super::shapes::collisions::box_to_box(
+                    &self.shape,
+                    &other.shape,
+                    self.local_offset,
+                    other.local_offset,
                 ),
             },
         };
@@ -165,28 +171,28 @@ impl Collider {
                 ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_circle(
                     &self.shape,
                     &other.shape,
-                    Some(motion),
-                    None,
+                    self.local_offset + motion,
+                    other.local_offset,
                 ),
                 ColliderShapeType::Box { .. } => super::shapes::collisions::circle_to_box(
                     &self.shape,
                     &other.shape,
-                    Some(motion),
-                    None,
+                    self.local_offset + motion,
+                    other.local_offset,
                 ),
             },
             ColliderShapeType::Box { .. } => match other.shape.shape_type {
                 ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_box(
                     &other.shape,
                     &self.shape,
-                    None,
-                    Some(motion),
+                    other.local_offset,
+                    self.local_offset + motion,
                 ),
                 ColliderShapeType::Box { .. } => super::shapes::collisions::box_to_box(
                     &self.shape,
                     &other.shape,
-                    Some(motion),
-                    None,
+                    self.local_offset + motion,
+                    other.local_offset,
                 ),
             },
         };

@@ -24,12 +24,12 @@ pub mod collisions {
     pub fn box_to_box<'a>(
         first: &ColliderShape,
         second: &ColliderShape,
-        first_movement: Option<Vec2>,
-        second_movement: Option<Vec2>,
+        first_offset: Vec2,
+        second_offset: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
         let mut res = CollisionResultRef::default();
 
-        let diff = minkowski_diff(first, second, first_movement, second_movement);
+        let diff = minkowski_diff(first, second, first_offset, second_offset);
         if diff.contains(Vec2::ZERO) {
             res.min_translation = diff.closest_point_to_origin();
 
@@ -49,24 +49,16 @@ pub mod collisions {
     pub fn circle_to_circle<'a>(
         first: &ColliderShape,
         second: &ColliderShape,
-        first_movement: Option<Vec2>,
-        second_movement: Option<Vec2>,
+        first_offset: Vec2,
+        second_offset: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
         match first.shape_type {
             ColliderShapeType::Circle { radius: r1 } => match second.shape_type {
                 ColliderShapeType::Circle { radius: r2 } => {
                     let mut res = CollisionResultRef::default();
 
-                    let first_pos = if let Some(dt) = first_movement {
-                        first.position + dt
-                    } else {
-                        first.position
-                    };
-                    let second_pos = if let Some(dt) = second_movement {
-                        second.position + dt
-                    } else {
-                        second.position
-                    };
+                    let first_pos = first.position + first_offset;
+                    let second_pos = second.position + second_offset;
 
                     let dist_sqr = Vec2::distance_squared(first_pos, second_pos);
                     let sum_of_radii = r1 + r2;
@@ -92,28 +84,19 @@ pub mod collisions {
     pub fn circle_to_box<'a>(
         circle: &ColliderShape,
         bx: &ColliderShape,
-        circle_movement: Option<Vec2>,
-        bx_movement: Option<Vec2>,
+        circle_offset: Vec2,
+        box_offset: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
         match circle.shape_type {
             ColliderShapeType::Circle { radius } => {
                 let mut res = CollisionResultRef::default();
 
-                let circle_pos = if let Some(dt) = circle_movement {
-                    circle.position + dt
-                } else {
-                    circle.position
-                };
-
-                let bx_pos = if let Some(dt) = bx_movement {
-                    bx.position + dt
-                } else {
-                    bx.position
-                };
+                let circle_pos = circle.position + circle_offset;
+                let box_pos = bx.position + box_offset;
 
                 let mut bx_bounds = bx.bounds;
-                bx_bounds.x = bx_pos.x;
-                bx_bounds.y = bx_pos.y;
+                bx_bounds.x = box_pos.x;
+                bx_bounds.y = box_pos.y;
 
                 let (closest_point, normal) = bx_bounds.closest_point_on_border(circle_pos);
                 res.normal = normal;
@@ -189,11 +172,12 @@ pub mod collisions {
     fn minkowski_diff(
         first: &ColliderShape,
         second: &ColliderShape,
-        first_movement: Option<Vec2>,
-        second_movement: Option<Vec2>,
+        first_offset: Vec2,
+        second_offset: Vec2,
     ) -> Rect {
-        let ((pos1, b1), (_, b2)) =
-            super::collisions::parse_movements(first, second, first_movement, second_movement);
+        let pos1 = first.position + first_offset;
+        let b1 = first.bounds.location() + first_offset;
+        let b2 = second.bounds.location() + second_offset;
 
         let pos_offset = pos1 - (b1 + first.bounds.size() / 2.0);
         let top_left =
@@ -201,26 +185,5 @@ pub mod collisions {
         let full_size = first.bounds.size() + second.bounds.size();
 
         Rect::new(top_left.x, top_left.y, full_size.x, full_size.y)
-    }
-
-    fn parse_movements(
-        first: &ColliderShape,
-        second: &ColliderShape,
-        first_movement: Option<Vec2>,
-        second_movement: Option<Vec2>,
-    ) -> ((Vec2, Vec2), (Vec2, Vec2)) {
-        let first_pos = if let Some(dt) = first_movement {
-            (first.position + dt, first.bounds.location() + dt)
-        } else {
-            (first.position, first.bounds.location())
-        };
-
-        let second_pos = if let Some(dt) = second_movement {
-            (second.position + dt, second.bounds.location() + dt)
-        } else {
-            (second.position, second.bounds.location())
-        };
-
-        (first_pos, second_pos)
     }
 }
