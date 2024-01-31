@@ -117,20 +117,26 @@ impl Collider {
 
         let res = match self.shape.shape_type {
             ColliderShapeType::Circle { .. } => match other.shape.shape_type {
-                ColliderShapeType::Circle { .. } => {
-                    super::shapes::collisions::circle_to_circle(&self.shape, &other.shape)
-                }
+                ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_circle(
+                    &self.shape,
+                    &other.shape,
+                    None,
+                    None,
+                ),
                 ColliderShapeType::Box { .. } => {
-                    super::shapes::collisions::circle_to_box(&self.shape, &other.shape)
+                    super::shapes::collisions::circle_to_box(&self.shape, &other.shape, None, None)
                 }
             },
             ColliderShapeType::Box { .. } => match other.shape.shape_type {
                 ColliderShapeType::Circle { .. } => {
-                    super::shapes::collisions::circle_to_box(&other.shape, &self.shape)
+                    super::shapes::collisions::circle_to_box(&other.shape, &self.shape, None, None)
                 }
-                ColliderShapeType::Box { .. } => {
-                    super::shapes::collisions::circle_to_circle(&other.shape, &self.shape)
-                }
+                ColliderShapeType::Box { .. } => super::shapes::collisions::circle_to_circle(
+                    &other.shape,
+                    &self.shape,
+                    None,
+                    None,
+                ),
             },
         };
 
@@ -146,29 +152,51 @@ impl Collider {
     /// with collider. If it does, true will be returned and result will be populated
     ///  with collision data.
     pub fn collides_with_motion<'a>(
-        &mut self,
-        motion: Vec2,
+        &self,
         other: &'a Collider,
+        motion: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
         if self.is_trigger || other.is_trigger {
             return None;
         }
 
-        // alter the shapes position so that it is in the place it would be after movement
-        // so we can check for overlaps
-        let old_pos = self.position();
-        self.shape.position += motion;
-        self.shape.bounds.x += motion.x;
-        self.shape.bounds.y += motion.y;
+        let res = match self.shape.shape_type {
+            ColliderShapeType::Circle { .. } => match other.shape.shape_type {
+                ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_circle(
+                    &self.shape,
+                    &other.shape,
+                    Some(motion),
+                    None,
+                ),
+                ColliderShapeType::Box { .. } => super::shapes::collisions::circle_to_box(
+                    &self.shape,
+                    &other.shape,
+                    Some(motion),
+                    None,
+                ),
+            },
+            ColliderShapeType::Box { .. } => match other.shape.shape_type {
+                ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_box(
+                    &other.shape,
+                    &self.shape,
+                    None,
+                    Some(motion),
+                ),
+                ColliderShapeType::Box { .. } => super::shapes::collisions::box_to_box(
+                    &self.shape,
+                    &other.shape,
+                    Some(motion),
+                    None,
+                ),
+            },
+        };
 
-        let res = self.collides_with(other);
+        if let Some(mut res) = res {
+            res.collider = Some(other);
+            return Some(res);
+        }
 
-        // return the shapes position to where it was before the check
-        self.shape.position = old_pos;
-        self.shape.bounds.x = old_pos.x;
-        self.shape.bounds.y = old_pos.y;
-
-        res
+        None
     }
 
     pub fn recalc_bounds(&mut self) {

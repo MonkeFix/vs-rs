@@ -24,10 +24,12 @@ pub mod collisions {
     pub fn box_to_box<'a>(
         first: &ColliderShape,
         second: &ColliderShape,
+        first_movement: Option<Vec2>,
+        second_movement: Option<Vec2>,
     ) -> Option<CollisionResultRef<'a>> {
         let mut res = CollisionResultRef::default();
 
-        let diff = minkowski_diff(first, second);
+        let diff = minkowski_diff(first, second, first_movement, second_movement);
         if diff.contains(Vec2::ZERO) {
             res.min_translation = diff.closest_point_to_origin();
 
@@ -47,21 +49,34 @@ pub mod collisions {
     pub fn circle_to_circle<'a>(
         first: &ColliderShape,
         second: &ColliderShape,
+        first_movement: Option<Vec2>,
+        second_movement: Option<Vec2>,
     ) -> Option<CollisionResultRef<'a>> {
         match first.shape_type {
             ColliderShapeType::Circle { radius: r1 } => match second.shape_type {
                 ColliderShapeType::Circle { radius: r2 } => {
                     let mut res = CollisionResultRef::default();
 
-                    let dist_sqr = Vec2::distance_squared(first.position, second.position);
+                    let first_pos = if let Some(dt) = first_movement {
+                        first.position + dt
+                    } else {
+                        first.position
+                    };
+                    let second_pos = if let Some(dt) = second_movement {
+                        second.position + dt
+                    } else {
+                        second.position
+                    };
+
+                    let dist_sqr = Vec2::distance_squared(first_pos, second_pos);
                     let sum_of_radii = r1 + r2;
                     let collided = dist_sqr < sum_of_radii * sum_of_radii;
                     if collided {
-                        let normal = first.position - second.position;
+                        let normal = first_pos - second_pos;
                         res.normal = normal.normalize_or_zero();
                         let depth = sum_of_radii - dist_sqr.sqrt();
                         res.min_translation = -depth * res.normal;
-                        res.point = second.position + res.normal * r2;
+                        res.point = second_pos + res.normal * r2;
 
                         return Some(res);
                     }
@@ -77,27 +92,45 @@ pub mod collisions {
     pub fn circle_to_box<'a>(
         circle: &ColliderShape,
         bx: &ColliderShape,
+        circle_movement: Option<Vec2>,
+        bx_movement: Option<Vec2>,
     ) -> Option<CollisionResultRef<'a>> {
         match circle.shape_type {
             ColliderShapeType::Circle { radius } => {
                 let mut res = CollisionResultRef::default();
 
-                let (closest_point, normal) = bx.bounds.closest_point_on_border(circle.position);
+                let circle_pos = if let Some(dt) = circle_movement {
+                    circle.position + dt
+                } else {
+                    circle.position
+                };
+
+                let bx_pos = if let Some(dt) = bx_movement {
+                    bx.position + dt
+                } else {
+                    bx.position
+                };
+
+                let mut bx_bounds = bx.bounds;
+                bx_bounds.x = bx_pos.x;
+                bx_bounds.y = bx_pos.y;
+
+                let (closest_point, normal) = bx_bounds.closest_point_on_border(circle_pos);
                 res.normal = normal;
 
-                if bx.bounds.contains(circle.position) {
+                if bx_bounds.contains(circle_pos) {
                     res.point = closest_point;
                     let safe_place = closest_point + res.normal * radius;
-                    res.min_translation = circle.position - safe_place;
+                    res.min_translation = circle_pos - safe_place;
 
                     return Some(res);
                 }
 
-                let sqr_dist = closest_point.distance_squared(circle.position);
+                let sqr_dist = closest_point.distance_squared(circle_pos);
                 if sqr_dist == 0.0 {
                     res.min_translation = res.normal * radius;
                 } else if sqr_dist <= radius * radius {
-                    res.normal = circle.position - closest_point;
+                    res.normal = circle_pos - closest_point;
                     let depth = res.normal.length() - radius;
 
                     res.point = closest_point;
@@ -153,11 +186,41 @@ pub mod collisions {
         }
     }
 
-    fn minkowski_diff(first: &ColliderShape, second: &ColliderShape) -> Rect {
-        let pos_offset = first.position - (first.bounds.location() + first.bounds.size() / 2.0);
-        let top_left = first.bounds.location() + pos_offset - second.bounds.max();
+    fn minkowski_diff(
+        first: &ColliderShape,
+        second: &ColliderShape,
+        first_movement: Option<Vec2>,
+        second_movement: Option<Vec2>,
+    ) -> Rect {
+        let ((pos1, b1), (_, b2)) =
+            super::collisions::parse_movements(first, second, first_movement, second_movement);
+
+        let pos_offset = pos1 - (b1 + first.bounds.size() / 2.0);
+        let top_left =
+            b1 + pos_offset - Vec2::new(b2.x + second.bounds.width, b2.y + second.bounds.height);
         let full_size = first.bounds.size() + second.bounds.size();
 
         Rect::new(top_left.x, top_left.y, full_size.x, full_size.y)
+    }
+
+    fn parse_movements(
+        first: &ColliderShape,
+        second: &ColliderShape,
+        first_movement: Option<Vec2>,
+        second_movement: Option<Vec2>,
+    ) -> ((Vec2, Vec2), (Vec2, Vec2)) {
+        let first_pos = if let Some(dt) = first_movement {
+            (first.position + dt, first.bounds.location() + dt)
+        } else {
+            (first.position, first.bounds.location())
+        };
+
+        let second_pos = if let Some(dt) = second_movement {
+            (second.position + dt, second.bounds.location() + dt)
+        } else {
+            (second.position, second.bounds.location())
+        };
+
+        (first_pos, second_pos)
     }
 }

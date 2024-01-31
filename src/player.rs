@@ -138,23 +138,22 @@ fn movement(
         let target = host.position + direction;
         host.steer(SteerSeek, &target);
 
-        if let Ok(player_collider_id) = player_collider.get_single() {
-            let player_collider = collider_set.get(player_collider_id.id).unwrap();
-            /*
-            for collider in neighbors {
-                let col = player_collider.collides_with(collider);
-                if let Some(col) = col {
-                    let target = host.position - col.min_translation;
-                    host.steer(SteerSeek, &target);
-                }
-            } */
+        if direction != Vec2::ZERO {
+            if let Ok(player_collider_id) = player_collider.get_single() {
+                let player_collider = collider_set.get(player_collider_id.id).unwrap();
 
-            let rect = player_collider.bounds();
-            let neighbors =
-                collider_set.aabb_broadphase_excluding_self(player_collider_id.id, rect, None);
-            for collider_id in neighbors {
-                let _collider = collider_set.get(collider_id);
-                // collision resolve here
+                let rect = player_collider.bounds();
+                let neighbors =
+                    collider_set.aabb_broadphase_excluding_self(player_collider_id.id, rect, None);
+                for collider_id in neighbors {
+                    let collider = collider_set.get(collider_id).unwrap();
+                    // resolve collisions
+                    let res = player_collider.collides_with_motion(collider, direction);
+                    if let Some(res) = res {
+                        let target = host.position - res.min_translation;
+                        host.steer(SteerSeek, &target);
+                    }
+                }
             }
         }
     }
