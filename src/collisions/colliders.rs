@@ -72,15 +72,18 @@ impl Collider {
         let position = self.position();
         match self.shape.shape_type {
             ColliderShapeType::Circle { radius: r1 } => match other.shape.shape_type {
-                ColliderShapeType::Circle { radius: r2 } => {
-                    circle_to_circle(position, r1, other.position(), r2)
-                }
+                ColliderShapeType::Circle { radius: r2 } => circle_to_circle(
+                    position + self.local_offset,
+                    r1,
+                    other.position() + other.local_offset,
+                    r2,
+                ),
                 ColliderShapeType::Box { width, height } => rect_to_circle(
-                    other.position().x,
-                    other.position().y,
+                    other.position().x + other.local_offset.x,
+                    other.position().y + other.local_offset.y,
                     width,
                     height,
-                    self.position(),
+                    self.position() + self.local_offset,
                     r1,
                 ),
             },
@@ -88,19 +91,24 @@ impl Collider {
                 width: w1,
                 height: h1,
             } => match other.shape.shape_type {
-                ColliderShapeType::Circle { radius } => {
-                    rect_to_circle(position.x, position.y, w1, h1, other.position(), radius)
-                }
+                ColliderShapeType::Circle { radius } => rect_to_circle(
+                    position.x + self.local_offset.x,
+                    position.y + self.local_offset.y,
+                    w1,
+                    h1,
+                    other.position() + other.local_offset,
+                    radius,
+                ),
                 ColliderShapeType::Box {
                     width: w2,
                     height: h2,
                 } => rect_to_rect(
-                    position.x,
-                    position.y,
+                    position.x + self.local_offset.x,
+                    position.y + self.local_offset.y,
                     w1,
                     h1,
-                    other.position().x,
-                    other.position().y,
+                    other.position().x + other.local_offset.x,
+                    other.position().y + other.local_offset.y,
                     w2,
                     h2,
                 ),
