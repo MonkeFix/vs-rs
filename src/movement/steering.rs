@@ -1,5 +1,12 @@
 use bevy::prelude::*;
 
+use crate::collisions::{
+    colliders::Collider,
+    plugin::ColliderComponent,
+    store::{ColliderIdResolver, ColliderStore},
+    ColliderId, CollisionResult, CollisionResultRef,
+};
+
 pub trait SteeringTarget {
     /// Returns target's position.
     fn position(&self) -> Vec2;
@@ -209,6 +216,53 @@ impl SteeringBehavior for SteerCollisionAvoidance {
     }
 }
 
+/// Returns ahead vector
+pub fn avoid_collisions(
+    collider_store: &ColliderStore,
+    collider: &Collider,
+    host: &SteeringHost,
+    max_see_ahead: f32,
+    avoid_force: f32,
+    avoidance: &mut Vec2,
+    layer_mask: Option<i32>,
+) -> Vec2 {
+    let dv = host.cur_velocity.normalize_or_zero() * max_see_ahead * host.cur_velocity.length()
+        / host.max_velocity;
+
+    let ahead = host.position + dv;
+
+    let mut bounds = collider.bounds();
+    bounds.x += dv.x;
+    bounds.y += dv.y;
+
+    let mut min_dist = f32::MAX;
+    let mut closest_col = None;
+
+    let neighbors = collider_store.aabb_broadphase_excluding_self(collider.id, bounds, layer_mask);
+    // find the closest
+    /* if neighbors.len() > 0 {
+        bevy::log::info!("found {} neighbors", neighbors.len());
+    } */
+    for neighbor_id in neighbors {
+        let neighbor = collider_store.get(neighbor_id).unwrap();
+        let distance = (neighbor.position() - host.position).length();
+
+        if distance < min_dist {
+            min_dist = distance;
+            closest_col = Some(neighbor);
+        }
+    }
+
+    if let Some(collider) = closest_col {
+        *avoidance = (ahead - collider.position()).normalize_or_zero();
+        *avoidance *= avoid_force;
+    } else {
+        *avoidance *= 0.0;
+    }
+
+    ahead
+}
+
 #[derive(Component, Debug, PartialEq, Clone, Copy, Reflect)]
 #[reflect(Component, Default, PartialEq)]
 pub struct SteeringHost {
@@ -268,7 +322,17 @@ pub struct SteeringPlugin;
 
 impl Plugin for SteeringPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (steer, update_position, update_translation).chain());
+        app.add_systems(Update, (host_added,));
+        app.add_systems(FixedUpdate, (steer, update_translation));
+    }
+}
+
+fn host_added(mut gizmos: Gizmos, query: Query<(&SteeringHost)>) {
+    for (host) in &query {
+        gizmos.circle_2d(host.position, 16.0, Color::BLUE);
+        // gizmos.ray_2d(host.position, host.cur_velocity.normalize_or_zero() * 100.0, Color::RED);
+        // gizmos.ray_2d(host.position, host.desired_velocity.normalize_or_zero() * 1000.0, Color::BLUE);
+        // gizmos.ray_2d(host.position, host.steering.normalize_or_zero() * 80.0, Color::YELLOW);
     }
 }
 
@@ -278,20 +342,12 @@ fn update_translation(mut host: Query<(&mut Transform, &SteeringHost)>) {
     }
 }
 
-fn update_position(time: Res<Time>, mut host: Query<(&mut SteeringHost, Entity)>) {
-    for (mut host, _entity) in &mut host {
-        let movement = host.cur_velocity * time.delta_seconds();
-        //calc_movement(&mut movement, &mut colliders, entity, &collider_set);
-
-        host.position += movement;
-
-        let friction = host.friction;
-        host.cur_velocity *= friction;
-    }
-}
-
-fn steer(mut host: Query<&mut SteeringHost>) {
-    for mut host in &mut host {
+fn steer(
+    collider_store: Res<ColliderStore>,
+    time: Res<Time>,
+    mut host: Query<(&mut SteeringHost, &ColliderComponent)>,
+) {
+    for (mut host, collider_id) in &mut host {
         let mass = host.mass;
 
         host.steering = crate::math::truncate_vec2(host.steering, host.max_force);
@@ -300,46 +356,51 @@ fn steer(mut host: Query<&mut SteeringHost>) {
         let steering = host.steering;
         host.cur_velocity =
             crate::math::truncate_vec2(host.cur_velocity + steering, host.max_velocity);
+
+        let mut movement = host.cur_velocity * time.delta_seconds();
+        calc_movement(&mut movement, collider_id.id, &collider_store);
+
+        host.position += movement;
+
+        let friction = host.friction;
+        host.cur_velocity *= friction;
     }
 }
-/*
+
 fn calc_movement(
     motion: &mut Vec2,
-    colliders: &mut Query<&mut Collider>,
-    entity: Entity,
-    collider_set: &Res<ColliderSet>,
+    collider_id: ColliderId,
+    collider_store: &ColliderStore,
 ) -> Option<CollisionResult> {
-    let mut res = None;
+    let mut result = None;
 
-    for mut collider in colliders {
-        let mut bounds = collider.shape.bounds;
-        bounds.x += motion.x;
-        bounds.y += motion.y;
-        let neighbors = get_neighbors(entity, &collider_set);
+    let collider = collider_store.get(collider_id).unwrap();
 
-        for neighbor in neighbors {
-            if let Some(collision) = collider.collides_with_motion(*motion, &neighbor) {
-                *motion -= collision.min_translation;
-                let col: CollisionResult = collision.clone();
-                res = Some(col);
-            }
-        }
+    if collider.is_trigger || !collider.is_registered {
+        return None;
     }
 
-    res
-}
+    let mut bounds = collider.bounds();
+    bounds.x += motion.x;
+    bounds.y += motion.y;
+    let neighbors = collider_store.aabb_broadphase_excluding_self(
+        collider_id,
+        bounds,
+        Some(collider.collides_with_layers),
+    );
 
-fn get_neighbors(entity: Entity, collider_set: &Res<ColliderSet>) -> Vec<Collider> {
-    let mut res = vec![];
-
-    for (index, collider) in &collider_set.map {
-        if entity.index() == *index {
+    for id in neighbors {
+        let neighbor = collider_store.get(id).unwrap();
+        if neighbor.is_trigger {
             continue;
         }
 
-        res.push(collider.clone());
+        if let Some(collision) = collider.collides_with_motion(&neighbor, *motion) {
+            *motion -= collision.min_translation;
+
+            result = Some(CollisionResult::from_ref(&collision));
+        }
     }
 
-    res
+    result
 }
- */

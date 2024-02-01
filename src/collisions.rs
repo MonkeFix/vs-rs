@@ -12,9 +12,9 @@ pub mod store;
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
 pub struct ColliderId(pub u32);
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct CollisionResult {
-    pub collider: Option<Collider>,
+    pub collider: Option<ColliderId>,
     pub normal: Vec2,
     pub min_translation: Vec2,
     pub point: Vec2,
@@ -35,6 +35,21 @@ impl CollisionResult {
 
         self.min_translation.x = -self.min_translation.x;
         self.min_translation.y = -self.min_translation.y;
+    }
+
+    pub fn from_ref(result: &CollisionResultRef) -> Self {
+        let collider = if let Some(col) = result.collider {
+            Some(col.id)
+        } else {
+            None
+        };
+
+        Self {
+            collider,
+            normal: result.normal,
+            min_translation: result.min_translation,
+            point: result.point,
+        }
     }
 }
 

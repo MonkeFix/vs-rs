@@ -3,9 +3,10 @@ use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::{ColliderIdResolver, ColliderStore};
 use crate::enemy::Enemy;
 use crate::stats::*;
+use crate::movement::steering::SteeringBehavior;
 use crate::{
     input::PlayerControls,
-    steering::{SteerSeek, SteeringBundle, SteeringHost},
+    movement::steering::{SteerSeek, SteeringBundle, SteeringHost},
 };
 use bevy::log;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
@@ -136,9 +137,11 @@ fn movement(
 
     if let Ok(mut host) = steering_host.get_single_mut() {
         let target = host.position + direction;
-        host.steer(SteerSeek, &target);
+        let vec = SteerSeek.steer(&host, &target).steering_vec;
+        host.steering = vec;
+        //host.steer(SteerSeek, &target);
 
-        if direction != Vec2::ZERO {
+        /* if direction != Vec2::ZERO {
             if let Ok(player_collider_id) = player_collider.get_single() {
                 let player_collider = collider_set.get(player_collider_id.id).unwrap();
 
@@ -155,7 +158,7 @@ fn movement(
                     }
                 }
             }
-        }
+        } */
     }
 }
 

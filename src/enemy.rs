@@ -5,7 +5,9 @@ use crate::collisions::store::ColliderIdResolver;
 use crate::collisions::store::ColliderStore;
 use crate::player::*;
 use crate::stats::*;
-use crate::steering::{SteerSeek, SteeringBundle, SteeringHost};
+use crate::movement::steering::avoid_collisions;
+use crate::movement::steering::SteeringBehavior;
+use crate::movement::steering::{SteerSeek, SteeringBundle, SteeringHost};
 use bevy::diagnostic::DiagnosticsStore;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::*;
@@ -348,7 +350,7 @@ fn spawn(
     }
 }
 fn movement(
-    collider_set: Res<ColliderStore>,
+    collider_store: Res<ColliderStore>,
     player: Query<&SteeringHost, With<Player>>,
     mut enemies: Query<
         (&mut Transform, &mut SteeringHost, &ColliderComponent),
@@ -357,7 +359,26 @@ fn movement(
 ) {
     if let Ok(pl) = player.get_single() {
         for (mut t, mut st, collider_id) in &mut enemies {
-            st.steer(SteerSeek, &pl.position);
+            let mut avoidance = Vec2::ZERO;
+
+            let collider = collider_store.get(collider_id.id).unwrap();
+
+            let _ahead = avoid_collisions(
+                &collider_store,
+                collider,
+                &st,
+                16.0,
+                1500.0,
+                &mut avoidance,
+                None,
+            );
+
+            let steering = SteerSeek.steer(&st, pl).steering_vec;
+
+            st.steering = steering;
+            //st.steering += avoidance;
+
+            //steer(SteerSeek, &pl.position);
 
             if st.cur_velocity.x < 0.0 {
                 t.scale.x = -1.0;
@@ -365,7 +386,7 @@ fn movement(
                 t.scale.x = 1.0
             }
 
-            let collider = collider_set.get(collider_id.id).unwrap();
+            /* let collider = collider_set.get(collider_id.id).unwrap();
             let rect = collider.bounds();
             let neighbors = collider_set.aabb_broadphase_excluding_self(collider_id.id, rect, None);
             for n in neighbors {
@@ -374,7 +395,7 @@ fn movement(
                     let target = st.position - res.min_translation;
                     st.steer(SteerSeek, &target);
                 }
-            }
+            } */
 
             /* let (collider, neighbors) = collider_set.get_neighbors_and_self(collider);
 

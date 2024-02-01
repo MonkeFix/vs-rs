@@ -11,8 +11,8 @@ mod debug;
 mod input;
 mod math;
 mod player;
-mod steering;
 mod tilemap;
+mod movement;
 
 mod enemy;
 mod stats;
@@ -22,7 +22,7 @@ use camera::CameraMovementPlugin;
 #[cfg(debug_assertions)]
 use debug::DebugPlugin;
 use player::PlayerPlugin;
-use steering::SteeringPlugin;
+use movement::steering::SteeringPlugin;
 use tilemap::TileMapPlugin;
 
 pub const FRAMERATE: f64 = 60.0;

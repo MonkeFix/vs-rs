@@ -446,9 +446,10 @@ impl RaycastResultParser {
             if let Some(fraction) = collider_bounds.ray_intersects(&ray) {
                 if fraction <= 1.0 {
                     if let Some(mut tmp_hit) = potential.collides_with_line(ray.start, ray.end) {
-                        if potential.contains_point(ray.start) {
+                        /* if potential.contains_point(ray.start) {
+                            bevy::log::info!("contains point");
                             continue;
-                        }
+                        } */
 
                         tmp_hit.collider = Some(potential.id);
                         self.cell_hits.push(tmp_hit);
@@ -463,8 +464,12 @@ impl RaycastResultParser {
             return false;
         }
 
-        self.cell_hits
-            .sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
+        self.cell_hits.sort_by(|a, b| {
+            a.distance
+                .partial_cmp(&b.distance)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
         for i in 0..self.cell_hits.len() {
             //self.hits.as_mut().unwrap()[self.hit_counter as usize] = self.cell_hits[i];
             raycasts.push(self.cell_hits[i]);

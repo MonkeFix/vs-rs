@@ -2,7 +2,7 @@ use bevy::prelude::*;
 #[cfg(debug_assertions)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
-use crate::{collisions::colliders::Collider, steering::SteeringHost};
+use crate::{collisions::colliders::Collider, movement::steering::SteeringHost};
 
 #[cfg(debug_assertions)]
 pub struct DebugPlugin;
