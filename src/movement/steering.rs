@@ -6,7 +6,8 @@ use crate::collisions::{
     store::{ColliderIdResolver, ColliderStore},
     ColliderId, CollisionResult, CollisionResultRef,
 };
-
+use crate::movement::{PhysicsParams, Position, SteeringHost};
+/*
 pub trait SteeringTarget {
     /// Returns target's position.
     fn position(&self) -> Vec2;
@@ -261,109 +262,73 @@ pub fn avoid_collisions(
     }
 
     ahead
-}
+}*/
 
-#[derive(Component, Debug, PartialEq, Clone, Copy, Reflect)]
-#[reflect(Component, Default, PartialEq)]
-pub struct SteeringHost {
-    pub position: Vec2,
+pub fn steer_seek(
+    position: &Position,
+    host: &SteeringHost,
+    physics_params: &PhysicsParams,
+    target: Vec2,
+) -> Vec2 {
+    let dv = target - position.0;
+    let dv = dv.normalize_or_zero();
 
-    pub desired_velocity: Vec2,
-    pub cur_velocity: Vec2,
-    pub steering: Vec2,
-
-    /// The highest speed entity can get to.
-    pub max_velocity: f32,
-    pub max_force: f32,
-    pub mass: f32,
-    pub friction: f32,
-}
-
-impl Default for SteeringHost {
-    fn default() -> Self {
-        Self {
-            position: Vec2::ZERO,
-
-            desired_velocity: Vec2::ZERO,
-            cur_velocity: Vec2::ZERO,
-            steering: Vec2::ZERO,
-
-            max_velocity: 250.0,
-            max_force: 150.0,
-            mass: 4.0,
-            friction: 0.98,
-        }
-    }
-}
-
-impl SteeringHost {
-    pub fn steer(
-        &mut self,
-        mut steering_behavior: impl SteeringBehavior,
-        target: &impl SteeringTarget,
-    ) {
-        let res = steering_behavior.steer(self, target);
-        self.desired_velocity = res.desired_velocity;
-
-        if steering_behavior.is_additive() {
-            self.steering += res.steering_vec;
-        } else {
-            self.steering = res.steering_vec;
-        }
-    }
-}
-
-#[derive(Bundle, Reflect)]
-pub struct SteeringBundle {
-    pub host: SteeringHost,
+    dv * physics_params.max_velocity - host.velocity
 }
 
 pub struct SteeringPlugin;
 
 impl Plugin for SteeringPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (host_added,));
-        app.add_systems(FixedUpdate, (steer, update_translation));
+        app.add_systems(Update, (steer,));
+        app.add_systems(
+            FixedUpdate,
+            (update_positions, apply_friction, update_translation).chain(),
+        );
     }
 }
 
-fn host_added(mut gizmos: Gizmos, query: Query<(&SteeringHost)>) {
+/*fn host_added(mut gizmos: Gizmos, query: Query<(&SteeringHost)>) {
     for (host) in &query {
         gizmos.circle_2d(host.position, 16.0, Color::BLUE);
         // gizmos.ray_2d(host.position, host.cur_velocity.normalize_or_zero() * 100.0, Color::RED);
         // gizmos.ray_2d(host.position, host.desired_velocity.normalize_or_zero() * 1000.0, Color::BLUE);
         // gizmos.ray_2d(host.position, host.steering.normalize_or_zero() * 80.0, Color::YELLOW);
     }
-}
+}*/
 
-fn update_translation(mut host: Query<(&mut Transform, &SteeringHost)>) {
-    for (mut transform, host) in &mut host {
-        transform.translation = host.position.extend(1.0);
+fn update_translation(mut host: Query<(&mut Transform, &Position)>) {
+    for (mut transform, pos) in &mut host {
+        transform.translation = pos.0.extend(1.0);
     }
 }
 
-fn steer(
-    collider_store: Res<ColliderStore>,
-    time: Res<Time>,
-    mut host: Query<(&mut SteeringHost, &ColliderComponent)>,
-) {
-    for (mut host, collider_id) in &mut host {
-        let mass = host.mass;
-
-        host.steering = crate::math::truncate_vec2(host.steering, host.max_force);
-        host.steering /= mass;
+fn steer(mut host: Query<(&mut SteeringHost, &PhysicsParams)>) {
+    for (mut host, params) in &mut host {
+        host.steering = crate::math::truncate_vec2(host.steering, params.max_force);
+        host.steering /= params.mass;
 
         let steering = host.steering;
-        host.cur_velocity =
-            crate::math::truncate_vec2(host.cur_velocity + steering, host.max_velocity);
+        host.velocity = crate::math::truncate_vec2(host.velocity + steering, params.max_velocity);
+    }
+}
 
-        let mut movement = host.cur_velocity * time.delta_seconds();
+fn update_positions(
+    collider_store: Res<ColliderStore>,
+    time: Res<Time>,
+    mut host: Query<(&SteeringHost, &ColliderComponent, &mut Position)>,
+) {
+    for (host, collider_id, mut position) in &mut host {
+        let mut movement = host.velocity * time.delta_seconds();
         calc_movement(&mut movement, collider_id.id, &collider_store);
 
-        host.position += movement;
+        position.0 += movement;
+    }
+}
 
-        let friction = host.friction;
-        host.cur_velocity *= friction;
+fn apply_friction(mut host: Query<(&mut SteeringHost, &PhysicsParams)>) {
+    for (mut host, params) in &mut host {
+        host.velocity *= params.friction;
     }
 }
 

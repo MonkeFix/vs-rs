@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use crate::movement::Position;
 use bevy::{
     prelude::*,
     utils::{hashbrown::HashSet, HashMap},
@@ -13,8 +14,8 @@ use super::{
 pub const ALL_LAYERS: i32 = -1;
 
 pub trait ColliderIdResolver {
-    fn get(&self, id: ColliderId) -> Option<&Collider>;
-    fn get_mut(&mut self, id: ColliderId) -> Option<&mut Collider>;
+    fn get(&self, id: impl Into<ColliderId>) -> Option<&Collider>;
+    fn get_mut(&mut self, id: impl Into<ColliderId>) -> Option<&mut Collider>;
 }
 
 static COLLIDER_ID_GEN: AtomicU32 = AtomicU32::new(0);
@@ -43,7 +44,7 @@ impl ColliderStore {
     }
 
     pub fn create_and_register(&mut self, shape_type: ColliderShapeType) -> ColliderComponent {
-        let collider = Collider::new(shape_type);
+        let collider = Collider::new(shape_type, None);
         let id = self.register(collider);
 
         ColliderComponent { id }
@@ -67,11 +68,10 @@ impl ColliderStore {
         self.colliders.get_mut(&component.id)
     }
 
-    pub fn remove(&mut self, id: ColliderId) -> Option<Collider> {
+    pub fn remove(&mut self, id: impl Into<ColliderId>) -> Option<Collider> {
+        let id = id.into();
         let col = self.colliders.get_mut(&id);
-        if col.is_none() {
-            return None;
-        }
+        col.as_ref()?;
 
         let col: &mut Collider = col.unwrap();
         col.is_registered = false;
@@ -85,10 +85,7 @@ impl ColliderStore {
         rect: super::Rect,
         layer_mask: Option<i32>,
     ) -> HashSet<ColliderId> {
-        let layer_mask = match layer_mask {
-            Some(val) => val,
-            None => ALL_LAYERS,
-        };
+        let layer_mask = layer_mask.unwrap_or(ALL_LAYERS);
 
         self.spatial_hash
             .aabb_broadphase(&rect, None, layer_mask, |id| self.colliders.get(id))
@@ -100,10 +97,7 @@ impl ColliderStore {
         rect: super::Rect,
         layer_mask: Option<i32>,
     ) -> HashSet<ColliderId> {
-        let layer_mask = match layer_mask {
-            Some(val) => val,
-            None => ALL_LAYERS,
-        };
+        let layer_mask = layer_mask.unwrap_or(ALL_LAYERS);
 
         self.spatial_hash
             .aabb_broadphase(&rect, Some(self_collider), layer_mask, |id| {
@@ -117,20 +111,14 @@ impl ColliderStore {
         end: Vec2,
         layer_mask: Option<i32>,
     ) -> (i32, Vec<RaycastHit>) {
-        let layer_mask = match layer_mask {
-            Some(val) => val,
-            None => ALL_LAYERS,
-        };
+        let layer_mask = layer_mask.unwrap_or(ALL_LAYERS);
 
         self.spatial_hash
             .linecast(start, end, layer_mask, |id| self.colliders.get(id))
     }
 
     pub fn overlap_circle(&self, circle_center: Vec2, radius: f32, layer_mask: Option<i32>) -> i32 {
-        let layer_mask = match layer_mask {
-            Some(val) => val,
-            None => ALL_LAYERS,
-        };
+        let layer_mask = layer_mask.unwrap_or(ALL_LAYERS);
 
         let mut results = vec![ColliderId(0); 1];
 
@@ -141,10 +129,7 @@ impl ColliderStore {
     }
 
     pub fn overlap_rectangle(&self, rect: super::Rect, layer_mask: Option<i32>) -> i32 {
-        let layer_mask = match layer_mask {
-            Some(val) => val,
-            None => ALL_LAYERS,
-        };
+        let layer_mask = layer_mask.unwrap_or(ALL_LAYERS);
 
         let mut results = vec![ColliderId(0); 1];
 
@@ -156,7 +141,7 @@ impl ColliderStore {
         self.spatial_hash.clear();
     }
 
-    pub(crate) fn update_single(&mut self, id: ColliderId, transform: &Transform) {
+    pub(crate) fn update_single(&mut self, id: ColliderId, position: &Position) {
         if let Some(col) = self.colliders.get(&id) {
             if col.is_registered {
                 self.spatial_hash.remove(col);
@@ -165,7 +150,7 @@ impl ColliderStore {
 
         if let Some(col) = self.get_mut(id) {
             col.is_registered = true;
-            col.update_from_transform(transform);
+            col.update_from_position(position);
         }
 
         if let Some(col) = self.colliders.get(&id) {
@@ -173,24 +158,30 @@ impl ColliderStore {
         }
     }
 
-    pub(crate) fn added_with_transform(&mut self, id: ColliderId, transform: &Transform) {
+    pub(crate) fn added_with_position(&mut self, id: ColliderId, position: &Position) {
         if let Some(col) = self.get_mut(id) {
             col.is_registered = true;
-            col.update_from_transform(transform);
+            col.update_from_position(position);
         }
 
         if let Some(col) = self.colliders.get(&id) {
             self.spatial_hash.register(col);
+        }
+    }
+
+    pub(crate) fn set_entity(&mut self, id: ColliderId, entity: Entity) {
+        if let Some(col) = self.get_mut(id) {
+            col.entity = Some(entity);
         }
     }
 }
 
 impl ColliderIdResolver for ColliderStore {
-    fn get(&self, id: ColliderId) -> Option<&Collider> {
-        self.colliders.get(&id)
+    fn get(&self, id: impl Into<ColliderId>) -> Option<&Collider> {
+        self.colliders.get(&id.into())
     }
 
-    fn get_mut(&mut self, id: ColliderId) -> Option<&mut Collider> {
-        self.colliders.get_mut(&id)
+    fn get_mut(&mut self, id: impl Into<ColliderId>) -> Option<&mut Collider> {
+        self.colliders.get_mut(&id.into())
     }
 }

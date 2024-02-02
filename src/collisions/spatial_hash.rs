@@ -278,7 +278,7 @@ impl SpatialHash {
         );
 
         let mut test_circle =
-            Collider::new(super::shapes::ColliderShapeType::Circle { radius: radius });
+            Collider::new(super::shapes::ColliderShapeType::Circle { radius: radius }, None);
         test_circle.shape.position = circle_center;
         test_circle.shape.center = circle_center;
 

@@ -1,3 +1,4 @@
+use crate::movement::Position;
 use bevy::prelude::*;
 
 use super::{
@@ -10,6 +11,7 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Reflect)]
 pub struct Collider {
     pub id: ColliderId,
+    pub entity: Option<Entity>,
     /// The underlying `ColliderShape` of the `Collider`.
     pub shape: ColliderShape,
     /// If this collider is a trigger it will not cause collisions but it will still trigger events.
@@ -27,7 +29,7 @@ pub struct Collider {
 }
 
 impl Collider {
-    pub fn new(shape_type: ColliderShapeType) -> Self {
+    pub fn new(shape_type: ColliderShapeType, entity: Option<Entity>) -> Self {
         let bounds = match shape_type {
             ColliderShapeType::Circle { radius } => {
                 super::Rect::new(0.0, 0.0, radius * 2.0, radius * 2.0)
@@ -37,6 +39,7 @@ impl Collider {
 
         Self {
             id: ColliderId(0),
+            entity,
             shape: ColliderShape {
                 shape_type,
                 position: Vec2::ZERO,
@@ -257,21 +260,17 @@ impl Collider {
         self.recalc_bounds();
     }
 
-    pub(crate) fn update_from_transform(&mut self, transform: &Transform) {
-        if !self.needs_update(transform) {
+    pub(crate) fn update_from_position(&mut self, position: &Position) {
+        if !self.needs_update(position) {
             return;
         }
 
-        self.set_position(Vec2::new(transform.translation.x, transform.translation.y));
+        self.set_position(position.0);
 
         self.recalc_bounds();
     }
 
-    fn needs_update(&self, transform: &Transform) -> bool {
-        !self.is_registered
-            || self.shape.position.x != transform.translation.x
-            || self.shape.position.y != transform.translation.y
-            || self.shape.center.x != transform.translation.x
-            || self.shape.center.y != transform.translation.y
+    fn needs_update(&self, position: &Position) -> bool {
+        !self.is_registered || self.shape.position != position.0 || self.shape.center != position.0
     }
 }

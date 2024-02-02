@@ -10,9 +10,9 @@ mod collisions;
 mod debug;
 mod input;
 mod math;
+mod movement;
 mod player;
 mod tilemap;
-mod movement;
 
 mod enemy;
 mod stats;
@@ -21,8 +21,8 @@ use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;
 #[cfg(debug_assertions)]
 use debug::DebugPlugin;
-use player::PlayerPlugin;
 use movement::steering::SteeringPlugin;
+use player::PlayerPlugin;
 use tilemap::TileMapPlugin;
 
 pub const FRAMERATE: f64 = 60.0;

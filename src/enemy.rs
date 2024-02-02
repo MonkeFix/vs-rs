@@ -1,13 +1,11 @@
 use crate::collisions::plugin::ColliderBundle;
 use crate::collisions::plugin::ColliderComponent;
 use crate::collisions::shapes::ColliderShapeType;
-use crate::collisions::store::ColliderIdResolver;
 use crate::collisions::store::ColliderStore;
+use crate::movement::steering::steer_seek;
+use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::player::*;
 use crate::stats::*;
-use crate::movement::steering::avoid_collisions;
-use crate::movement::steering::SteeringBehavior;
-use crate::movement::steering::{SteerSeek, SteeringBundle, SteeringHost};
 use bevy::diagnostic::DiagnosticsStore;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::*;
@@ -319,13 +317,20 @@ fn spawn(
                                     ..default()
                                 },
                                 SteeringBundle {
-                                    host: SteeringHost {
-                                        position: Vec2::new(m_x, m_y),
+                                    position: Position(Vec2::new(m_x, m_y)),
+                                    physics_params: PhysicsParams {
                                         max_velocity: spawner.max_velocity,
                                         max_force: spawner.max_force,
                                         mass: spawner.mass,
                                         ..default()
                                     },
+                                    ..default() /*host: SteeringHost {
+                                                    position: Vec2::new(m_x, m_y),
+                                                    max_velocity: spawner.max_velocity,
+                                                    max_force: spawner.max_force,
+                                                    mass: spawner.mass,
+                                                    ..default()
+                                                },*/
                                 },
                                 Name::new(spawner.name.clone() + &i.to_string()),
                                 ColliderBundle {
@@ -351,36 +356,18 @@ fn spawn(
 }
 fn movement(
     collider_store: Res<ColliderStore>,
-    player: Query<&SteeringHost, With<Player>>,
+    player: Query<&Position, With<Player>>,
     mut enemies: Query<
-        (&mut Transform, &mut SteeringHost, &ColliderComponent),
+        (&mut Transform, &mut SteeringHost, &Position, &PhysicsParams),
         (With<Enemy>, Without<Player>),
     >,
 ) {
     if let Ok(pl) = player.get_single() {
-        for (mut t, mut st, collider_id) in &mut enemies {
-            let mut avoidance = Vec2::ZERO;
-
-            let collider = collider_store.get(collider_id.id).unwrap();
-
-            let _ahead = avoid_collisions(
-                &collider_store,
-                collider,
-                &st,
-                16.0,
-                1500.0,
-                &mut avoidance,
-                None,
-            );
-
-            let steering = SteerSeek.steer(&st, pl).steering_vec;
-
+        for (mut t, mut st, pos, params) in &mut enemies {
+            let steering = steer_seek(&pos, &st, &params, pl.0);
             st.steering = steering;
-            //st.steering += avoidance;
 
-            //steer(SteerSeek, &pl.position);
-
-            if st.cur_velocity.x < 0.0 {
+            if st.velocity.x < 0.0 {
                 t.scale.x = -1.0;
             } else {
                 t.scale.x = 1.0

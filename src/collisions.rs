@@ -90,16 +90,6 @@ pub struct RaycastHit {
     pub centroid: Vec2,
 }
 
-/* #[derive(Debug, Default, Clone, Copy)]
-pub struct RaycastHitRef<'a> {
-    pub collider: Option<&'a Collider>,
-    pub fraction: f32,
-    pub distance: f32,
-    pub point: Vec2,
-    pub normal: Vec2,
-    pub centroid: Vec2,
-}
- */
 #[derive(Debug, Eq, PartialEq, FromPrimitive)]
 #[repr(u8)]
 pub enum PointSectors {

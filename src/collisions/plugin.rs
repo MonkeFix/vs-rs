@@ -1,9 +1,16 @@
 use super::{shapes::ColliderShapeType, store::ColliderStore, ColliderId};
+use crate::movement::Position;
 use bevy::{ecs::system::EntityCommands, prelude::*};
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Reflect, Hash)]
 pub struct ColliderComponent {
     pub id: ColliderId,
+}
+
+impl Into<ColliderId> for ColliderComponent {
+    fn into(self) -> ColliderId {
+        self.id
+    }
 }
 
 impl ColliderComponent {
@@ -21,26 +28,41 @@ pub struct CollisionPlugin;
 
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ColliderStore::default())
-            .add_systems(FixedUpdate, (update_positions, on_collider_added));
+        app.insert_resource(ColliderStore::default()).add_systems(
+            Update,
+            (update_positions, on_collider_added, on_collider_removed),
+        );
     }
 }
 
 fn update_positions(
     mut collider_set: ResMut<ColliderStore>,
-    colliders: Query<(&ColliderComponent, &Transform), Changed<Transform>>,
+    colliders: Query<(&ColliderComponent, &Position), Changed<Position>>,
 ) {
-    for (collider, transform) in &colliders {
-        collider_set.update_single(collider.id, transform);
+    for (collider, position) in &colliders {
+        collider_set.update_single(collider.id, position);
     }
 }
 
 fn on_collider_added(
     mut collider_set: ResMut<ColliderStore>,
-    colliders: Query<(&ColliderComponent, &Transform), Added<ColliderComponent>>,
+    colliders: Query<(Entity, &ColliderComponent, &Position), Added<ColliderComponent>>,
 ) {
-    for (col, transform) in &colliders {
-        collider_set.added_with_transform(col.id, transform);
+    for (entity, col, position) in &colliders {
+        collider_set.added_with_position(col.id, position);
+        collider_set.set_entity(col.id, entity);
+    }
+}
+
+fn on_collider_removed(
+    mut removed: RemovedComponents<ColliderComponent>,
+    mut collider_set: ResMut<ColliderStore>,
+    query: Query<&ColliderComponent>,
+) {
+    for entity in &mut removed.read() {
+        if let Ok(collider_id) = query.get(entity) {
+            collider_set.remove(*collider_id);
+        }
     }
 }
 

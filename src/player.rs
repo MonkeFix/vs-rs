@@ -2,12 +2,10 @@ use crate::collisions::plugin::{ColliderBundle, ColliderComponent};
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::{ColliderIdResolver, ColliderStore};
 use crate::enemy::Enemy;
+use crate::input::PlayerControls;
+use crate::movement::steering::steer_seek;
+use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::stats::*;
-use crate::movement::steering::SteeringBehavior;
-use crate::{
-    input::PlayerControls,
-    movement::steering::{SteerSeek, SteeringBundle, SteeringHost},
-};
 use bevy::log;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
 use std::time::Duration;
@@ -16,10 +14,9 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn).add_systems(
-            Update,
-            (movement, check_enemy_collision, check_health).chain(),
-        );
+        app.add_systems(Startup, spawn)
+            .add_systems(FixedUpdate, (movement, check_enemy_collision, check_health))
+            .add_systems(Update, handle_input);
     }
 }
 
@@ -28,11 +25,19 @@ pub struct Player;
 
 #[derive(Component)]
 struct PlTimer(Timer);
+
+#[derive(Component)]
+struct Direction(Vec2);
+
+#[derive(Event)]
+struct TimerCallbackEvent(Entity);
+
 #[derive(Bundle)]
 struct PlayerBundle {
     player: Player,
     health: Health,
     inv_timer: PlTimer,
+    direction: Direction,
 }
 
 impl PlayerBundle {
@@ -41,6 +46,7 @@ impl PlayerBundle {
             player: Player,
             health: Health(100),
             inv_timer: PlTimer(Timer::new(Duration::from_millis(500), TimerMode::Repeating)),
+            direction: Direction(Vec2::ZERO),
         }
     }
 }
@@ -58,9 +64,7 @@ fn spawn(
             transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
             ..default()
         },
-        SteeringBundle {
-            host: SteeringHost::default(),
-        },
+        SteeringBundle { ..default() },
         Name::new("player"),
         ColliderBundle {
             collider: ColliderComponent::new(
@@ -71,116 +75,116 @@ fn spawn(
     ));
 }
 
-fn movement(
+fn handle_input(
     keyboard_input: Res<Input<KeyCode>>,
-    collider_set: Res<ColliderStore>,
-    mut steering_host: Query<&mut SteeringHost, With<Player>>,
     gamepad_axes: Res<Axis<GamepadAxis>>,
     gamepad_settings: Res<GamepadSettings>,
     gamepads: Res<Gamepads>,
     controls: Res<PlayerControls>,
-    player_collider: Query<&ColliderComponent, With<Player>>,
+    mut query: Query<&mut Direction, With<Player>>,
 ) {
-    let mut direction = Vec2::ZERO;
+    if let Ok(mut dir) = query.get_single_mut() {
+        let mut direction = Vec2::ZERO;
 
-    let dead_upper = gamepad_settings.default_axis_settings.deadzone_upperbound();
-    let dead_lower = gamepad_settings.default_axis_settings.deadzone_lowerbound();
+        let dead_upper = gamepad_settings.default_axis_settings.deadzone_upperbound();
+        let dead_lower = gamepad_settings.default_axis_settings.deadzone_lowerbound();
 
-    for gamepad in gamepads.iter() {
-        let x1 = gamepad_axes
-            .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_x))
-            .unwrap();
-        let y1 = gamepad_axes
-            .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_y))
-            .unwrap();
+        for gamepad in gamepads.iter() {
+            let x1 = gamepad_axes
+                .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_x))
+                .unwrap();
+            let y1 = gamepad_axes
+                .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_y))
+                .unwrap();
 
-        let x2 = gamepad_axes
-            .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_x_2))
-            .unwrap();
-        let y2 = gamepad_axes
-            .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_y_2))
-            .unwrap();
+            let x2 = gamepad_axes
+                .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_x_2))
+                .unwrap();
+            let y2 = gamepad_axes
+                .get(GamepadAxis::new(gamepad, controls.gamepad.move_axis_y_2))
+                .unwrap();
 
-        let x = (x1 + x2) / 2.0;
-        let y = (y1 + y2) / 2.0;
+            let x = (x1 + x2) / 2.0;
+            let y = (y1 + y2) / 2.0;
 
-        if x > dead_lower || x < dead_upper {
-            direction.x = x;
-        }
-        if y > dead_lower || y < dead_upper {
-            direction.y = y;
-        }
-    }
-
-    if keyboard_input.pressed(controls.keyboard.move_left)
-        || keyboard_input.pressed(controls.keyboard.move_left_2)
-    {
-        direction -= Vec2::new(1.0, 0.0);
-    }
-    if keyboard_input.pressed(controls.keyboard.move_right)
-        || keyboard_input.pressed(controls.keyboard.move_right_2)
-    {
-        direction += Vec2::new(1.0, 0.0);
-    }
-    if keyboard_input.pressed(controls.keyboard.move_up)
-        || keyboard_input.pressed(controls.keyboard.move_up_2)
-    {
-        direction += Vec2::new(0.0, 1.0);
-    }
-    if keyboard_input.pressed(controls.keyboard.move_down)
-        || keyboard_input.pressed(controls.keyboard.move_down_2)
-    {
-        direction -= Vec2::new(0.0, 1.0);
-    }
-
-    let direction = direction.normalize_or_zero();
-
-    if let Ok(mut host) = steering_host.get_single_mut() {
-        let target = host.position + direction;
-        let vec = SteerSeek.steer(&host, &target).steering_vec;
-        host.steering = vec;
-        //host.steer(SteerSeek, &target);
-
-        /* if direction != Vec2::ZERO {
-            if let Ok(player_collider_id) = player_collider.get_single() {
-                let player_collider = collider_set.get(player_collider_id.id).unwrap();
-
-                let rect = player_collider.bounds();
-                let neighbors =
-                    collider_set.aabb_broadphase_excluding_self(player_collider_id.id, rect, None);
-                for collider_id in neighbors {
-                    let collider = collider_set.get(collider_id).unwrap();
-                    // resolve collisions
-                    let res = player_collider.collides_with_motion(collider, direction);
-                    if let Some(res) = res {
-                        let target = host.position - res.min_translation;
-                        host.steer(SteerSeek, &target);
-                    }
-                }
+            if x > dead_lower || x < dead_upper {
+                direction.x = x;
             }
-        } */
+            if y > dead_lower || y < dead_upper {
+                direction.y = y;
+            }
+        }
+
+        if keyboard_input.pressed(controls.keyboard.move_left)
+            || keyboard_input.pressed(controls.keyboard.move_left_2)
+        {
+            direction -= Vec2::new(1.0, 0.0);
+        }
+        if keyboard_input.pressed(controls.keyboard.move_right)
+            || keyboard_input.pressed(controls.keyboard.move_right_2)
+        {
+            direction += Vec2::new(1.0, 0.0);
+        }
+        if keyboard_input.pressed(controls.keyboard.move_up)
+            || keyboard_input.pressed(controls.keyboard.move_up_2)
+        {
+            direction += Vec2::new(0.0, 1.0);
+        }
+        if keyboard_input.pressed(controls.keyboard.move_down)
+            || keyboard_input.pressed(controls.keyboard.move_down_2)
+        {
+            direction -= Vec2::new(0.0, 1.0);
+        }
+
+        let direction = direction.normalize_or_zero();
+        dir.0 = direction;
+    }
+}
+
+fn movement(
+    mut steering_host: Query<
+        (&mut SteeringHost, &Position, &PhysicsParams, &Direction),
+        With<Player>,
+    >,
+) {
+    if let Ok((mut host, pos, params, dir)) = steering_host.get_single_mut() {
+        let target = pos.0 + dir.0;
+
+        let vec = steer_seek(&pos, &host, &params, target);
+        host.steering = vec;
     }
 }
 
 fn check_enemy_collision(
-    mut player: Query<(&mut Health, &mut PlTimer, &SteeringHost), With<Player>>,
-    mut enemies: Query<(&mut Damage, &SteeringHost), (With<Enemy>, Without<Player>)>,
     time: Res<Time>,
+    mut player_collider: Query<(&ColliderComponent, &mut Health, &mut PlTimer), With<Player>>,
+    enemies: Query<&Damage, (With<Enemy>, Without<Player>)>,
+    collider_store: Res<ColliderStore>,
 ) {
-    if let Ok((mut pl, mut timer, sh)) = player.get_single_mut() {
-        for (e_d, e_sh) in enemies.iter_mut() {
-            if (sh.position.x.abs() - e_sh.position.x.abs()).abs() <= 10.0
-                && (sh.position.y.abs() - e_sh.position.y.abs()).abs() <= 10.0
-            {
+    if let Ok((id, mut hp, mut timer)) = player_collider.get_single_mut() {
+        let player_collider = collider_store.get(id.id).unwrap();
+
+        let rect = player_collider.bounds();
+        let neighbors = collider_store.aabb_broadphase_excluding_self(id.id, rect, None);
+        for neighbor in neighbors {
+            let collider = collider_store.get(neighbor).unwrap();
+            if let Some(_) = player_collider.collides_with(collider) {
                 timer.0.tick(time.delta());
 
                 if timer.0.finished() {
-                    pl.0 = pl.0.saturating_sub(e_d.0);
+                    if let Some(entity) = collider.entity {
+                        let dmg = enemies.get_component::<Damage>(entity);
+                        if let Ok(dmg) = dmg {
+                            hp.0 = hp.0.saturating_sub(dmg.0);
+                        }
+                    }
                 }
             }
         }
     }
 }
+
+fn timer_callback() {}
 
 fn check_health(mut player: Query<&mut Health, With<Player>>) {
     if let Ok(h) = player.get_single_mut() {
