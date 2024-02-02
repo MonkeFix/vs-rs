@@ -1,5 +1,3 @@
-use crate::collisions::store::{ColliderIdResolver, ColliderStore};
-use crate::collisions::{ColliderId, CollisionResult};
 use bevy::ecs::query::WorldQuery;
 use bevy::prelude::*;
 
@@ -58,42 +56,4 @@ pub struct SteeringHostQuery<'w> {
     position: &'w Position,
     host: &'w SteeringHost,
     params: &'w PhysicsParams,
-}
-
-pub fn calc_movement(
-    motion: &mut Vec2,
-    collider_id: ColliderId,
-    collider_store: &ColliderStore,
-) -> Option<CollisionResult> {
-    let mut result = None;
-
-    let collider = collider_store.get(collider_id).unwrap();
-
-    if collider.is_trigger || !collider.is_registered {
-        return None;
-    }
-
-    let mut bounds = collider.bounds();
-    bounds.x += motion.x;
-    bounds.y += motion.y;
-    let neighbors = collider_store.aabb_broadphase_excluding_self(
-        collider_id,
-        bounds,
-        Some(collider.collides_with_layers),
-    );
-
-    for id in neighbors {
-        let neighbor = collider_store.get(id).unwrap();
-        if neighbor.is_trigger {
-            continue;
-        }
-
-        if let Some(collision) = collider.collides_with_motion(neighbor, *motion) {
-            *motion -= collision.min_translation;
-
-            result = Some(CollisionResult::from_ref(&collision));
-        }
-    }
-
-    result
 }

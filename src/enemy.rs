@@ -324,13 +324,7 @@ fn spawn(
                                         mass: spawner.mass,
                                         ..default()
                                     },
-                                    ..default() /*host: SteeringHost {
-                                                    position: Vec2::new(m_x, m_y),
-                                                    max_velocity: spawner.max_velocity,
-                                                    max_force: spawner.max_force,
-                                                    mass: spawner.mass,
-                                                    ..default()
-                                                },*/
+                                    ..default()
                                 },
                                 Name::new(spawner.name.clone() + &i.to_string()),
                                 ColliderBundle {
@@ -355,7 +349,6 @@ fn spawn(
     }
 }
 fn movement(
-    collider_store: Res<ColliderStore>,
     player: Query<&Position, With<Player>>,
     mut enemies: Query<
         (&mut Transform, &mut SteeringHost, &Position, &PhysicsParams),
@@ -372,26 +365,6 @@ fn movement(
             } else {
                 t.scale.x = 1.0
             }
-
-            /* let collider = collider_set.get(collider_id.id).unwrap();
-            let rect = collider.bounds();
-            let neighbors = collider_set.aabb_broadphase_excluding_self(collider_id.id, rect, None);
-            for n in neighbors {
-                let n = collider_set.get(n).unwrap();
-                if let Some(res) = collider.collides_with(n) {
-                    let target = st.position - res.min_translation;
-                    st.steer(SteerSeek, &target);
-                }
-            } */
-
-            /* let (collider, neighbors) = collider_set.get_neighbors_and_self(collider);
-
-            for n in neighbors {
-                if let Some(res) = collider.collides_with(&n) {
-                    let target = st.position - res.min_translation;
-                    st.steer(SteerSeek, &target);
-                }
-            } */
         }
     }
 }

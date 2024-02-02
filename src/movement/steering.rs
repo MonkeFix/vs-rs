@@ -1,12 +1,13 @@
 use bevy::prelude::*;
 
 use crate::collisions::{
-    colliders::Collider,
     plugin::ColliderComponent,
     store::{ColliderIdResolver, ColliderStore},
-    ColliderId, CollisionResult, CollisionResultRef,
+    ColliderId, CollisionResult,
 };
 use crate::movement::{PhysicsParams, Position, SteeringHost};
+
+// TODO: Reimplement Behaviors
 /*
 pub trait SteeringTarget {
     /// Returns target's position.
@@ -133,135 +134,6 @@ impl SteeringBehavior for SteerArrival {
             desired_velocity: dv,
         }
     }
-}
-
-#[derive(Debug, Default, Copy, Clone)]
-pub struct SteeringObstaclceCircle {
-    pub center: Vec2,
-    pub radius: f32,
-}
-
-#[derive(Debug)]
-pub struct SteerCollisionAvoidance {
-    pub max_see_ahead: f32,
-    pub avoid_force: f32,
-    pub obstacle_list: Vec<SteeringObstaclceCircle>,
-    ahead: Vec2,
-    avoidance: Vec2,
-}
-
-impl Default for SteerCollisionAvoidance {
-    fn default() -> Self {
-        Self {
-            max_see_ahead: 16.0,
-            avoid_force: 150.0,
-            obstacle_list: Vec::default(),
-            ahead: Vec2::default(),
-            avoidance: Vec2::default(),
-        }
-    }
-}
-
-impl SteerCollisionAvoidance {
-    pub fn new(obstacles: Vec<SteeringObstaclceCircle>) -> Self {
-        Self {
-            obstacle_list: obstacles,
-            ..default()
-        }
-    }
-
-    fn most_threatening(&self, pos: Vec2, ahead: Vec2) -> Option<SteeringObstaclceCircle> {
-        let mut res = None;
-
-        for obs in &self.obstacle_list {
-            let collides =
-                crate::collisions::circle_to_line(obs.center, obs.radius, pos, pos + ahead);
-
-            if collides {
-                match res {
-                    None => res = Some(*obs),
-                    Some(other) => {
-                        if (obs.center - pos).length() < (other.center - pos).length() {
-                            res = Some(*obs);
-                        }
-                    }
-                }
-            }
-        }
-
-        res
-    }
-}
-
-impl SteeringBehavior for SteerCollisionAvoidance {
-    fn steer(&mut self, host: &SteeringHost, _target: &impl SteeringTarget) -> SteerResult {
-        let dv = host.cur_velocity.normalize_or_zero();
-        let dv = dv * self.max_see_ahead * host.cur_velocity.length() / host.max_velocity;
-
-        self.ahead = host.position + dv;
-
-        if let Some(obs) = self.most_threatening(host.position, self.ahead) {
-            let avoidance = self.ahead - obs.center;
-            self.avoidance = avoidance.normalize_or_zero();
-            self.avoidance *= self.avoid_force;
-        }
-
-        SteerResult {
-            desired_velocity: dv,
-            steering_vec: self.avoidance,
-        }
-    }
-
-    fn is_additive(&self) -> bool {
-        true
-    }
-}
-
-/// Returns ahead vector
-pub fn avoid_collisions(
-    collider_store: &ColliderStore,
-    collider: &Collider,
-    host: &SteeringHost,
-    max_see_ahead: f32,
-    avoid_force: f32,
-    avoidance: &mut Vec2,
-    layer_mask: Option<i32>,
-) -> Vec2 {
-    let dv = host.cur_velocity.normalize_or_zero() * max_see_ahead * host.cur_velocity.length()
-        / host.max_velocity;
-
-    let ahead = host.position + dv;
-
-    let mut bounds = collider.bounds();
-    bounds.x += dv.x;
-    bounds.y += dv.y;
-
-    let mut min_dist = f32::MAX;
-    let mut closest_col = None;
-
-    let neighbors = collider_store.aabb_broadphase_excluding_self(collider.id, bounds, layer_mask);
-    // find the closest
-    /* if neighbors.len() > 0 {
-        bevy::log::info!("found {} neighbors", neighbors.len());
-    } */
-    for neighbor_id in neighbors {
-        let neighbor = collider_store.get(neighbor_id).unwrap();
-        let distance = (neighbor.position() - host.position).length();
-
-        if distance < min_dist {
-            min_dist = distance;
-            closest_col = Some(neighbor);
-        }
-    }
-
-    if let Some(collider) = closest_col {
-        *avoidance = (ahead - collider.position()).normalize_or_zero();
-        *avoidance *= avoid_force;
-    } else {
-        *avoidance *= 0.0;
-    }
-
-    ahead
 }*/
 
 pub fn steer_seek(
@@ -288,6 +160,7 @@ impl Plugin for SteeringPlugin {
     }
 }
 
+// Useful for debugging
 /*fn host_added(mut gizmos: Gizmos, query: Query<(&SteeringHost)>) {
     for (host) in &query {
         gizmos.circle_2d(host.position, 16.0, Color::BLUE);

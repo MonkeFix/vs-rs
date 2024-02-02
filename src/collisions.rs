@@ -385,6 +385,7 @@ impl Rect {
             let db = self.bottom() - res.y;
 
             let min = dl.min(dr.min(dt.min(db)));
+
             if min == dt {
                 res.y = self.top();
                 edge_normal.y = -1.0;
