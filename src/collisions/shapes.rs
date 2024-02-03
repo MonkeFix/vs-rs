@@ -75,7 +75,7 @@ pub mod collisions {
 
                     None
                 }
-                ColliderShapeType::Box { .. } => panic!("second: expected circle, bot box"),
+                ColliderShapeType::Box { .. } => panic!("second: expected circle, got box"),
             },
             ColliderShapeType::Box { .. } => panic!("first: expected circle, got box"),
         }
