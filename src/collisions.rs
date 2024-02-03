@@ -362,7 +362,6 @@ impl Rect {
         }
 
         if self.y.abs() < min_dist {
-            // min_dist = self.y.abs();
             bounds_point.x = 0.0;
             bounds_point.y = self.y;
         }
