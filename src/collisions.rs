@@ -445,10 +445,9 @@ impl Rect {
                 true
             };
 
-        if !check_axis(ray.direction.x, ray.start.x, self.x, self.width) {
-            return None;
-        }
-        if !check_axis(ray.direction.y, ray.start.y, self.y, self.height) {
+        if !check_axis(ray.direction.x, ray.start.x, self.x, self.width)
+            || !check_axis(ray.direction.y, ray.start.y, self.y, self.height)
+        {
             return None;
         }
 
