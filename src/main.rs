@@ -1,26 +1,32 @@
 use bevy::{
+    diagnostic::FrameTimeDiagnosticsPlugin,
     input::gamepad::{AxisSettings, GamepadSettings},
     prelude::*,
 };
+use collisions::plugin::CollisionPlugin;
 
 mod camera;
+mod collisions;
 mod debug;
 mod input;
 mod math;
+mod movement;
 mod player;
-mod steering;
 mod tilemap;
 
 mod enemy;
 mod stats;
 
+use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;
 #[cfg(debug_assertions)]
 use debug::DebugPlugin;
+use movement::steering::SteeringPlugin;
 use player::PlayerPlugin;
-use steering::SteeringPlugin;
 use tilemap::TileMapPlugin;
-use crate::enemy::EnemyPlugin;
+
+pub const FRAMERATE: f64 = 60.0;
+pub const FIXED_TIMESTEP: f64 = 1.0 / FRAMERATE;
 
 fn main() {
     let mut app = App::new();
@@ -33,13 +39,17 @@ fn main() {
         }),
         ..default()
     }))
+    .add_plugins(FrameTimeDiagnosticsPlugin)
+    .add_plugins(bevy_framepace::FramepacePlugin)
     .add_plugins(input::InputPlugin)
     .add_plugins(TileMapPlugin)
     .add_plugins(CameraMovementPlugin)
     .add_plugins(PlayerPlugin)
     .add_plugins(SteeringPlugin)
     .add_plugins(EnemyPlugin)
-    .add_systems(Startup, (spawn_camera, setup_gamepad));
+    .add_plugins(CollisionPlugin)
+    .add_systems(Startup, (spawn_camera, setup_gamepad, setup_framepace))
+    .insert_resource(Time::<Fixed>::from_seconds(FIXED_TIMESTEP));
 
     #[cfg(debug_assertions)]
     app.add_plugins(DebugPlugin);
@@ -56,4 +66,8 @@ fn setup_gamepad(mut gamepad_settings: ResMut<GamepadSettings>) {
     let settings = settings.unwrap();
 
     gamepad_settings.default_axis_settings = settings.clone();
+}
+
+fn setup_framepace(mut settings: ResMut<bevy_framepace::FramepaceSettings>) {
+    settings.limiter = bevy_framepace::Limiter::from_framerate(FRAMERATE);
 }
