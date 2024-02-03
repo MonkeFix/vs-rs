@@ -399,19 +399,21 @@ impl Rect {
                 res.x = self.right();
                 edge_normal.x = 1.0;
             }
-        } else {
-            if res.x == self.left() {
-                edge_normal.x = -1.0;
-            }
-            if res.x == self.right() {
-                edge_normal.x = 1.0;
-            }
-            if res.y == self.top() {
-                edge_normal.y = -1.0;
-            }
-            if res.y == self.bottom() {
-                edge_normal.y = 1.0;
-            }
+
+            return (res, edge_normal);
+        }
+
+        if res.x == self.left() {
+            edge_normal.x = -1.0;
+        }
+        if res.x == self.right() {
+            edge_normal.x = 1.0;
+        }
+        if res.y == self.top() {
+            edge_normal.y = -1.0;
+        }
+        if res.y == self.bottom() {
+            edge_normal.y = 1.0;
         }
 
         (res, edge_normal)
