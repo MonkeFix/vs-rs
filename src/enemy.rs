@@ -6,8 +6,6 @@ use crate::movement::steering::steer_seek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::player::*;
 use crate::stats::*;
-use bevy::diagnostic::DiagnosticsStore;
-use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::prelude::*;
 use bevy::time::TimerMode::Repeating;
 use rand::{thread_rng, Rng};
@@ -50,7 +48,7 @@ impl Plugin for EnemyPlugin {
             Duration::from_secs(GLOBAL_TIME_TICKER_SEC),
             TimerMode::Repeating,
         )))
-        .add_systems(Startup, (enemy_factory, add_enemy_count))
+        .add_systems(Startup, (enemy_factory,))
         .add_systems(
             Update,
             (
@@ -59,70 +57,8 @@ impl Plugin for EnemyPlugin {
                 check_health,
                 change_wave,
                 global_timer_tick,
-                update_enemy_count,
-                update_fps,
             ),
         );
-    }
-}
-
-fn add_enemy_count(mut commands: Commands) {
-    commands.spawn(
-        TextBundle::from_section(
-            "Capybaras: ",
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        )
-        .with_style(Style {
-            position_type: PositionType::Absolute,
-            bottom: Val::Px(5.0),
-            left: Val::Px(5.0),
-            ..default()
-        }),
-    );
-
-    commands.spawn((
-        TextBundle::from_sections([
-            TextSection::new(
-                "FPS: ",
-                TextStyle {
-                    font_size: 40.0,
-                    color: Color::BLACK,
-                    ..default()
-                },
-            ),
-            TextSection::from_style(TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            }),
-        ]),
-        FpsText,
-    ));
-}
-
-fn update_enemy_count(
-    enemies: Query<(With<Enemy>, Without<Player>)>,
-    mut text: Query<&mut Text, Without<FpsText>>,
-) {
-    if let Ok(mut text) = text.get_single_mut() {
-        text.sections[0].value = format!("Capybaras: {}", enemies.iter().count());
-    }
-}
-
-#[derive(Component)]
-struct FpsText;
-
-fn update_fps(diagnostics: Res<DiagnosticsStore>, mut fps_text: Query<&mut Text, With<FpsText>>) {
-    if let Ok(mut text) = fps_text.get_single_mut() {
-        if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
-            if let Some(value) = fps.smoothed() {
-                text.sections[1].value = format!("{value:.2}");
-            }
-        }
     }
 }
 
