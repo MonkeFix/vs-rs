@@ -421,46 +421,35 @@ impl Rect {
         let mut distance = 0.0;
         let mut max = f32::MAX;
 
-        if ray.direction.x.abs() < 1e-06 {
-            if ray.start.x < self.x || ray.start.x > self.x + self.width {
-                return None;
-            }
-        } else {
-            let inv_x = 1.0 / ray.direction.x;
-            let mut left = (self.x - ray.start.x) * inv_x;
-            let mut right = (self.x + self.width - ray.start.x) * inv_x;
-            if left > right {
-                let tmp = left;
-                left = right;
-                right = tmp;
-            }
+        let mut check_axis =
+            |dir_axis: f32, start_axis: f32, self_axis: f32, self_size: f32| -> bool {
+                if dir_axis.abs() < 1e-06 {
+                    if start_axis < self_axis || start_axis > self_axis + self_size {
+                        return false;
+                    }
+                } else {
+                    let inv_x = 1.0 / dir_axis;
+                    let mut left = (self_axis - start_axis) * inv_x;
+                    let mut right = (self_axis + self_size - start_axis) * inv_x;
+                    if left > right {
+                        std::mem::swap(&mut left, &mut right);
+                    }
 
-            distance = left.max(distance);
-            max = right.min(max);
-            if distance > max {
-                return None;
-            }
+                    distance = left.max(distance);
+                    max = right.min(max);
+                    if distance > max {
+                        return false;
+                    }
+                }
+
+                true
+            };
+
+        if !check_axis(ray.direction.x, ray.start.x, self.x, self.width) {
+            return None;
         }
-
-        if ray.direction.y.abs() < 1e-06 {
-            if ray.start.y < self.y || ray.start.y > self.y + self.height {
-                return None;
-            }
-        } else {
-            let inv_y = 1.0 / ray.direction.y;
-            let mut top = (self.y - ray.start.y) * inv_y;
-            let mut bottom = (self.y + self.height - ray.start.y) * inv_y;
-            if top > bottom {
-                let tmp = top;
-                top = bottom;
-                bottom = tmp;
-            }
-
-            distance = top.max(distance);
-            max = bottom.min(max);
-            if distance > max {
-                return None;
-            }
+        if !check_axis(ray.direction.y, ray.start.y, self.y, self.height) {
+            return None;
         }
 
         Some(distance)
