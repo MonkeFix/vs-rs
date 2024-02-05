@@ -1,6 +1,9 @@
 use bevy::ecs::query::WorldQuery;
 use bevy::prelude::*;
 
+use crate::collisions::plugin::ColliderComponent;
+
+pub mod behaviors;
 pub mod steering;
 
 #[derive(Component, Debug, Default, Clone, Copy, PartialEq, Reflect)]
@@ -36,14 +39,14 @@ impl Default for PhysicsParams {
     }
 }
 
-#[derive(Component, Debug, Default, Clone, Copy, PartialEq, Reflect)]
+#[derive(Component, Debug, Default, Clone, PartialEq, Reflect)]
 pub struct SteeringHost {
     pub velocity: Vec2,
     pub steering: Vec2,
     pub desired_velocity: Vec2,
 }
 
-#[derive(Bundle, Debug, Default)]
+#[derive(Bundle, Default)]
 pub struct SteeringBundle {
     pub position: Position,
     pub steering: SteeringHost,
@@ -51,9 +54,9 @@ pub struct SteeringBundle {
 }
 
 #[derive(WorldQuery)]
-#[world_query(mutable)]
 pub struct SteeringHostQuery<'w> {
     position: &'w Position,
     host: &'w SteeringHost,
     params: &'w PhysicsParams,
+    collider: &'w ColliderComponent,
 }

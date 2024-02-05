@@ -7,12 +7,10 @@ use crate::collisions::{
 };
 use crate::movement::{PhysicsParams, Position, SteeringHost};
 
-// TODO: Reimplement Behaviors
-/*
+use super::SteeringHostQuery;
+
 pub trait SteeringTarget {
-    /// Returns target's position.
     fn position(&self) -> Vec2;
-    /// Returns target's velocity. Defaults to `Vec2::ZERO`.
     fn velocity(&self) -> Vec2 {
         Vec2::ZERO
     }
@@ -24,117 +22,14 @@ impl SteeringTarget for Vec2 {
     }
 }
 
-impl SteeringTarget for SteeringHost {
+impl<'w> SteeringTarget for SteeringHostQuery<'w> {
     fn position(&self) -> Vec2 {
-        self.position
+        self.position.0
     }
-
     fn velocity(&self) -> Vec2 {
-        self.cur_velocity
+        self.host.velocity
     }
 }
-
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct SteerResult {
-    pub steering_vec: Vec2,
-    pub desired_velocity: Vec2,
-}
-
-pub trait SteeringBehavior {
-    fn steer(&mut self, host: &SteeringHost, target: &impl SteeringTarget) -> SteerResult;
-    /// If the behavior is additive, steering vector adds on top of the result of `steer()` method.
-    /// Otherwise, the vector is directly assigned the value.
-    fn is_additive(&self) -> bool {
-        false
-    }
-}
-
-/// Seeks the target, directly moving towards it.
-#[derive(Debug, Default)]
-pub struct SteerSeek;
-
-impl SteeringBehavior for SteerSeek {
-    fn steer(&mut self, host: &SteeringHost, target: &impl SteeringTarget) -> SteerResult {
-        let dv = target.position() - host.position;
-        let dv = dv.normalize_or_zero();
-
-        SteerResult {
-            steering_vec: dv * host.max_velocity - host.cur_velocity,
-            desired_velocity: dv,
-        }
-    }
-}
-
-/// Flees from the target, moving away from it.
-#[derive(Debug, Default)]
-pub struct SteerFlee;
-
-impl SteeringBehavior for SteerFlee {
-    fn steer(&mut self, host: &SteeringHost, target: &impl SteeringTarget) -> SteerResult {
-        let dv = target.position() - host.position;
-        let dv = dv.normalize_or_zero() * host.max_velocity;
-
-        SteerResult {
-            steering_vec: dv - host.cur_velocity,
-            desired_velocity: -dv,
-        }
-    }
-}
-
-/// Calculates future position of the target and moves towards it.
-#[derive(Debug, Default)]
-pub struct SteerPursuit {
-    pub seek: SteerSeek,
-}
-
-impl SteerPursuit {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-impl SteeringBehavior for SteerPursuit {
-    fn steer(&mut self, host: &SteeringHost, target: &impl SteeringTarget) -> SteerResult {
-        let distance = (target.position() - host.position).length();
-        let updates_ahead = distance / host.max_velocity;
-        let future_pos = target.position() + target.velocity() * updates_ahead;
-
-        self.seek.steer(host, &future_pos)
-    }
-}
-
-/// Seeks the target. The closer the target, the slower the entity.
-#[derive(Debug, Default)]
-pub struct SteerArrival {
-    pub slowing_radius: f32,
-}
-
-impl SteerArrival {
-    pub fn new() -> Self {
-        Self {
-            slowing_radius: 0.0,
-        }
-    }
-}
-
-impl SteeringBehavior for SteerArrival {
-    fn steer(&mut self, host: &SteeringHost, target: &impl SteeringTarget) -> SteerResult {
-        let mut dv = target.position() - host.position;
-        let distance = dv.length();
-        dv = dv.normalize_or_zero();
-
-        let steering = if distance < self.slowing_radius {
-            host.max_velocity * (distance / self.slowing_radius)
-        } else {
-            host.max_velocity
-        };
-
-        SteerResult {
-            steering_vec: dv * steering,
-            desired_velocity: dv,
-        }
-    }
-}*/
 
 pub fn steer_seek(
     position: &Position,
