@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::{shapes::ColliderShapeType, store::ColliderStore, ColliderId};
 use crate::movement::Position;
 use bevy::{ecs::system::EntityCommands, prelude::*};
@@ -7,9 +9,9 @@ pub struct ColliderComponent {
     pub id: ColliderId,
 }
 
-impl Into<ColliderId> for ColliderComponent {
-    fn into(self) -> ColliderId {
-        self.id
+impl From<ColliderComponent> for ColliderId {
+    fn from(value: ColliderComponent) -> Self {
+        value.id
     }
 }
 
