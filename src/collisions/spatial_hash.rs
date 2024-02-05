@@ -219,16 +219,15 @@ impl SpatialHash {
     pub fn overlap_rectangle<'a, F>(
         &'a self,
         rect: &Rect,
-        results: &mut [ColliderId],
+        exclude_collider: Option<ColliderId>,
+        results: &mut Vec<ColliderId>,
         layer_mask: i32,
         collider_finder: F,
     ) -> i32
     where
         F: Fn(&ColliderId) -> Option<&'a Collider>,
     {
-        let mut res_counter: i32 = 0;
-
-        let potentials = self.aabb_broadphase(rect, None, layer_mask, &collider_finder);
+        let potentials = self.aabb_broadphase(rect, exclude_collider, layer_mask, &collider_finder);
         for collider_id in potentials {
             let collider = collider_finder(&collider_id).unwrap();
             match collider.shape.shape_type {
@@ -241,29 +240,24 @@ impl SpatialHash {
                         collider.center(),
                         radius,
                     ) {
-                        results[res_counter as usize] = collider_id;
-                        res_counter += 1;
+                        results.push(collider_id);
                     }
                 }
                 super::shapes::ColliderShapeType::Box { .. } => {
-                    results[res_counter as usize] = collider_id;
-                    res_counter += 1;
+                    results.push(collider_id);
                 }
-            }
-
-            if res_counter == results.len() as i32 {
-                return res_counter;
             }
         }
 
-        res_counter
+        results.len() as i32
     }
 
     pub fn overlap_circle<'a, F>(
         &'a self,
         circle_center: Vec2,
         radius: f32,
-        results: &mut [ColliderId],
+        exclude_collider: Option<ColliderId>,
+        results: &mut Vec<ColliderId>,
         layer_mask: i32,
         collider_finder: F,
     ) -> i32
@@ -277,37 +271,32 @@ impl SpatialHash {
             radius * 2.0,
         );
 
-        let mut test_circle =
-            Collider::new(super::shapes::ColliderShapeType::Circle { radius: radius }, None);
+        let mut test_circle = Collider::new(
+            super::shapes::ColliderShapeType::Circle { radius: radius },
+            None,
+        );
         test_circle.shape.position = circle_center;
         test_circle.shape.center = circle_center;
 
-        let mut res_counter: i32 = 0;
-
-        let potentials = self.aabb_broadphase(&bounds, None, layer_mask, &collider_finder);
+        let potentials =
+            self.aabb_broadphase(&bounds, exclude_collider, layer_mask, &collider_finder);
         for collider_id in potentials {
             let collider = collider_finder(&collider_id).unwrap();
             match collider.shape.shape_type {
                 super::shapes::ColliderShapeType::Circle { .. } => {
                     if collider.overlaps(&test_circle) {
-                        results[res_counter as usize] = collider_id;
-                        res_counter += 1;
+                        results.push(collider_id);
                     }
                 }
                 super::shapes::ColliderShapeType::Box { .. } => {
                     if collider.overlaps(&test_circle) {
-                        results[res_counter as usize] = collider_id;
-                        res_counter += 1;
+                        results.push(collider_id);
                     }
                 }
             }
-
-            if res_counter == results.len() as i32 {
-                return res_counter;
-            }
         }
 
-        res_counter
+        results.len() as i32
     }
 
     fn cell_coords(&self, x: f32, y: f32) -> Vec2 {
