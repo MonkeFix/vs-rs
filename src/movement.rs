@@ -1,7 +1,4 @@
-use bevy::ecs::query::WorldQuery;
 use bevy::prelude::*;
-
-use crate::collisions::plugin::ColliderComponent;
 
 pub mod behaviors;
 pub mod paths;

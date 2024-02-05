@@ -60,14 +60,6 @@ impl ColliderStore {
         id
     }
 
-    pub fn from_component(&self, component: &ColliderComponent) -> Option<&Collider> {
-        self.colliders.get(&component.id)
-    }
-
-    pub fn from_component_mut(&mut self, component: &ColliderComponent) -> Option<&mut Collider> {
-        self.colliders.get_mut(&component.id)
-    }
-
     pub fn remove(&mut self, id: impl Into<ColliderId>) -> Option<Collider> {
         let id = id.into();
         let col = self.colliders.get_mut(&id);
@@ -76,7 +68,7 @@ impl ColliderStore {
         let col: &mut Collider = col.unwrap();
         col.is_registered = false;
 
-        self.spatial_hash.remove(&col);
+        self.spatial_hash.remove(col);
         self.colliders.remove(&id)
     }
 

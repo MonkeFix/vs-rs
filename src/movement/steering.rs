@@ -105,7 +105,7 @@ fn calc_movement(
             continue;
         }
 
-        if let Some(collision) = collider.collides_with_motion(&neighbor, *motion) {
+        if let Some(collision) = collider.collides_with_motion(neighbor, *motion) {
             *motion -= collision.min_translation;
 
             result = Some(CollisionResult::from_ref(&collision));

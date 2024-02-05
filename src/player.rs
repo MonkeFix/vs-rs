@@ -179,7 +179,7 @@ fn check_enemy_collision(
         let neighbors = collider_store.aabb_broadphase_excluding_self(id.id, rect, None);
         for neighbor in neighbors {
             let collider = collider_store.get(neighbor).unwrap();
-            if let Some(_) = player_collider.collides_with(collider) {
+            if player_collider.collides_with(collider).is_some() {
                 timer.0.tick(time.delta());
 
                 if timer.0.finished() {

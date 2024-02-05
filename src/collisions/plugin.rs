@@ -7,9 +7,9 @@ pub struct ColliderComponent {
     pub id: ColliderId,
 }
 
-impl Into<ColliderId> for ColliderComponent {
-    fn into(self) -> ColliderId {
-        self.id
+impl From<ColliderComponent> for ColliderId {
+    fn from(value: ColliderComponent) -> Self {
+        value.id
     }
 }
 

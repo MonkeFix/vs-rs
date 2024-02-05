@@ -98,18 +98,17 @@ impl SpatialHash {
 
                 match cell {
                     Some(cell) => {
-                        for i in 0..cell.len() {
-                            let collider_id = cell[i];
-                            let collder = collider_finder(&collider_id).unwrap();
+                        for collider_id in cell {
+                            let collder = collider_finder(collider_id).unwrap();
 
-                            if exclude_collider.is_some_and(|excl| collider_id == excl)
+                            if exclude_collider.is_some_and(|excl| *collider_id == excl)
                                 || !is_flag_set(layer_mask, collder.physics_layer)
                             {
                                 continue;
                             }
 
                             if bounds.intersects(collder.bounds()) {
-                                tmp_hashset.insert(collider_id);
+                                tmp_hashset.insert(*collider_id);
                             }
                         }
                     }
@@ -271,10 +270,8 @@ impl SpatialHash {
             radius * 2.0,
         );
 
-        let mut test_circle = Collider::new(
-            super::shapes::ColliderShapeType::Circle { radius: radius },
-            None,
-        );
+        let mut test_circle =
+            Collider::new(super::shapes::ColliderShapeType::Circle { radius }, None);
         test_circle.shape.position = circle_center;
         test_circle.shape.center = circle_center;
 
@@ -331,8 +328,7 @@ struct IntIntMap {
 
 fn get_key(x: i32, y: i32) -> i64 {
     let shl = (x as i64).overflowing_shl(32);
-    let res = shl.0 | ((y as u32) as i64);
-    res
+    shl.0 | ((y as u32) as i64)
 }
 
 impl IntIntMap {
@@ -367,6 +363,7 @@ fn sign(val: f32) -> i32 {
     1
 }
 
+#[derive(Default)]
 struct RaycastResultParser {
     pub hit_counter: i32,
     //hits: Option<&'a mut [RaycastHit<'a>]>,
@@ -377,28 +374,9 @@ struct RaycastResultParser {
     layer_mask: i32,
 }
 
-impl Default for RaycastResultParser {
-    fn default() -> Self {
-        Self {
-            hit_counter: 0,
-            //hits: None,
-            tmp_hit: None,
-            checked_colliders: vec![],
-            cell_hits: vec![],
-            ray: None,
-            layer_mask: 0,
-        }
-    }
-}
-
 impl RaycastResultParser {
-    pub fn start<'b>(
-        &mut self,
-        ray: Ray2D,
-        /* hits: &'a mut [RaycastHit<'a>], */ layer_mask: i32,
-    ) {
+    pub fn start(&mut self, ray: Ray2D, layer_mask: i32) {
         self.ray = Some(ray);
-        //self.hits = Some(hits);
         self.layer_mask = layer_mask;
         self.hit_counter = 0;
     }
@@ -414,8 +392,7 @@ impl RaycastResultParser {
     {
         let ray = self.ray.unwrap();
 
-        for i in 0..cell.len() {
-            let potential = &cell[i];
+        for potential in cell {
             let potential = find_collider(potential).unwrap();
 
             if self.checked_colliders.contains(&potential.id) {
@@ -449,7 +426,7 @@ impl RaycastResultParser {
             }
         }
 
-        if self.cell_hits.len() == 0 {
+        if self.cell_hits.is_empty() {
             return false;
         }
 

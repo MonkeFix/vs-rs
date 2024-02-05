@@ -38,11 +38,7 @@ impl CollisionResult {
     }
 
     pub fn from_ref(result: &CollisionResultRef) -> Self {
-        let collider = if let Some(col) = result.collider {
-            Some(col.id)
-        } else {
-            None
-        };
+        let collider = result.collider.map(|col| col.id);
 
         Self {
             collider,
@@ -117,12 +113,12 @@ pub fn line_to_line(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2) -> bool {
 
     let c = b1 - a1;
     let t = (c.x * d.y - c.y * d.x) / d_dot;
-    if t < 0.0 || t > 1.0 {
+    if !(0.0..=1.0).contains(&t) {
         return false;
     }
 
     let u = (c.x * b.y - c.y * b.x) / d_dot;
-    if u < 0.0 || u > 1.0 {
+    if !(0.0..=1.0).contains(&u) {
         return false;
     }
 
@@ -211,17 +207,11 @@ pub fn rect_to_point(x: f32, y: f32, w: f32, h: f32, point: Vec2) -> bool {
     point.x >= x && point.y >= y && point.x < x + w && point.y < y + h
 }
 
-pub fn rect_to_rect(
-    x1: f32,
-    y1: f32,
-    w1: f32,
-    h1: f32,
-    x2: f32,
-    y2: f32,
-    w2: f32,
-    h2: f32,
-) -> bool {
-    x1 + w1 >= x2 && x1 <= x2 + w2 && y1 + h1 >= y2 && y1 <= y2 + h2
+pub fn rect_to_rect(pos1: Vec2, size1: Vec2, pos2: Vec2, size2: Vec2) -> bool {
+    pos1.x + size1.x >= pos2.x
+        && pos1.x <= pos2.x + size2.x
+        && pos1.y + size1.y >= pos2.y
+        && pos1.y <= pos2.y + size2.y
 }
 
 pub fn get_sector(x: f32, y: f32, w: f32, h: f32, point: Vec2) -> PointSectors {
