@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use bevy::prelude::*;
 
-use super::{steering::SteeringTarget, SteeringHostQuery};
+use super::{steering::SteeringTarget, Position, SteeringHost};
 
 #[derive(Debug, Clone, Copy, Reflect)]
 pub struct SteerPathNode {
@@ -162,7 +162,8 @@ impl SteerPathFollowing {
 
     pub fn steer<F>(
         &mut self,
-        query: &SteeringHostQuery,
+        position: &Position,
+        host: &SteeringHost,
         path: &mut SteerPath,
         steering_fn: F,
     ) -> Vec2
@@ -170,9 +171,9 @@ impl SteerPathFollowing {
         F: Fn(SteerPathNode) -> Vec2,
     {
         match self.mode {
-            PathFollowingMode::OneWay => self.one_way(query, path, steering_fn),
-            PathFollowingMode::Looped => self.looped(query, path, steering_fn),
-            PathFollowingMode::Patrol => self.patrol(query, path, steering_fn),
+            PathFollowingMode::OneWay => self.one_way(position, host, path, steering_fn),
+            PathFollowingMode::Looped => self.looped(position, path, steering_fn),
+            PathFollowingMode::Patrol => self.patrol(position, path, steering_fn),
         }
     }
 
@@ -183,7 +184,8 @@ impl SteerPathFollowing {
 
     fn one_way<F>(
         &mut self,
-        query: &SteeringHostQuery,
+        position: &Position,
+        host: &SteeringHost,
         path: &mut SteerPath,
         steering_fn: F,
     ) -> Vec2
@@ -191,24 +193,24 @@ impl SteerPathFollowing {
         F: Fn(SteerPathNode) -> Vec2,
     {
         if let Some(target) = path.get_target() {
-            if self.within_target(query.position.0, &target) {
+            if self.within_target(position.0, &target) {
                 path.remove_target();
             }
 
             return steering_fn(target);
         }
 
-        -query.host.velocity
+        -host.velocity
     }
 
-    fn patrol<F>(&mut self, query: &SteeringHostQuery, path: &mut SteerPath, steering_fn: F) -> Vec2
+    fn patrol<F>(&mut self, position: &Position, path: &mut SteerPath, steering_fn: F) -> Vec2
     where
         F: Fn(SteerPathNode) -> Vec2,
     {
         let mut node = path.index(self.cur_node_index);
         let mut index: i32 = 0;
 
-        if self.within_target(query.position.0, node) {
+        if self.within_target(position.0, node) {
             index += self.path_dir;
 
             if index >= path.nodes.len() as i32 || index < 0 {
@@ -224,13 +226,13 @@ impl SteerPathFollowing {
         steering_fn(*node)
     }
 
-    fn looped<F>(&mut self, query: &SteeringHostQuery, path: &mut SteerPath, steering_fn: F) -> Vec2
+    fn looped<F>(&mut self, position: &Position, path: &mut SteerPath, steering_fn: F) -> Vec2
     where
         F: Fn(SteerPathNode) -> Vec2,
     {
         let mut node = path.index(self.cur_node_index % path.len());
 
-        if self.within_target(query.position.0, node) {
+        if self.within_target(position.0, node) {
             self.cur_node_index += 1;
             node = path.index(self.cur_node_index % path.len());
         }

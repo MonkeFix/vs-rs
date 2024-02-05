@@ -7,8 +7,6 @@ use crate::collisions::{
 };
 use crate::movement::{PhysicsParams, Position, SteeringHost};
 
-use super::SteeringHostQuery;
-
 pub trait SteeringTarget {
     fn position(&self) -> Vec2;
     fn velocity(&self) -> Vec2 {
@@ -20,27 +18,6 @@ impl SteeringTarget for Vec2 {
     fn position(&self) -> Vec2 {
         *self
     }
-}
-
-impl<'w> SteeringTarget for SteeringHostQuery<'w> {
-    fn position(&self) -> Vec2 {
-        self.position.0
-    }
-    fn velocity(&self) -> Vec2 {
-        self.host.velocity
-    }
-}
-
-pub fn steer_seek(
-    position: &Position,
-    host: &SteeringHost,
-    physics_params: &PhysicsParams,
-    target: Vec2,
-) -> Vec2 {
-    let dv = target - position.0;
-    let dv = dv.normalize_or_zero();
-
-    dv * physics_params.max_velocity - host.velocity
 }
 
 pub struct SteeringPlugin;

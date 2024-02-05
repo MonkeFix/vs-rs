@@ -1,26 +1,31 @@
-use std::collections::VecDeque;
-
 use bevy::prelude::*;
 
 use crate::{
     collisions::{
         colliders::Collider,
+        plugin::ColliderComponent,
         store::{ColliderIdResolver, ColliderStore},
     },
     math::rng_f32,
 };
 
-use super::{steering::SteeringTarget, SteeringHostQuery};
+use super::{steering::SteeringTarget, PhysicsParams, Position, SteeringHost};
 
 /// Seeks the specified target moving directly towards it.
 pub struct SteerSeek;
 
 impl SteerSeek {
-    pub fn steer(&self, query: &SteeringHostQuery, target: &impl SteeringTarget) -> Vec2 {
-        let dv = target.position() - query.position.0;
+    pub fn steer(
+        &self,
+        position: &Position,
+        host: &SteeringHost,
+        params: &PhysicsParams,
+        target: &impl SteeringTarget,
+    ) -> Vec2 {
+        let dv = target.position() - position.0;
         let dv = dv.normalize_or_zero();
 
-        dv * query.params.max_velocity - query.host.velocity
+        dv * params.max_velocity - host.velocity
     }
 }
 
@@ -29,11 +34,17 @@ impl SteerSeek {
 pub struct SteerFlee;
 
 impl SteerFlee {
-    pub fn steer(&self, query: &SteeringHostQuery, target: &impl SteeringTarget) -> Vec2 {
-        let dv = target.position() - query.position.0;
+    pub fn steer(
+        &self,
+        position: &Position,
+        host: &SteeringHost,
+        params: &PhysicsParams,
+        target: &impl SteeringTarget,
+    ) -> Vec2 {
+        let dv = target.position() - position.0;
         let dv = dv.normalize_or_zero();
 
-        -dv * query.params.max_velocity - query.host.velocity
+        -dv * params.max_velocity - host.velocity
     }
 }
 
@@ -54,16 +65,22 @@ impl Default for SteerArrival {
 }
 
 impl SteerArrival {
-    pub fn steer(&self, query: &SteeringHostQuery, target: &impl SteeringTarget) -> Vec2 {
-        let dv = target.position() - query.position.0;
+    pub fn steer(
+        &self,
+        position: &Position,
+        host: &SteeringHost,
+        params: &PhysicsParams,
+        target: &impl SteeringTarget,
+    ) -> Vec2 {
+        let dv = target.position() - position.0;
         let distance = dv.length();
         let dv = if distance < self.slowing_radius {
-            dv.normalize_or_zero() * query.params.max_velocity * (distance / self.slowing_radius)
+            dv.normalize_or_zero() * params.max_velocity * (distance / self.slowing_radius)
         } else {
-            dv.normalize_or_zero() * query.params.max_velocity
+            dv.normalize_or_zero() * params.max_velocity
         };
 
-        dv - query.host.velocity
+        dv - host.velocity
     }
 }
 
@@ -71,13 +88,19 @@ impl SteerArrival {
 pub struct SteerEvade;
 
 impl SteerEvade {
-    pub fn steer(&self, query: &SteeringHostQuery, target: &impl SteeringTarget) -> Vec2 {
-        let distance = (target.position() - query.position.0).length();
-        let updates_ahead = distance / query.params.max_velocity;
+    pub fn steer(
+        &self,
+        position: &Position,
+        host: &SteeringHost,
+        params: &PhysicsParams,
+        target: &impl SteeringTarget,
+    ) -> Vec2 {
+        let distance = (target.position() - position.0).length();
+        let updates_ahead = distance / params.max_velocity;
 
         let future_pos = target.position() + target.velocity() * updates_ahead;
 
-        SteerFlee.steer(query, &future_pos)
+        SteerFlee.steer(position, host, params, &future_pos)
     }
 }
 
@@ -85,13 +108,19 @@ impl SteerEvade {
 pub struct SteerPursuit;
 
 impl SteerPursuit {
-    pub fn steer(&self, query: &SteeringHostQuery, target: &impl SteeringTarget) -> Vec2 {
-        let distance = (target.position() - query.position.0).length();
-        let updates_ahead = distance / query.params.max_velocity;
+    pub fn steer(
+        &self,
+        position: &Position,
+        host: &SteeringHost,
+        params: &PhysicsParams,
+        target: &impl SteeringTarget,
+    ) -> Vec2 {
+        let distance = (target.position() - position.0).length();
+        let updates_ahead = distance / params.max_velocity;
 
         let future_pos = target.position() + target.velocity() * updates_ahead;
 
-        SteerSeek.steer(query, &future_pos)
+        SteerSeek.steer(position, host, params, &future_pos)
     }
 }
 
@@ -125,8 +154,8 @@ impl SteerWander {
 }
 
 impl SteerWander {
-    pub fn steer(&mut self, query: &SteeringHostQuery) -> Vec2 {
-        let circle_center = query.host.velocity.normalize_or_zero() * self.circle_distance;
+    pub fn steer(&mut self, host: &SteeringHost, params: &PhysicsParams) -> Vec2 {
+        let circle_center = host.velocity.normalize_or_zero() * self.circle_distance;
 
         let displacement = Vec2::new(0.0, -1.0) * self.circle_radius;
         let displacement = self.set_angle(displacement, self.wander_angle);
@@ -136,7 +165,7 @@ impl SteerWander {
 
         let wander_force = circle_center + displacement;
 
-        wander_force.normalize_or_zero() * query.params.max_velocity - query.host.velocity
+        wander_force.normalize_or_zero() * params.max_velocity - host.velocity
     }
 }
 
@@ -162,22 +191,25 @@ impl Default for SteerCollisionAvoidance {
 impl SteerCollisionAvoidance {
     pub fn steer(
         &mut self,
-        query: &SteeringHostQuery,
+        position: &Position,
+        host: &SteeringHost,
+        params: &PhysicsParams,
+        collider: &ColliderComponent,
         collider_store: &ColliderStore,
         layer_mask: Option<i32>,
     ) -> Vec2 {
-        let dv = query.host.velocity.normalize_or_zero()
-            * (self.max_see_ahead * query.host.velocity.length() / query.params.max_velocity);
+        let dv = host.velocity.normalize_or_zero()
+            * (self.max_see_ahead * host.velocity.length() / params.max_velocity);
 
-        self.ahead = query.position.0 + dv;
+        self.ahead = position.0 + dv;
 
-        let collider = collider_store.get(query.collider.id).unwrap();
+        let collider = collider_store.get(collider.id).unwrap();
         let mut rect = collider.bounds();
         rect.x += self.ahead.x;
         rect.y += self.ahead.y;
 
         let neighbors =
-            collider_store.aabb_broadphase_excluding_self(query.collider.id, rect, layer_mask);
+            collider_store.aabb_broadphase_excluding_self(collider.id, rect, layer_mask);
 
         let mut distance = f32::MAX;
         let mut closest = None;
@@ -223,27 +255,24 @@ impl Default for SteerSeparation {
 impl SteerSeparation {
     pub fn steer(
         &self,
-        query: &SteeringHostQuery,
+        position: &Position,
+        collider: &ColliderComponent,
         collider_store: &ColliderStore,
         layer_mask: Option<i32>,
     ) -> Vec2 {
         let mut force = Vec2::ZERO;
 
-        let mut rect = collider_store.get(query.collider.id).unwrap().bounds();
+        let mut rect = collider_store.get(collider.id).unwrap().bounds();
         rect.inflate(self.radius, self.radius);
 
         // TODO: Check if this method works, if not, use aabb_broadphase()
-        let neighbors = collider_store.overlap_circle(
-            query.position.0,
-            self.radius,
-            Some(query.collider.id),
-            layer_mask,
-        );
+        let neighbors =
+            collider_store.overlap_circle(position.0, self.radius, Some(collider.id), layer_mask);
         let neighbor_count = neighbors.len();
 
         for neighbor_id in neighbors {
             let neighbor = collider_store.get(neighbor_id).unwrap();
-            force += neighbor.position() - query.position.0;
+            force += neighbor.position() - position.0;
         }
 
         if neighbor_count != 0 {
@@ -284,21 +313,24 @@ pub struct SteerQueueResult {
 impl SteerQueue {
     pub fn steer(
         &self,
-        query: &SteeringHostQuery,
+        position: &Position,
+        host: &SteeringHost,
+        collider: &ColliderComponent,
         collider_store: &ColliderStore,
         layer_mask: Option<i32>,
     ) -> SteerQueueResult {
-        let mut velocity = query.host.velocity;
+        let mut velocity = host.velocity;
         let mut brake = Vec2::ZERO;
         let mut velocity_multiplier = 1.0;
 
-        let neighbor = self.get_neighbor_ahead(query, collider_store, layer_mask);
+        let neighbor =
+            self.get_neighbor_ahead(position, host, collider, collider_store, layer_mask);
         if let Some(neighbor) = neighbor {
-            brake = -query.host.steering * self.brake_coef;
+            brake = -host.steering * self.brake_coef;
             velocity *= -1.0;
             brake += velocity;
 
-            if (neighbor.position() - query.position.0).length() <= self.max_radius {
+            if (neighbor.position() - position.0).length() <= self.max_radius {
                 velocity_multiplier = self.velocity_mult;
             }
         }
@@ -311,18 +343,20 @@ impl SteerQueue {
 
     fn get_neighbor_ahead<'a>(
         &self,
-        query: &SteeringHostQuery,
+        position: &Position,
+        host: &SteeringHost,
+        collider: &ColliderComponent,
         collider_store: &'a ColliderStore,
         layer_mask: Option<i32>,
     ) -> Option<&'a Collider> {
-        let qa = query.host.velocity.normalize_or_zero() * self.max_ahead;
+        let qa = host.velocity.normalize_or_zero() * self.max_ahead;
 
-        let ahead = query.position.0 + qa;
+        let ahead = position.0 + qa;
 
-        let collider = collider_store.get(query.collider.id).unwrap();
+        let collider = collider_store.get(collider.id).unwrap();
         // TODO: Check if this method works, if not, use aabb_broadphase()
         let neighbors = collider_store.overlap_circle(
-            query.position.0,
+            position.0,
             self.max_radius,
             Some(collider.id),
             layer_mask,
@@ -368,27 +402,23 @@ impl Default for SteerLeaderFollowing {
 }
 
 impl SteerLeaderFollowing {
-    pub fn steer(&mut self, leader_query: &SteeringHostQuery) -> Vec2 {
-        let mut dv = leader_query.host.velocity.normalize_or_zero() * self.leader_behind_dist;
+    pub fn steer(&mut self, position: &Position, host: &SteeringHost) -> Vec2 {
+        let mut dv = host.velocity.normalize_or_zero() * self.leader_behind_dist;
 
-        self.ahead = leader_query.position.0 + dv;
+        self.ahead = position.0 + dv;
         dv *= -1.0;
-        self.behind = leader_query.position.0 + dv;
+        self.behind = position.0 + dv;
 
         self.behind
     }
 
-    pub fn get_leader_ahead(&self, leader_query: &SteeringHostQuery) -> Vec2 {
-        let dv = leader_query.host.velocity.normalize_or_zero() * self.leader_behind_dist;
-        leader_query.position.0 + dv
+    pub fn get_leader_ahead(&self, position: &Position, host: &SteeringHost) -> Vec2 {
+        let dv = host.velocity.normalize_or_zero() * self.leader_behind_dist;
+        position.0 + dv
     }
 
-    pub fn is_on_leader_sight(
-        &self,
-        query: &SteeringHostQuery,
-        leader_query: &SteeringHostQuery,
-    ) -> bool {
-        (self.ahead - query.position.0).length() <= self.leader_sight_radius
-            || (leader_query.position.0 - query.position.0).length() <= self.leader_sight_radius
+    pub fn is_on_leader_sight(&self, leader_position: &Position, position: &Position) -> bool {
+        (self.ahead - position.0).length() <= self.leader_sight_radius
+            || (leader_position.0 - position.0).length() <= self.leader_sight_radius
     }
 }

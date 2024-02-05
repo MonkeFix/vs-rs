@@ -2,7 +2,7 @@ use crate::collisions::plugin::ColliderBundle;
 use crate::collisions::plugin::ColliderComponent;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::ColliderStore;
-use crate::movement::steering::steer_seek;
+use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::player::*;
 use crate::stats::*;
@@ -291,15 +291,15 @@ fn movement(
         (With<Enemy>, Without<Player>),
     >,
 ) {
-    if let Ok(pl) = player.get_single() {
-        for (mut t, mut st, pos, params) in &mut enemies {
-            let steering = steer_seek(&pos, &st, &params, pl.0);
-            st.steering = steering;
+    if let Ok(player) = player.get_single() {
+        for (mut transform, mut host, pos, params) in &mut enemies {
+            let steering = SteerSeek.steer(pos, &host, params, &player.0);
+            host.steering += steering;
 
-            if st.velocity.x < 0.0 {
-                t.scale.x = -1.0;
+            if host.velocity.x < 0.0 {
+                transform.scale.x = -1.0;
             } else {
-                t.scale.x = 1.0
+                transform.scale.x = 1.0
             }
         }
     }

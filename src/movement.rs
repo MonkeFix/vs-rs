@@ -47,17 +47,15 @@ pub struct SteeringHost {
     pub desired_velocity: Vec2,
 }
 
+impl SteeringHost {
+    pub fn steer(&mut self, steering_vec: Vec2) {
+        self.steering += steering_vec;
+    }
+}
+
 #[derive(Bundle, Default)]
 pub struct SteeringBundle {
     pub position: Position,
     pub steering: SteeringHost,
     pub physics_params: PhysicsParams,
-}
-
-#[derive(WorldQuery)]
-pub struct SteeringHostQuery<'w> {
-    position: &'w Position,
-    host: &'w SteeringHost,
-    params: &'w PhysicsParams,
-    collider: &'w ColliderComponent,
 }
