@@ -32,7 +32,7 @@ struct PlTimer(Timer);
 struct Direction(Vec2);
 
 #[derive(Event)]
-struct TimerCallbackEvent(Entity);
+struct TimerCallbackEvent(());
 
 #[derive(Bundle)]
 struct PlayerBundle {
@@ -195,7 +195,7 @@ fn check_enemy_collision(
     }
 }
 
-fn timer_callback() {}
+//fn timer_callback() {}
 
 fn check_health(mut player: Query<&mut Health, With<Player>>) {
     if let Ok(h) = player.get_single_mut() {

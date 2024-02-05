@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use bevy::{math::Vec2, reflect::Reflect};
 
 use super::Rect;

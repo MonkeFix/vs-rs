@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::movement::Position;
 use bevy::prelude::*;
 

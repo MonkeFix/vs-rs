@@ -83,8 +83,8 @@ struct SpawnWave {
 
 #[derive(Component, Clone, Debug)]
 struct Rewards {
-    exp: u64,
-    items: &'static str, // TODO: When <Item> class is implemented, remove this mock up
+    _exp: u64,
+    _items: &'static str, // TODO: When <Item> class is implemented, remove this mock up
 }
 
 #[derive(Component, Clone, Debug)]
@@ -101,7 +101,7 @@ struct EnemyBundle {
 #[derive(Component, Clone, Debug)]
 struct EnemySpawnComponent {
     name: String,
-    enemy: Enemy,
+    _enemy: Enemy,
     health: Health,
     damage: Damage,
     max_velocity: f32,
@@ -145,7 +145,7 @@ fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
         let texture_handle: Handle<Image> = asset_server.load(enemy_conf.asset_path);
         let mut enemy = EnemySpawnComponent {
             name: enemy_conf.name,
-            enemy: Enemy,
+            _enemy: Enemy,
             health: Health(enemy_conf.hp),
             damage: Damage(enemy_conf.dmg),
             max_velocity: enemy_conf.max_velocity,
@@ -154,8 +154,8 @@ fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
             texture: texture_handle,
             is_elite: enemy_conf.is_elite,
             rewards: Rewards {
-                exp: 1,
-                items: "Orange",
+                _exp: 1,
+                _items: "Orange",
             }, // TODO: Make them drop gems)
             timer: Default::default(),
         };

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use bevy::{
     log,
     math::Vec2,

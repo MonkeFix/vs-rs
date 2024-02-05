@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::movement::Position;

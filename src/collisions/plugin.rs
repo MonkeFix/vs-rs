@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::{shapes::ColliderShapeType, store::ColliderStore, ColliderId};
 use crate::movement::Position;
 use bevy::{ecs::system::EntityCommands, prelude::*};
