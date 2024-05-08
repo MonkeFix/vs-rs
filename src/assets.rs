@@ -20,7 +20,7 @@ impl Plugin for GameAssetsPlugin {
 pub struct GameAssetTileset {
     pub name: String,
     pub layout: Handle<TextureAtlasLayout>,
-    pub image: Handle<Image>
+    pub image: Handle<Image>,
 }
 
 #[derive(Default, Resource)]
@@ -30,7 +30,7 @@ pub struct GameAssets {
     pub player_texture: Handle<Image>,
     pub test_tile_texture: Handle<Image>,
     pub capybara_texture: Handle<Image>,
-    pub capybara_elite_texture: Handle<Image>
+    pub capybara_elite_texture: Handle<Image>,
 }
 
 fn check_textures(
@@ -66,21 +66,80 @@ fn load(
         player_texture: player_handle,
         test_tile_texture: tile_handle,
         capybara_texture: capybara_handle,
-        capybara_elite_texture: capybara_elite_handle
+        capybara_elite_texture: capybara_elite_handle,
     };
 
     // grass
-    load_tileset("grass.png", &asset_server, &mut atlases, &mut game_assets, Vec2::new(32., 32.), 8, 8);
+    load_tileset(
+        "grass.png",
+        &asset_server,
+        &mut atlases,
+        &mut game_assets,
+        Vec2::new(32., 32.),
+        8,
+        8,
+    );
     // stone ground
-    load_tileset("stone_ground.png", &asset_server, &mut atlases, &mut game_assets, Vec2::new(32., 32.), 8, 8);
+    load_tileset(
+        "stone_ground.png",
+        &asset_server,
+        &mut atlases,
+        &mut game_assets,
+        Vec2::new(32., 32.),
+        8,
+        8,
+    );
     // walls
-    load_tileset("walls.png", &asset_server, &mut atlases, &mut game_assets, Vec2::new(32., 32.), 9, 8);
+    load_tileset(
+        "walls.png",
+        &asset_server,
+        &mut atlases,
+        &mut game_assets,
+        Vec2::new(32., 32.),
+        9,
+        8,
+    );
     // structs
-    load_tileset("structs.png", &asset_server, &mut atlases, &mut game_assets, Vec2::new(32., 32.), 9, 6);
+    load_tileset(
+        "structs.png",
+        &asset_server,
+        &mut atlases,
+        &mut game_assets,
+        Vec2::new(32., 32.),
+        9,
+        6,
+    );
     // props
-    load_tileset("props.png", &asset_server, &mut atlases, &mut game_assets, Vec2::new(32., 32.), 11, 11);
+    load_tileset(
+        "props.png",
+        &asset_server,
+        &mut atlases,
+        &mut game_assets,
+        Vec2::new(32., 32.),
+        11,
+        11,
+    );
     // plants
-    load_tileset("plants.png", &asset_server, &mut atlases, &mut game_assets, Vec2::new(32., 32.), 11, 7);
+    load_tileset(
+        "plants.png",
+        &asset_server,
+        &mut atlases,
+        &mut game_assets,
+        Vec2::new(32., 32.),
+        11,
+        7,
+    );
+
+    // player
+    load_tileset(
+        "player.png",
+        &asset_server,
+        &mut atlases,
+        &mut game_assets,
+        Vec2::new(32., 64.),
+        4,
+        2,
+    );
 
     commands.insert_resource(game_assets);
 }
@@ -92,7 +151,7 @@ fn load_tileset(
     game_assets: &mut GameAssets,
     tile_size: Vec2,
     columns: usize,
-    rows: usize
+    rows: usize,
 ) {
     info!("Loading tileset {}", name);
     let texture_handle = asset_server.load(format!("tiles/{}", name));
@@ -103,7 +162,7 @@ fn load_tileset(
     let set = GameAssetTileset {
         name: name.to_string(),
         layout: layout_handle,
-        image: texture_handle
+        image: texture_handle,
     };
 
     game_assets.tilesets.insert(name.to_string(), set);

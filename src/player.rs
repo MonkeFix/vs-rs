@@ -1,3 +1,4 @@
+use crate::assets::GameAssets;
 use crate::collisions::plugin::{ColliderBundle, ColliderComponent};
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::{ColliderIdResolver, ColliderStore};
@@ -6,19 +7,25 @@ use crate::input::PlayerControls;
 use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::stats::*;
+use crate::AppState;
 use bevy::log;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
 use std::time::Duration;
-use crate::AppState;
-use crate::assets::GameAssets;
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Finished), spawn)
-            .add_systems(FixedUpdate, (movement, check_enemy_collision, check_health).run_if(in_state(AppState::Finished)))
-            .add_systems(Update, handle_input.run_if(in_state(AppState::Finished)));
+            .add_systems(
+                FixedUpdate,
+                (movement, check_enemy_collision, check_health)
+                    .run_if(in_state(AppState::Finished)),
+            )
+            .add_systems(
+                Update,
+                (handle_input, update_sprite, update_atlas).run_if(in_state(AppState::Finished)),
+            );
     }
 }
 
@@ -57,16 +64,23 @@ impl PlayerBundle {
     }
 }
 
-fn spawn(
-    mut collider_set: ResMut<ColliderStore>,
-    mut commands: Commands,
-    assets: Res<GameAssets>
-) {
+fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets: Res<GameAssets>) {
+    let player_tileset = assets.tilesets.get("player.png").unwrap();
+
     commands.spawn((
         PlayerBundle::new(),
-        SpriteBundle {
+        /* SpriteBundle {
             texture: assets.player_texture.clone(),
             transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
+            ..default()
+        }, */
+        SpriteSheetBundle {
+            sprite: Sprite::default(),
+            atlas: TextureAtlas {
+                layout: player_tileset.layout.clone(),
+                index: 4,
+            },
+            texture: player_tileset.image.clone(),
             ..default()
         },
         SteeringBundle { ..default() },
@@ -164,6 +178,30 @@ fn movement(
         let steering = player.steer_seek.steer(pos, &host, params, &target);
 
         host.steer(steering);
+    }
+}
+
+fn update_atlas(mut query: Query<(&Direction, &mut TextureAtlas), With<Player>>) {
+    if let Ok((dir, mut atlas)) = query.get_single_mut() {
+        if dir.0.y > 0.0 {
+            atlas.index = 1;
+        } else if dir.0.x < 0. || dir.0.x > 0. {
+            atlas.index = 2;
+        } else {
+            atlas.index = 0;
+        }
+    }
+}
+
+fn update_sprite(mut query: Query<(&Direction, &mut Sprite), With<Player>>) {
+    if let Ok((dir, mut sprite)) = query.get_single_mut() {
+        if dir.0.x < 0. {
+            sprite.flip_x = false;
+        } else if dir.0.x > 0. {
+            sprite.flip_x = true;
+        } else {
+            sprite.flip_x = false;
+        }
     }
 }
 
