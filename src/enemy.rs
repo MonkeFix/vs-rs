@@ -12,6 +12,8 @@ use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
+use crate::AppState;
+use crate::assets::GameAssets;
 
 pub struct EnemyPlugin;
 
@@ -47,7 +49,7 @@ impl Plugin for EnemyPlugin {
             Duration::from_secs(GLOBAL_TIME_TICKER_SEC),
             TimerMode::Repeating,
         )))
-        .add_systems(Startup, (enemy_factory,))
+        .add_systems(OnEnter(AppState::Finished), (enemy_factory,))
         .add_systems(
             Update,
             (
@@ -56,7 +58,7 @@ impl Plugin for EnemyPlugin {
                 check_health,
                 change_wave,
                 global_timer_tick,
-            ),
+            ).run_if(in_state(AppState::Finished)),
         );
     }
 }
@@ -122,7 +124,7 @@ struct CurrentWave {
     need_wave_spawn: bool,
 }
 
-fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn enemy_factory(mut commands: Commands, assets: Res<GameAssets>) {
     #[derive(Debug, Serialize, Deserialize)]
     struct EnemyConfig {
         name: String,
@@ -142,7 +144,8 @@ fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut spawn_map: HashMap<u16, Vec<EnemySpawnComponent>> = HashMap::new();
 
     for enemy_conf in data {
-        let texture_handle: Handle<Image> = asset_server.load(enemy_conf.asset_path);
+        // TODO: use file from the config
+        let texture_handle: Handle<Image> = assets.capybara_texture.clone();
         let mut enemy = EnemySpawnComponent {
             name: enemy_conf.name,
             _enemy: Enemy,

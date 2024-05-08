@@ -14,9 +14,11 @@ mod movement;
 mod player;
 mod tilemap;
 
+mod assets;
 mod enemy;
 mod stats;
 
+use crate::assets::GameAssetsPlugin;
 use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;
 #[cfg(debug_assertions)]
@@ -59,6 +61,7 @@ fn main() {
     .add_plugins(EnemyPlugin)
     .add_plugins(CollisionPlugin)
     .add_systems(Startup, (spawn_camera, setup_gamepad))
+    .add_plugins(GameAssetsPlugin)
     .insert_resource(Time::<Fixed>::from_seconds(FIXED_TIMESTEP))
     .insert_resource(Msaa::Off);
 

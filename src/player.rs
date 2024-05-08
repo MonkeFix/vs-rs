@@ -9,14 +9,16 @@ use crate::stats::*;
 use bevy::log;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
 use std::time::Duration;
+use crate::AppState;
+use crate::assets::GameAssets;
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn)
-            .add_systems(FixedUpdate, (movement, check_enemy_collision, check_health))
-            .add_systems(Update, handle_input);
+        app.add_systems(OnEnter(AppState::Finished), spawn)
+            .add_systems(FixedUpdate, (movement, check_enemy_collision, check_health).run_if(in_state(AppState::Finished)))
+            .add_systems(Update, handle_input.run_if(in_state(AppState::Finished)));
     }
 }
 
@@ -58,13 +60,12 @@ impl PlayerBundle {
 fn spawn(
     mut collider_set: ResMut<ColliderStore>,
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    assets: Res<GameAssets>
 ) {
-    let texture_handle: Handle<Image> = asset_server.load("player.png");
     commands.spawn((
         PlayerBundle::new(),
         SpriteBundle {
-            texture: texture_handle,
+            texture: assets.player_texture.clone(),
             transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
             ..default()
         },

@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use bevy::utils::*;
+use crate::AppState;
+use crate::assets::GameAssets;
 
 pub struct TileMapPlugin;
 
@@ -7,7 +9,7 @@ impl Plugin for TileMapPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ChunkManager::default()).add_systems(
             Update,
-            (spawn_chunks_around_camera, despawn_outofrange_chunks),
+            (spawn_chunks_around_camera, despawn_outofrange_chunks).run_if(in_state(AppState::Finished)),
         );
     }
 }
@@ -26,8 +28,8 @@ struct TileSize {
 const TILE_SIZE: TileSize = TileSize { x: 128.0, y: 128.0 };
 const CHUNK_SIZE: UVec2 = UVec2 { x: 4, y: 4 };
 
-fn spawn_chunk(commands: &mut Commands, asset_server: &AssetServer, chunk_pos: IVec2) {
-    let texture_handle: Handle<Image> = asset_server.load("tile.png");
+fn spawn_chunk(commands: &mut Commands, assets: &GameAssets, chunk_pos: IVec2) {
+    let texture_handle: Handle<Image> = assets.test_tile_texture.clone();
     for x in 0..CHUNK_SIZE.x {
         for y in 0..CHUNK_SIZE.y {
             let transform = Transform::from_translation(Vec3::new(
@@ -75,7 +77,7 @@ fn camera_pos_to_chunk_pos(camera_pos: &Vec2) -> IVec2 {
 
 fn spawn_chunks_around_camera(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    assets: Res<GameAssets>,
     camera_query: Query<&Transform, With<Camera>>,
     mut chunk_manager: ResMut<ChunkManager>,
 ) {
@@ -86,7 +88,7 @@ fn spawn_chunks_around_camera(
             for x in (camera_chunk_pos.x - 3)..(camera_chunk_pos.x + 3) {
                 if !chunk_manager.spawned_chunks.contains(&IVec2::new(x, y)) {
                     chunk_manager.spawned_chunks.insert(IVec2::new(x, y));
-                    spawn_chunk(&mut commands, &asset_server, IVec2::new(x, y));
+                    spawn_chunk(&mut commands, &assets, IVec2::new(x, y));
                 }
             }
         }
