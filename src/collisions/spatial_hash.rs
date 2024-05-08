@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use bevy::{
     log,
     math::Vec2,
@@ -98,18 +100,17 @@ impl SpatialHash {
 
                 match cell {
                     Some(cell) => {
-                        for i in 0..cell.len() {
-                            let collider_id = cell[i];
-                            let collder = collider_finder(&collider_id).unwrap();
+                        for collider_id in cell {
+                            let collder = collider_finder(collider_id).unwrap();
 
-                            if exclude_collider.is_some_and(|excl| collider_id == excl)
+                            if exclude_collider.is_some_and(|excl| *collider_id == excl)
                                 || !is_flag_set(layer_mask, collder.physics_layer)
                             {
                                 continue;
                             }
 
                             if bounds.intersects(collder.bounds()) {
-                                tmp_hashset.insert(collider_id);
+                                tmp_hashset.insert(*collider_id);
                             }
                         }
                     }
@@ -219,16 +220,15 @@ impl SpatialHash {
     pub fn overlap_rectangle<'a, F>(
         &'a self,
         rect: &Rect,
-        results: &mut [ColliderId],
+        exclude_collider: Option<ColliderId>,
+        results: &mut Vec<ColliderId>,
         layer_mask: i32,
         collider_finder: F,
     ) -> i32
     where
         F: Fn(&ColliderId) -> Option<&'a Collider>,
     {
-        let mut res_counter: i32 = 0;
-
-        let potentials = self.aabb_broadphase(rect, None, layer_mask, &collider_finder);
+        let potentials = self.aabb_broadphase(rect, exclude_collider, layer_mask, &collider_finder);
         for collider_id in potentials {
             let collider = collider_finder(&collider_id).unwrap();
             match collider.shape.shape_type {
@@ -241,29 +241,24 @@ impl SpatialHash {
                         collider.center(),
                         radius,
                     ) {
-                        results[res_counter as usize] = collider_id;
-                        res_counter += 1;
+                        results.push(collider_id);
                     }
                 }
                 super::shapes::ColliderShapeType::Box { .. } => {
-                    results[res_counter as usize] = collider_id;
-                    res_counter += 1;
+                    results.push(collider_id);
                 }
-            }
-
-            if res_counter == results.len() as i32 {
-                return res_counter;
             }
         }
 
-        res_counter
+        results.len() as i32
     }
 
     pub fn overlap_circle<'a, F>(
         &'a self,
         circle_center: Vec2,
         radius: f32,
-        results: &mut [ColliderId],
+        exclude_collider: Option<ColliderId>,
+        results: &mut Vec<ColliderId>,
         layer_mask: i32,
         collider_finder: F,
     ) -> i32
@@ -278,36 +273,29 @@ impl SpatialHash {
         );
 
         let mut test_circle =
-            Collider::new(super::shapes::ColliderShapeType::Circle { radius: radius }, None);
+            Collider::new(super::shapes::ColliderShapeType::Circle { radius }, None);
         test_circle.shape.position = circle_center;
         test_circle.shape.center = circle_center;
 
-        let mut res_counter: i32 = 0;
-
-        let potentials = self.aabb_broadphase(&bounds, None, layer_mask, &collider_finder);
+        let potentials =
+            self.aabb_broadphase(&bounds, exclude_collider, layer_mask, &collider_finder);
         for collider_id in potentials {
             let collider = collider_finder(&collider_id).unwrap();
             match collider.shape.shape_type {
                 super::shapes::ColliderShapeType::Circle { .. } => {
                     if collider.overlaps(&test_circle) {
-                        results[res_counter as usize] = collider_id;
-                        res_counter += 1;
+                        results.push(collider_id);
                     }
                 }
                 super::shapes::ColliderShapeType::Box { .. } => {
                     if collider.overlaps(&test_circle) {
-                        results[res_counter as usize] = collider_id;
-                        res_counter += 1;
+                        results.push(collider_id);
                     }
                 }
             }
-
-            if res_counter == results.len() as i32 {
-                return res_counter;
-            }
         }
 
-        res_counter
+        results.len() as i32
     }
 
     fn cell_coords(&self, x: f32, y: f32) -> Vec2 {
@@ -342,8 +330,7 @@ struct IntIntMap {
 
 fn get_key(x: i32, y: i32) -> i64 {
     let shl = (x as i64).overflowing_shl(32);
-    let res = shl.0 | ((y as u32) as i64);
-    res
+    shl.0 | ((y as u32) as i64)
 }
 
 impl IntIntMap {
@@ -378,6 +365,7 @@ fn sign(val: f32) -> i32 {
     1
 }
 
+#[derive(Default)]
 struct RaycastResultParser {
     pub hit_counter: i32,
     //hits: Option<&'a mut [RaycastHit<'a>]>,
@@ -388,28 +376,9 @@ struct RaycastResultParser {
     layer_mask: i32,
 }
 
-impl Default for RaycastResultParser {
-    fn default() -> Self {
-        Self {
-            hit_counter: 0,
-            //hits: None,
-            tmp_hit: None,
-            checked_colliders: vec![],
-            cell_hits: vec![],
-            ray: None,
-            layer_mask: 0,
-        }
-    }
-}
-
 impl RaycastResultParser {
-    pub fn start<'b>(
-        &mut self,
-        ray: Ray2D,
-        /* hits: &'a mut [RaycastHit<'a>], */ layer_mask: i32,
-    ) {
+    pub fn start(&mut self, ray: Ray2D, layer_mask: i32) {
         self.ray = Some(ray);
-        //self.hits = Some(hits);
         self.layer_mask = layer_mask;
         self.hit_counter = 0;
     }
@@ -425,8 +394,7 @@ impl RaycastResultParser {
     {
         let ray = self.ray.unwrap();
 
-        for i in 0..cell.len() {
-            let potential = &cell[i];
+        for potential in cell {
             let potential = find_collider(potential).unwrap();
 
             if self.checked_colliders.contains(&potential.id) {
@@ -460,7 +428,7 @@ impl RaycastResultParser {
             }
         }
 
-        if self.cell_hits.len() == 0 {
+        if self.cell_hits.is_empty() {
             return false;
         }
 

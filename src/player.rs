@@ -3,7 +3,7 @@ use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::{ColliderIdResolver, ColliderStore};
 use crate::enemy::Enemy;
 use crate::input::PlayerControls;
-use crate::movement::steering::steer_seek;
+use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::stats::*;
 use bevy::log;
@@ -21,7 +21,9 @@ impl Plugin for PlayerPlugin {
 }
 
 #[derive(Component)]
-pub struct Player;
+pub struct Player {
+    steer_seek: SteerSeek,
+}
 
 #[derive(Component)]
 struct PlTimer(Timer);
@@ -30,7 +32,7 @@ struct PlTimer(Timer);
 struct Direction(Vec2);
 
 #[derive(Event)]
-struct TimerCallbackEvent(Entity);
+struct TimerCallbackEvent(());
 
 #[derive(Bundle)]
 struct PlayerBundle {
@@ -43,7 +45,9 @@ struct PlayerBundle {
 impl PlayerBundle {
     fn new() -> Self {
         Self {
-            player: Player,
+            player: Player {
+                steer_seek: SteerSeek,
+            },
             health: Health(100),
             inv_timer: PlTimer(Timer::new(Duration::from_millis(500), TimerMode::Repeating)),
             direction: Direction(Vec2::ZERO),
@@ -143,15 +147,22 @@ fn handle_input(
 
 fn movement(
     mut steering_host: Query<
-        (&mut SteeringHost, &Position, &PhysicsParams, &Direction),
+        (
+            &mut SteeringHost,
+            &Position,
+            &PhysicsParams,
+            &Direction,
+            &Player,
+        ),
         With<Player>,
     >,
 ) {
-    if let Ok((mut host, pos, params, dir)) = steering_host.get_single_mut() {
+    if let Ok((mut host, pos, params, dir, player)) = steering_host.get_single_mut() {
         let target = pos.0 + dir.0;
 
-        let vec = steer_seek(&pos, &host, &params, target);
-        host.steering = vec;
+        let steering = player.steer_seek.steer(pos, &host, params, &target);
+
+        host.steer(steering);
     }
 }
 
@@ -168,7 +179,7 @@ fn check_enemy_collision(
         let neighbors = collider_store.aabb_broadphase_excluding_self(id.id, rect, None);
         for neighbor in neighbors {
             let collider = collider_store.get(neighbor).unwrap();
-            if let Some(_) = player_collider.collides_with(collider) {
+            if player_collider.collides_with(collider).is_some() {
                 timer.0.tick(time.delta());
 
                 if timer.0.finished() {
@@ -184,7 +195,7 @@ fn check_enemy_collision(
     }
 }
 
-fn timer_callback() {}
+//fn timer_callback() {}
 
 fn check_health(mut player: Query<&mut Health, With<Player>>) {
     if let Ok(h) = player.get_single_mut() {

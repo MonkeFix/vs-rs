@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::movement::Position;
 use bevy::prelude::*;
 
@@ -106,14 +108,10 @@ impl Collider {
                     width: w2,
                     height: h2,
                 } => rect_to_rect(
-                    position.x + self.local_offset.x,
-                    position.y + self.local_offset.y,
-                    w1,
-                    h1,
-                    other.position().x + other.local_offset.x,
-                    other.position().y + other.local_offset.y,
-                    w2,
-                    h2,
+                    position + self.local_offset,
+                    Vec2::new(w1, h1),
+                    other.position() + other.local_offset,
+                    Vec2::new(w2, h2),
                 ),
             },
         }

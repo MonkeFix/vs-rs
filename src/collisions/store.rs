@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::movement::Position;
@@ -60,14 +62,6 @@ impl ColliderStore {
         id
     }
 
-    pub fn from_component(&self, component: &ColliderComponent) -> Option<&Collider> {
-        self.colliders.get(&component.id)
-    }
-
-    pub fn from_component_mut(&mut self, component: &ColliderComponent) -> Option<&mut Collider> {
-        self.colliders.get_mut(&component.id)
-    }
-
     pub fn remove(&mut self, id: impl Into<ColliderId>) -> Option<Collider> {
         let id = id.into();
         let col = self.colliders.get_mut(&id);
@@ -76,7 +70,7 @@ impl ColliderStore {
         let col: &mut Collider = col.unwrap();
         col.is_registered = false;
 
-        self.spatial_hash.remove(&col);
+        self.spatial_hash.remove(col);
         self.colliders.remove(&id)
     }
 
@@ -117,24 +111,48 @@ impl ColliderStore {
             .linecast(start, end, layer_mask, |id| self.colliders.get(id))
     }
 
-    pub fn overlap_circle(&self, circle_center: Vec2, radius: f32, layer_mask: Option<i32>) -> i32 {
+    pub fn overlap_circle(
+        &self,
+        circle_center: Vec2,
+        radius: f32,
+        excluding_collider: Option<ColliderId>,
+        layer_mask: Option<i32>,
+    ) -> Vec<ColliderId> {
         let layer_mask = layer_mask.unwrap_or(ALL_LAYERS);
 
-        let mut results = vec![ColliderId(0); 1];
+        let mut results = vec![];
 
-        self.spatial_hash
-            .overlap_circle(circle_center, radius, &mut results, layer_mask, |id| {
-                self.colliders.get(id)
-            })
+        let _count = self.spatial_hash.overlap_circle(
+            circle_center,
+            radius,
+            excluding_collider,
+            &mut results,
+            layer_mask,
+            |id| self.colliders.get(id),
+        );
+
+        results
     }
 
-    pub fn overlap_rectangle(&self, rect: super::Rect, layer_mask: Option<i32>) -> i32 {
+    pub fn overlap_rectangle(
+        &self,
+        rect: super::Rect,
+        excluding_collider: Option<ColliderId>,
+        layer_mask: Option<i32>,
+    ) -> Vec<ColliderId> {
         let layer_mask = layer_mask.unwrap_or(ALL_LAYERS);
 
-        let mut results = vec![ColliderId(0); 1];
+        let mut results = vec![];
 
-        self.spatial_hash
-            .overlap_rectangle(&rect, &mut results, layer_mask, |id| self.colliders.get(id))
+        let _count = self.spatial_hash.overlap_rectangle(
+            &rect,
+            excluding_collider,
+            &mut results,
+            layer_mask,
+            |id| self.colliders.get(id),
+        );
+
+        results
     }
 
     pub(crate) fn clear_hash(&mut self) {

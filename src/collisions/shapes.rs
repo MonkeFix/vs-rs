@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use bevy::{math::Vec2, reflect::Reflect};
 
 use super::Rect;
@@ -130,7 +132,7 @@ pub mod collisions {
         }
     }
 
-    pub fn line_to_circle<'a>(start: Vec2, end: Vec2, s: &ColliderShape) -> Option<RaycastHit> {
+    pub fn line_to_circle(start: Vec2, end: Vec2, s: &ColliderShape) -> Option<RaycastHit> {
         match s.shape_type {
             ColliderShapeType::Circle { radius } => {
                 let mut hit = RaycastHit::default();

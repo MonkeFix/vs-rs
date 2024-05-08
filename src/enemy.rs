@@ -2,7 +2,7 @@ use crate::collisions::plugin::ColliderBundle;
 use crate::collisions::plugin::ColliderComponent;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::ColliderStore;
-use crate::movement::steering::steer_seek;
+use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::player::*;
 use crate::stats::*;
@@ -10,7 +10,6 @@ use bevy::prelude::*;
 use bevy::time::TimerMode::Repeating;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -84,8 +83,8 @@ struct SpawnWave {
 
 #[derive(Component, Clone, Debug)]
 struct Rewards {
-    exp: u64,
-    items: &'static str, // TODO: When <Item> class is implemented, remove this mock up
+    _exp: u64,
+    _items: &'static str, // TODO: When <Item> class is implemented, remove this mock up
 }
 
 #[derive(Component, Clone, Debug)]
@@ -102,7 +101,7 @@ struct EnemyBundle {
 #[derive(Component, Clone, Debug)]
 struct EnemySpawnComponent {
     name: String,
-    enemy: Enemy,
+    _enemy: Enemy,
     health: Health,
     damage: Damage,
     max_velocity: f32,
@@ -146,7 +145,7 @@ fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
         let texture_handle: Handle<Image> = asset_server.load(enemy_conf.asset_path);
         let mut enemy = EnemySpawnComponent {
             name: enemy_conf.name,
-            enemy: Enemy,
+            _enemy: Enemy,
             health: Health(enemy_conf.hp),
             damage: Damage(enemy_conf.dmg),
             max_velocity: enemy_conf.max_velocity,
@@ -155,15 +154,15 @@ fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
             texture: texture_handle,
             is_elite: enemy_conf.is_elite,
             rewards: Rewards {
-                exp: 1,
-                items: "Orange",
+                _exp: 1,
+                _items: "Orange",
             }, // TODO: Make them drop gems)
             timer: Default::default(),
         };
 
         for waves in enemy_conf.spawn_waves {
             for n in waves.from..waves.to + 1 {
-                if let Some(mut components) = spawn_map.get_mut(&n) {
+                if let Some(components) = spawn_map.get_mut(&n) {
                     enemy.timer =
                         Timer::new(Duration::from_secs(waves.spawn_time), TimerMode::Repeating);
                     components.push(enemy.clone());
@@ -187,16 +186,16 @@ fn spawn(
     mut spawn_map: ResMut<EnemySpawners>,
     mut player: Query<&mut Transform, With<Player>>,
     mut current_wave: ResMut<CurrentWave>,
-    mut global_time_ticker: Res<GlobalTimeTickerResource>,
+    global_time_ticker: Res<GlobalTimeTickerResource>,
 ) {
     if global_time_ticker.0.finished() || current_wave.need_wave_spawn {
         if let Some(spawners) = spawn_map.0.get_mut(&current_wave.num) {
-            for mut spawner in spawners {
+            for spawner in spawners {
                 spawner.timer.tick(global_time_ticker.0.duration());
 
                 if spawner.timer.finished() || current_wave.need_wave_spawn {
                     // spawn elite only one time on the wave
-                    if Some(true) == spawner.is_elite && current_wave.need_wave_spawn == false {
+                    if Some(true) == spawner.is_elite && !current_wave.need_wave_spawn {
                         continue;
                     }
                     if let Ok(p_t) = player.get_single_mut() {
@@ -213,7 +212,7 @@ fn spawn(
                         for i in
                             1..thread_rng().gen_range(ENEMY_BATCH_SIZE.min, ENEMY_BATCH_SIZE.max)
                         {
-                            let (mut m_x, mut m_y, mut m_z): (f32, f32, f32);
+                            let (m_x, m_y, m_z): (f32, f32, f32);
                             if is_left == 1 {
                                 m_x = thread_rng().gen_range(
                                     p_t.translation.x - SPAWN_DISTANCE.max,
@@ -284,6 +283,8 @@ fn spawn(
         }
     }
 }
+
+#[allow(clippy::type_complexity)]
 fn movement(
     player: Query<&Position, With<Player>>,
     mut enemies: Query<
@@ -291,20 +292,21 @@ fn movement(
         (With<Enemy>, Without<Player>),
     >,
 ) {
-    if let Ok(pl) = player.get_single() {
-        for (mut t, mut st, pos, params) in &mut enemies {
-            let steering = steer_seek(&pos, &st, &params, pl.0);
-            st.steering = steering;
+    if let Ok(player) = player.get_single() {
+        for (mut transform, mut host, pos, params) in &mut enemies {
+            let steering = SteerSeek.steer(pos, &host, params, &player.0);
+            host.steering += steering;
 
-            if st.velocity.x < 0.0 {
-                t.scale.x = -1.0;
+            if host.velocity.x < 0.0 {
+                transform.scale.x = -1.0;
             } else {
-                t.scale.x = 1.0
+                transform.scale.x = 1.0
             }
         }
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn check_health(
     mut commands: Commands,
     enemies: Query<(&Health, Entity), (With<Enemy>, Without<Player>)>,
