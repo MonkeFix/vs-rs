@@ -27,15 +27,15 @@ impl Default for PlayerControlsKeyboard {
     fn default() -> Self {
         Self {
             // Primary
-            move_up: KeyCode::Up,
-            move_down: KeyCode::Down,
-            move_left: KeyCode::Left,
-            move_right: KeyCode::Right,
+            move_up: KeyCode::ArrowUp,
+            move_down: KeyCode::ArrowDown,
+            move_left: KeyCode::ArrowLeft,
+            move_right: KeyCode::ArrowRight,
             // Secondary
-            move_up_2: KeyCode::W,
-            move_down_2: KeyCode::S,
-            move_left_2: KeyCode::A,
-            move_right_2: KeyCode::D,
+            move_up_2: KeyCode::KeyW,
+            move_down_2: KeyCode::KeyS,
+            move_left_2: KeyCode::KeyA,
+            move_right_2: KeyCode::KeyD,
         }
     }
 }

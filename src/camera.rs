@@ -13,14 +13,14 @@ impl Plugin for CameraMovementPlugin {
 }
 
 fn camera_zoom(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<&mut OrthographicProjection, With<Camera>>,
 ) {
     if let Ok(mut ortho) = query.get_single_mut() {
-        if keyboard_input.pressed(KeyCode::Z) {
+        if keyboard_input.pressed(KeyCode::KeyZ) {
             ortho.scale += 0.1;
         }
-        if keyboard_input.pressed(KeyCode::X) {
+        if keyboard_input.pressed(KeyCode::KeyX) {
             ortho.scale -= 0.1;
         }
 

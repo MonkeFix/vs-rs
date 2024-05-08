@@ -80,7 +80,7 @@ fn spawn(
 }
 
 fn handle_input(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     gamepad_axes: Res<Axis<GamepadAxis>>,
     gamepad_settings: Res<GamepadSettings>,
     gamepads: Res<Gamepads>,
