@@ -199,8 +199,8 @@ fn spawn(
                         continue;
                     }
                     if let Ok(p_t) = player.get_single_mut() {
-                        let is_left = thread_rng().gen_range(0, 2);
-                        let is_up = thread_rng().gen_range(0, 2);
+                        let is_left = thread_rng().gen_range(0..2);
+                        let is_up = thread_rng().gen_range(0..2);
                         let mut enemy_batch: Vec<(
                             EnemyBundle,
                             SpriteBundle,
@@ -210,30 +210,30 @@ fn spawn(
                         )> = Vec::new();
 
                         for i in
-                            1..thread_rng().gen_range(ENEMY_BATCH_SIZE.min, ENEMY_BATCH_SIZE.max)
+                            1..thread_rng().gen_range(ENEMY_BATCH_SIZE.min..ENEMY_BATCH_SIZE.max)
                         {
                             let (m_x, m_y, m_z): (f32, f32, f32);
                             if is_left == 1 {
                                 m_x = thread_rng().gen_range(
-                                    p_t.translation.x - SPAWN_DISTANCE.max,
-                                    p_t.translation.x - SPAWN_DISTANCE.min,
+                                    p_t.translation.x - SPAWN_DISTANCE.max
+                                        ..p_t.translation.x - SPAWN_DISTANCE.min,
                                 );
                             } else {
                                 m_x = thread_rng().gen_range(
-                                    p_t.translation.x + SPAWN_DISTANCE.min,
-                                    p_t.translation.x + SPAWN_DISTANCE.max,
+                                    p_t.translation.x + SPAWN_DISTANCE.min
+                                        ..p_t.translation.x + SPAWN_DISTANCE.max,
                                 );
                             }
 
                             if is_up == 1 {
                                 m_y = thread_rng().gen_range(
-                                    p_t.translation.y - SPAWN_DISTANCE.max,
-                                    p_t.translation.y - SPAWN_DISTANCE.min,
+                                    p_t.translation.y - SPAWN_DISTANCE.max
+                                        ..p_t.translation.y - SPAWN_DISTANCE.min,
                                 );
                             } else {
                                 m_y = thread_rng().gen_range(
-                                    p_t.translation.y + SPAWN_DISTANCE.min,
-                                    p_t.translation.y + SPAWN_DISTANCE.max,
+                                    p_t.translation.y + SPAWN_DISTANCE.min
+                                        ..p_t.translation.y + SPAWN_DISTANCE.max,
                                 );
                             }
 

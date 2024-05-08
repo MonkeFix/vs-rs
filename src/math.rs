@@ -26,12 +26,17 @@ pub fn approach(start: f32, end: f32, shift: f32) -> f32 {
 
 pub fn rng_f32(min: f32, max: f32) -> f32 {
     let mut rand = thread_rng();
-    rand.next_f32() * (max - min) + min
+    rand.gen_range(min..max)
+}
+
+pub fn rng_f64(min: f64, max: f64) -> f64 {
+    let mut rand = thread_rng();
+    rand.gen_range(min..max)
 }
 
 pub fn rng_vec2(min_length: f32, max_length: f32) -> Vec2 {
     let mut rand = thread_rng();
-    let theta: f64 = rand.next_f64() * 2.0 * std::f64::consts::PI;
+    let theta: f64 = rand.gen_range(0.0..1.0) * 2.0 * std::f64::consts::PI;
     let length: f32 = rng_f32(min_length, max_length);
 
     Vec2::new(length * theta.cos() as f32, length * theta.sin() as f32)

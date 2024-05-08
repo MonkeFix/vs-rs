@@ -63,7 +63,7 @@ fn add_enemy_count(mut commands: Commands) {
 }
 
 fn update_enemy_count(
-    enemies: Query<(With<Enemy>, Without<Player>)>,
+    enemies: Query<&Enemy, (With<Enemy>, Without<Player>)>,
     mut text: Query<&mut Text, Without<FpsText>>,
 ) {
     if let Ok(mut text) = text.get_single_mut() {
@@ -76,7 +76,7 @@ struct FpsText;
 
 fn update_fps(diagnostics: Res<DiagnosticsStore>, mut fps_text: Query<&mut Text, With<FpsText>>) {
     if let Ok(mut text) = fps_text.get_single_mut() {
-        if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+        if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
             if let Some(value) = fps.smoothed() {
                 text.sections[1].value = format!("{value:.2}");
             }

@@ -81,7 +81,7 @@ pub trait ColliderDespawnable {
     );
 }
 
-impl<'w, 's, 'a> ColliderDespawnable for EntityCommands<'w, 's, 'a> {
+impl<'a> ColliderDespawnable for EntityCommands<'a> {
     fn despawn_and_unregister(
         &mut self,
         collider_store: &mut ColliderStore,
