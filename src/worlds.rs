@@ -32,7 +32,7 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
         world: world_gen.generate(),
     };
 
-    let grass_asset = assets.tilesets.get("grass.png").unwrap();
+    let grass_asset = assets.tilesets.get("tilesheet").unwrap();
 
     let tilemap = world_to_tilemap(&world_comp.world);
 
@@ -88,7 +88,7 @@ fn world_to_tilemap(world: &World) -> TileMap {
                     tilemap.set_tile(
                         pos,
                         Some(Tile {
-                            sprite_index: 60,
+                            sprite_index: 289, // x + y * width
                             ..default()
                         }),
                     );
