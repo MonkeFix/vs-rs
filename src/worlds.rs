@@ -1,0 +1,101 @@
+use bevy::prelude::*;
+use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
+
+use crate::{assets::GameAssets, AppState};
+
+use self::{
+    world::World,
+    worldgen::{CellType, WorldGenerator},
+};
+
+pub mod world;
+pub mod worldgen;
+
+#[derive(Component)]
+pub struct WorldComponent {
+    pub world: World,
+}
+
+pub struct WorldPlugin;
+
+impl Plugin for WorldPlugin {
+    fn build(&self, app: &mut App) {
+        //app.add_systems(OnEnter(AppState::WorldGen), (spawn_world,));
+        app.add_systems(OnEnter(AppState::Finished), (spawn_world,));
+    }
+}
+
+fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
+    let mut world_gen = WorldGenerator::new_with_default(32, 32);
+
+    let world_comp = WorldComponent {
+        world: world_gen.generate(),
+    };
+
+    let grass_asset = assets.tilesets.get("grass.png").unwrap();
+
+    let tilemap = world_to_tilemap(&world_comp.world);
+
+    commands.spawn((
+        world_comp,
+        TileMapBundle {
+            texture: grass_asset.image.clone(),
+            tilemap,
+            atlas: TextureAtlas {
+                layout: grass_asset.layout.clone(),
+                ..default()
+            },
+            transform: Transform {
+                scale: Vec3::splat(2.0),
+                translation: Vec3::new(0.0, 0.0, 0.0),
+                ..default()
+            },
+            ..default()
+        },
+    ));
+}
+
+fn world_to_tilemap(world: &World) -> TileMap {
+    let mut tilemap = TileMap::default();
+
+    for y in 0..world.height {
+        for x in 0..world.width {
+            let pos = IVec3::new(x as i32, y as i32, 0);
+
+            match world.grid[y][x] {
+                CellType::None => {
+                    tilemap.set_tile(pos, None);
+                }
+                CellType::Room => {
+                    tilemap.set_tile(
+                        pos,
+                        Some(Tile {
+                            sprite_index: 0,
+                            ..default()
+                        }),
+                    );
+                }
+                CellType::Hallway => {
+                    tilemap.set_tile(
+                        pos,
+                        Some(Tile {
+                            sprite_index: 5,
+                            ..default()
+                        }),
+                    );
+                }
+                CellType::Wall => {
+                    tilemap.set_tile(
+                        pos,
+                        Some(Tile {
+                            sprite_index: 60,
+                            ..default()
+                        }),
+                    );
+                }
+            }
+        }
+    }
+
+    tilemap
+}

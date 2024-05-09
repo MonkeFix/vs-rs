@@ -9,6 +9,7 @@ use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::stats::*;
 use crate::AppState;
 use bevy::log;
+use bevy::sprite::Anchor;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
 use std::time::Duration;
 
@@ -67,31 +68,52 @@ impl PlayerBundle {
 fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets: Res<GameAssets>) {
     let player_tileset = assets.tilesets.get("player.png").unwrap();
 
-    commands.spawn((
-        PlayerBundle::new(),
-        /* SpriteBundle {
-            texture: assets.player_texture.clone(),
-            transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
-            ..default()
-        }, */
-        SpriteSheetBundle {
-            sprite: Sprite::default(),
-            atlas: TextureAtlas {
-                layout: player_tileset.layout.clone(),
-                index: 4,
+    commands
+        .spawn((
+            PlayerBundle::new(),
+            /* SpriteBundle {
+                texture: assets.player_texture.clone(),
+                transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
+                ..default()
+            }, */
+            SpriteSheetBundle {
+                sprite: Sprite::default(),
+                atlas: TextureAtlas {
+                    layout: player_tileset.layout.clone(),
+                    index: 0,
+                },
+                texture: player_tileset.image.clone(),
+                transform: Transform::from_xyz(0.0, 0.0, 1.0),
+                ..default()
             },
-            texture: player_tileset.image.clone(),
-            ..default()
-        },
-        SteeringBundle { ..default() },
-        Name::new("player"),
-        ColliderBundle {
-            collider: ColliderComponent::new(
-                &mut collider_set,
-                ColliderShapeType::Circle { radius: 16.0 },
-            ),
-        },
-    ));
+            SteeringBundle { ..default() },
+            Name::new("player"),
+            ColliderBundle {
+                collider: ColliderComponent::new(
+                    &mut collider_set,
+                    ColliderShapeType::Circle { radius: 16.0 },
+                ),
+            },
+        ))
+        .with_children(|c| {
+            c.spawn(SpriteSheetBundle {
+                sprite: Sprite {
+                    anchor: Anchor::Center,
+                    color: Color::rgba(1.0, 1.0, 1.0, 0.3),
+                    ..default()
+                },
+                atlas: TextureAtlas {
+                    layout: player_tileset.layout.clone(),
+                    index: 3,
+                },
+                texture: player_tileset.image.clone(),
+                transform: Transform {
+                    translation: Vec3::new(0.0, 0.0, -1.0),
+                    ..default()
+                },
+                ..default()
+            });
+        });
 }
 
 fn handle_input(
@@ -223,7 +245,8 @@ fn check_enemy_collision(
 
                 if timer.0.finished() {
                     if let Some(entity) = collider.entity {
-                        let dmg = enemies.get_component::<Damage>(entity);
+                        //let dmg = enemies.get_component::<Damage>(entity);
+                        let dmg = enemies.get(entity);
                         if let Ok(dmg) = dmg {
                             hp.0 = hp.0.saturating_sub(dmg.0);
                         }

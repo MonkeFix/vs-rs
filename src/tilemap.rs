@@ -1,16 +1,19 @@
+use crate::assets::GameAssets;
+use crate::AppState;
 use bevy::prelude::*;
 use bevy::utils::*;
-use crate::AppState;
-use crate::assets::GameAssets;
+use bevy_simple_tilemap::prelude::*;
+use rand::thread_rng;
+use rand::Rng;
 
 pub struct TileMapPlugin;
 
 impl Plugin for TileMapPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ChunkManager::default()).add_systems(
-            Update,
-            (spawn_chunks_around_camera, despawn_outofrange_chunks).run_if(in_state(AppState::Finished)),
-        );
+        //app.insert_resource(ChunkManager::default())
+        //    .add_systems(Update, (spawn_chunk).run_if(in_state(AppState::Finished)));
+        //app.add_plugins(SimpleTileMapPlugin);
+        //app.add_systems(OnEnter(AppState::Finished), (spawn_chunk,));
     }
 }
 
@@ -25,50 +28,49 @@ struct TileSize {
     y: f32,
 }
 
-const TILE_SIZE: TileSize = TileSize { x: 128.0, y: 128.0 };
-const CHUNK_SIZE: UVec2 = UVec2 { x: 4, y: 4 };
+const TILE_SIZE: TileSize = TileSize { x: 32.0, y: 32.0 };
+const CHUNK_SIZE: UVec2 = UVec2 { x: 16, y: 16 };
 
-fn spawn_chunk(commands: &mut Commands, assets: &GameAssets, chunk_pos: IVec2) {
-    let texture_handle: Handle<Image> = assets.test_tile_texture.clone();
-    for x in 0..CHUNK_SIZE.x {
-        for y in 0..CHUNK_SIZE.y {
-            let transform = Transform::from_translation(Vec3::new(
-                chunk_pos.x as f32 * CHUNK_SIZE.x as f32 * TILE_SIZE.x + x as f32 * TILE_SIZE.x,
-                chunk_pos.y as f32 * CHUNK_SIZE.y as f32 * TILE_SIZE.y + y as f32 * TILE_SIZE.y,
-                0.0,
+fn spawn_chunk(mut commands: Commands, assets: Res<GameAssets>) {
+    let grass_asset = assets.tilesets.get("grass.png").unwrap();
+    let mut rng = thread_rng();
+
+    let mut tilemap = TileMap::default();
+
+    let mut tiles = vec![];
+
+    for x in 0..32 {
+        for y in 0..32 {
+            tiles.push((
+                IVec3::new(x as i32, y as i32, 0),
+                Some(Tile {
+                    sprite_index: rng.gen_range(0..64),
+                    ..default()
+                }),
             ));
-            commands.spawn(SpriteBundle {
-                texture: texture_handle.clone(),
-                transform,
-                ..default()
-            });
         }
     }
 
-    // Next lines of code are about my try into grouping up tiles for easier debugging
-    //
-    // let texture_handle: Handle<Image> = asset_server.load("tile.png");
-    //
-    // commands.spawn(SpatialBundle::default())
-    //     .with_children(|entity|{
-    //         for x in 0..CHUNK_SIZE.x {
-    //             for y in 0..CHUNK_SIZE.y {
-    //                 let transform = Transform::from_translation(Vec3::new(
-    //                     chunk_pos.x as f32 * CHUNK_SIZE.x as f32 * TILE_SIZE.x + x as f32 * TILE_SIZE.x,
-    //                     chunk_pos.y as f32 * CHUNK_SIZE.y as f32 * TILE_SIZE.y + y as f32 * TILE_SIZE.y,
-    //                     0.0,
-    //                 ));
-    //                 entity.spawn(SpriteBundle{
-    //                     texture: texture_handle.clone(),
-    //                     transform,
-    //                     ..default()
-    //                 });
-    //             }
-    //         }
-    //     });
+    tilemap.set_tiles(tiles);
+
+    let tilemap_bundle = TileMapBundle {
+        texture: grass_asset.image.clone(),
+        tilemap,
+        atlas: TextureAtlas {
+            layout: grass_asset.layout.clone(),
+            ..default()
+        },
+        transform: Transform {
+            scale: Vec3::splat(2.0),
+            translation: Vec3::new(0.0, 0.0, 0.0),
+            ..default()
+        },
+        ..default()
+    };
+    commands.spawn(tilemap_bundle);
 }
 
-fn camera_pos_to_chunk_pos(camera_pos: &Vec2) -> IVec2 {
+/* fn camera_pos_to_chunk_pos(camera_pos: &Vec2) -> IVec2 {
     let camera_pos = camera_pos.as_ivec2();
     let chunk_size: IVec2 = IVec2::new(CHUNK_SIZE.x as i32, CHUNK_SIZE.y as i32);
     let tile_size: IVec2 = IVec2::new(TILE_SIZE.x as i32, TILE_SIZE.y as i32);
@@ -101,7 +103,7 @@ fn despawn_outofrange_chunks(
     chunks_query: Query<(Entity, &Transform)>,
     mut chunk_manager: ResMut<ChunkManager>,
 ) {
-    for camera_transform in camera_query.iter() {
+    /* for camera_transform in camera_query.iter() {
         for (entity, chunk_transform) in chunks_query.iter() {
             let chunk_pos = chunk_transform.translation.xy();
             let distance = camera_transform.translation.xy().distance(chunk_pos);
@@ -113,5 +115,6 @@ fn despawn_outofrange_chunks(
                 commands.entity(entity).despawn_recursive();
             }
         }
-    }
+    } */
 }
+ */

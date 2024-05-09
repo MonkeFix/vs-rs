@@ -17,10 +17,38 @@ impl Plugin for GameAssetsPlugin {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct GameAssetTileset {
     pub name: String,
     pub layout: Handle<TextureAtlasLayout>,
     pub image: Handle<Image>,
+}
+
+impl GameAssetTileset {
+    pub fn as_sprite_sheet(&self, index: usize) -> SpriteSheetBundle {
+        self.as_sprite_sheet_with_transform(index, Transform::default())
+    }
+
+    pub fn as_sprite_sheet_with_transform(
+        &self,
+        index: usize,
+        transform: Transform,
+    ) -> SpriteSheetBundle {
+        SpriteSheetBundle {
+            sprite: Sprite::default(),
+            atlas: self.as_texture_atlas(index),
+            texture: self.image.clone(),
+            transform,
+            ..default()
+        }
+    }
+
+    pub fn as_texture_atlas(&self, index: usize) -> TextureAtlas {
+        TextureAtlas {
+            layout: self.layout.clone(),
+            index,
+        }
+    }
 }
 
 #[derive(Default, Resource)]
@@ -40,6 +68,7 @@ fn check_textures(
 ) {
     for event in events.read() {
         if event.is_loaded_with_dependencies(&game_assets.tiles_folder) {
+            // TODO: Change to WorldGen
             next_state.set(AppState::Finished);
             info!("Loaded game assets");
         }

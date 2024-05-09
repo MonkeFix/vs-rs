@@ -3,7 +3,9 @@ use bevy::{
     input::gamepad::{AxisSettings, GamepadSettings},
     prelude::*,
 };
+use bevy_simple_tilemap::plugin::SimpleTileMapPlugin;
 use collisions::plugin::CollisionPlugin;
+use worlds::WorldPlugin;
 
 mod camera;
 mod collisions;
@@ -17,6 +19,7 @@ mod tilemap;
 mod assets;
 mod enemy;
 mod stats;
+mod worlds;
 
 use crate::assets::GameAssetsPlugin;
 use crate::enemy::EnemyPlugin;
@@ -34,6 +37,7 @@ pub const FIXED_TIMESTEP: f64 = 1.0 / FRAMERATE;
 pub enum AppState {
     #[default]
     Setup,
+    WorldGen,
     Finished,
 }
 
@@ -53,6 +57,7 @@ fn main() {
     )
     .init_state::<AppState>()
     .add_plugins(FrameTimeDiagnosticsPlugin)
+    .add_plugins(SimpleTileMapPlugin)
     .add_plugins(input::InputPlugin)
     .add_plugins(TileMapPlugin)
     .add_plugins(CameraMovementPlugin)
@@ -62,6 +67,7 @@ fn main() {
     .add_plugins(CollisionPlugin)
     .add_systems(Startup, (spawn_camera, setup_gamepad))
     .add_plugins(GameAssetsPlugin)
+    .add_plugins(WorldPlugin)
     .insert_resource(Time::<Fixed>::from_seconds(FIXED_TIMESTEP))
     .insert_resource(Msaa::Off);
 

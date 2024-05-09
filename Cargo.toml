@@ -13,6 +13,7 @@ serde = "1.0"
 num_enum = "0.7"
 bevy_framepace = "0.15"
 bevy-inspector-egui = { version = "0.24" }
+bevy_simple_tilemap = "0.14"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
