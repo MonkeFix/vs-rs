@@ -32,7 +32,7 @@ const TILE_SIZE: TileSize = TileSize { x: 32.0, y: 32.0 };
 const CHUNK_SIZE: UVec2 = UVec2 { x: 16, y: 16 };
 
 fn spawn_chunk(mut commands: Commands, assets: Res<GameAssets>) {
-    let grass_asset = assets.tilesets.get("grass.png").unwrap();
+    let grass_asset = &assets.tilesheet_main;
     let mut rng = thread_rng();
 
     let mut tilemap = TileMap::default();

@@ -66,7 +66,7 @@ impl PlayerBundle {
 }
 
 fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets: Res<GameAssets>) {
-    let player_tileset = assets.tilesets.get("player").unwrap();
+    let player_tileset = &assets.player_tilesheet;
 
     commands
         .spawn((

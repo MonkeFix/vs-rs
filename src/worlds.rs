@@ -1,7 +1,12 @@
-use bevy::prelude::*;
+use std::io::Write;
+
+use bevy::{log::tracing_subscriber::fmt::format, prelude::*};
 use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
 
-use crate::{assets::GameAssets, AppState};
+use crate::{
+    assets::{GameAssetTileSheet, GameAssets},
+    AppState,
+};
 
 use self::{
     world::World,
@@ -32,9 +37,9 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
         world: world_gen.generate(),
     };
 
-    let grass_asset = assets.tilesets.get("tilesheet").unwrap();
+    let grass_asset = &assets.tilesheet_main;
 
-    let tilemap = world_to_tilemap(&world_comp.world);
+    let tilemap = world_to_tilemap(&world_comp.world, grass_asset);
 
     commands.spawn((
         world_comp,
@@ -55,7 +60,7 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
     ));
 }
 
-fn world_to_tilemap(world: &World) -> TileMap {
+fn world_to_tilemap(world: &World, tile_sheet: &GameAssetTileSheet) -> TileMap {
     let mut tilemap = TileMap::default();
 
     for y in 0..world.height {
@@ -70,7 +75,7 @@ fn world_to_tilemap(world: &World) -> TileMap {
                     tilemap.set_tile(
                         pos,
                         Some(Tile {
-                            sprite_index: 0,
+                            sprite_index: tile_sheet.get_random_tile_id("grass_decorated").unwrap(),
                             ..default()
                         }),
                     );
@@ -79,7 +84,7 @@ fn world_to_tilemap(world: &World) -> TileMap {
                     tilemap.set_tile(
                         pos,
                         Some(Tile {
-                            sprite_index: 5,
+                            sprite_index: tile_sheet.get_random_tile_id("grass_flowers").unwrap(),
                             ..default()
                         }),
                     );
@@ -88,7 +93,7 @@ fn world_to_tilemap(world: &World) -> TileMap {
                     tilemap.set_tile(
                         pos,
                         Some(Tile {
-                            sprite_index: 289, // x + y * width
+                            sprite_index: tile_sheet.get_random_tile_id("grass_road").unwrap(),
                             ..default()
                         }),
                     );
