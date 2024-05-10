@@ -262,7 +262,7 @@ fn check_enemy_collision(
 fn check_health(mut player: Query<&mut Health, With<Player>>) {
     if let Ok(h) = player.get_single_mut() {
         if h.0 <= 0 {
-            log::error!("you lost. please close the game");
+            //log::error!("you lost. please close the game");
         }
     }
 }

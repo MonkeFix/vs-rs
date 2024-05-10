@@ -31,7 +31,7 @@ impl Plugin for WorldPlugin {
 }
 
 fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
-    let mut world_gen = WorldGenerator::new_with_default(32, 32);
+    let mut world_gen = WorldGenerator::new_with_default(256, 256);
 
     let world_comp = WorldComponent {
         world: world_gen.generate(),
@@ -40,6 +40,9 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
     let grass_asset = &assets.tilesheet_main;
 
     let tilemap = world_to_tilemap(&world_comp.world, grass_asset);
+
+    let x = -(((world_comp.world.width * 32) / 2) as f32);
+    let y = -(((world_comp.world.height * 32) / 2) as f32);
 
     commands.spawn((
         world_comp,
@@ -51,8 +54,8 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
                 ..default()
             },
             transform: Transform {
-                scale: Vec3::splat(2.0),
-                translation: Vec3::new(0.0, 0.0, 0.0),
+                scale: Vec3::splat(1.0),
+                translation: Vec3::new(x, y, 0.0),
                 ..default()
             },
             ..default()
@@ -84,7 +87,7 @@ fn world_to_tilemap(world: &World, tile_sheet: &GameAssetTileSheet) -> TileMap {
                     tilemap.set_tile(
                         pos,
                         Some(Tile {
-                            sprite_index: tile_sheet.get_random_tile_id("grass_flowers").unwrap(),
+                            sprite_index: tile_sheet.get_random_tile_id("grass_road").unwrap(),
                             ..default()
                         }),
                     );
@@ -93,11 +96,23 @@ fn world_to_tilemap(world: &World, tile_sheet: &GameAssetTileSheet) -> TileMap {
                     tilemap.set_tile(
                         pos,
                         Some(Tile {
-                            sprite_index: tile_sheet.get_random_tile_id("grass_road").unwrap(),
+                            sprite_index: 355, //tile_sheet.get_random_tile_id("grass_road").unwrap(),
                             ..default()
                         }),
                     );
                 }
+            }
+
+            if x == 0 || y == 0 || x == world.width - 1 || y == world.height - 1 {
+                tilemap.set_tile(
+                    pos,
+                    Some({
+                        Tile {
+                            sprite_index: 355,
+                            ..default()
+                        }
+                    }),
+                );
             }
         }
     }

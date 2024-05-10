@@ -53,6 +53,4 @@
  <tile id="193" type="grass_road"/>
  <tile id="194" type="grass_road_vertical_left"/>
  <tile id="195" type="grass_road_vertical_right"/>
- <tile id="230" type="grass_empty"/>
- <tile id="231" type="grass_empty"/>
 </tileset>

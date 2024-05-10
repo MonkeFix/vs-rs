@@ -5,6 +5,7 @@ use bevy::asset::LoadedFolder;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use rand::{thread_rng, Rng};
+use serde::Deserialize;
 
 // TODO: maybe https://bevy-cheatbook.github.io/assets/ready.html will be useful later
 pub struct GameAssetsPlugin;
@@ -123,6 +124,46 @@ fn load(
     };
 
     commands.insert_resource(game_assets);
+
+    let mut loader = tiled::Loader::new();
+    let obj_bench = loader.load_tmx_map("assets/obj_bench.tmx").unwrap();
+    let obj_bench = obj_bench.get_layer(0).unwrap().as_tile_layer().unwrap();
+
+    let w = obj_bench.width().unwrap() as i32;
+    let h = obj_bench.height().unwrap() as i32;
+
+    for y in 0..h {
+        for x in 0..w {
+            let tile = obj_bench.get_tile(x, y).unwrap();
+            dbg!(&tile.id());
+        }
+    }
+
+    let json = std::fs::read_to_string("assets/obj_bench.json").unwrap();
+    let obj_bench = serde_json::from_str::<TiledPrefab>(&json).unwrap();
+    dbg!(&obj_bench);
+}
+
+#[derive(Debug, Deserialize)]
+struct TiledPrefab {
+    pub layers: Vec<TiledPrefabLayer>,
+    pub tileheight: u32,
+    pub tilewidth: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct TiledPrefabLayer {
+    pub id: u32,
+    pub name: String,
+    pub visible: bool,
+    pub width: u32,
+    pub height: u32,
+    pub x: u32,
+    pub y: u32,
+    pub opacity: f32,
+    pub data: Vec<u32>,
 }
 
 fn load_tsx_tileset(
