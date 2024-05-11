@@ -1,6 +1,4 @@
-use std::io::Write;
-
-use bevy::{log::tracing_subscriber::fmt::format, prelude::*};
+use bevy::prelude::*;
 use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
 
 use crate::{
@@ -9,10 +7,11 @@ use crate::{
 };
 
 use self::{
-    world::World,
-    worldgen::{CellType, WorldGenerator},
+    world::{CellType, World},
+    worldgen::{settings::WorldGeneratorSettings, WorldGenerator},
 };
 
+pub mod bitmasking;
 pub mod world;
 pub mod worldgen;
 
@@ -31,10 +30,14 @@ impl Plugin for WorldPlugin {
 }
 
 fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
-    let mut world_gen = WorldGenerator::new_with_default(256, 256);
+    let mut world_gen = WorldGenerator::default();
+
+    let mut settings = WorldGeneratorSettings::default();
+    settings.world_width = 256;
+    settings.world_height = 256;
 
     let world_comp = WorldComponent {
-        world: world_gen.generate(),
+        world: world_gen.generate(settings),
     };
 
     let grass_asset = &assets.tilesheet_main;
@@ -66,40 +69,46 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
 fn world_to_tilemap(world: &World, tile_sheet: &GameAssetTileSheet) -> TileMap {
     let mut tilemap = TileMap::default();
 
+    world.fill_tilemap(&mut tilemap);
+
     for y in 0..world.height {
         for x in 0..world.width {
             let pos = IVec3::new(x as i32, y as i32, 0);
 
-            match world.grid[y][x] {
-                CellType::None => {
-                    tilemap.set_tile(pos, None);
-                }
-                CellType::Room => {
-                    tilemap.set_tile(
-                        pos,
-                        Some(Tile {
-                            sprite_index: tile_sheet.get_random_tile_id("grass_decorated").unwrap(),
-                            ..default()
-                        }),
-                    );
-                }
-                CellType::Hallway => {
-                    tilemap.set_tile(
-                        pos,
-                        Some(Tile {
-                            sprite_index: tile_sheet.get_random_tile_id("grass_road").unwrap(),
-                            ..default()
-                        }),
-                    );
-                }
-                CellType::Wall => {
-                    tilemap.set_tile(
-                        pos,
-                        Some(Tile {
-                            sprite_index: 355, //tile_sheet.get_random_tile_id("grass_road").unwrap(),
-                            ..default()
-                        }),
-                    );
+            for layer in &world.layers {
+                match layer.1.data[y][x] {
+                    CellType::None => {
+                        tilemap.set_tile(pos, None);
+                    }
+                    CellType::Room => {
+                        tilemap.set_tile(
+                            pos,
+                            Some(Tile {
+                                sprite_index: tile_sheet
+                                    .get_random_tile_id("grass_decorated")
+                                    .unwrap(),
+                                ..default()
+                            }),
+                        );
+                    }
+                    CellType::Hallway => {
+                        tilemap.set_tile(
+                            pos,
+                            Some(Tile {
+                                sprite_index: tile_sheet.get_random_tile_id("grass_road").unwrap(),
+                                ..default()
+                            }),
+                        );
+                    }
+                    CellType::Wall => {
+                        tilemap.set_tile(
+                            pos,
+                            Some(Tile {
+                                sprite_index: 355, //tile_sheet.get_random_tile_id("grass_road").unwrap(),
+                                ..default()
+                            }),
+                        );
+                    }
                 }
             }
 
