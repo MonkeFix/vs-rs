@@ -27,24 +27,6 @@ pub struct GameAssetTileSheet {
 }
 
 impl GameAssetTileSheet {
-    pub fn as_sprite_sheet(&self, index: usize) -> SpriteSheetBundle {
-        self.as_sprite_sheet_with_transform(index, Transform::default())
-    }
-
-    pub fn as_sprite_sheet_with_transform(
-        &self,
-        index: usize,
-        transform: Transform,
-    ) -> SpriteSheetBundle {
-        SpriteSheetBundle {
-            sprite: Sprite::default(),
-            atlas: self.as_texture_atlas(index),
-            texture: self.image.clone(),
-            transform,
-            ..default()
-        }
-    }
-
     pub fn as_texture_atlas(&self, index: usize) -> TextureAtlas {
         TextureAtlas {
             layout: self.layout.clone(),
@@ -211,9 +193,9 @@ fn load_tsx_tileset(
     let texture_handle = asset_server.load(format!("textures/{}.png", name));
 
     let layout = TextureAtlasLayout::from_grid(
-        Vec2::new(tilesheet.tile_width as f32, tilesheet.tile_height as f32),
-        tilesheet.columns as usize,
-        img.height as usize / tilesheet.tile_height as usize,
+        UVec2::new(tilesheet.tile_width, tilesheet.tile_height),
+        tilesheet.columns,
+        img.height as u32 / tilesheet.tile_height,
         None,
         None,
     );
@@ -234,7 +216,7 @@ fn load_player(
     info!("Loading player");
     let texture_handle = asset_server.load("textures/player.png");
 
-    let layout = TextureAtlasLayout::from_grid(Vec2::new(32., 64.), 4, 2, None, None);
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(32, 64), 4, 2, None, None);
     let layout_handle = layouts.add(layout);
 
     GameAssetTileSheet {
