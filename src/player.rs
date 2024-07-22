@@ -31,6 +31,7 @@ struct PlTimer(Timer);
 #[derive(Component)]
 struct Direction(Vec2);
 
+#[allow(dead_code)]
 #[derive(Event)]
 struct TimerCallbackEvent(());
 
@@ -184,7 +185,7 @@ fn check_enemy_collision(
 
                 if timer.0.finished() {
                     if let Some(entity) = collider.entity {
-                        let dmg = enemies.get_component::<Damage>(entity);
+                        let dmg = enemies.get(entity);
                         if let Ok(dmg) = dmg {
                             hp.0 = hp.0.saturating_sub(dmg.0);
                         }

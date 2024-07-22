@@ -17,10 +17,26 @@ impl Plugin for DebugPlugin {
         app.register_type::<SteeringHost>();
         app.register_type::<Collider>();
         app.add_plugins(WorldInspectorPlugin::new());
-        app.add_systems(Update, bevy::window::close_on_esc);
+        app.add_systems(Update, close_on_esc);
 
         app.add_systems(Startup, (add_enemy_count,));
         app.add_systems(FixedUpdate, (update_enemy_count, update_fps));
+    }
+}
+
+fn close_on_esc(
+    mut commands: Commands,
+    focused_windows: Query<(Entity, &Window)>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    for (window, focus) in focused_windows.iter() {
+        if !focus.focused {
+            continue;
+        }
+
+        if input.just_pressed(KeyCode::Escape) {
+            commands.entity(window).despawn();
+        }
     }
 }
 
