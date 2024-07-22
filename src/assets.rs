@@ -126,8 +126,18 @@ fn load(
     commands.insert_resource(game_assets);
 
     let mut loader = tiled::Loader::new();
-    let obj_bench = loader.load_tmx_map("assets/obj_bench.tmx").unwrap();
-    let obj_bench = obj_bench.get_layer(0).unwrap().as_tile_layer().unwrap();
+    let obj_bench = loader.load_tmx_map("assets/map_example.tmx").unwrap();
+
+    for layer in obj_bench.layers() {
+        let ltype = layer.layer_type();
+        match ltype {
+            tiled::LayerType::Tiles(tiles) => {}
+            tiled::LayerType::Objects(objects) => {}
+            tiled::LayerType::Image(images) => {}
+            tiled::LayerType::Group(group) => {}
+        }
+    }
+    /* let obj_bench = obj_bench.get_layer(0).unwrap().as_tile_layer().unwrap();
 
     let w = obj_bench.width().unwrap() as i32;
     let h = obj_bench.height().unwrap() as i32;
@@ -137,7 +147,7 @@ fn load(
             let tile = obj_bench.get_tile(x, y).unwrap();
             dbg!(&tile.id());
         }
-    }
+    } */
 
     let json = std::fs::read_to_string("assets/obj_bench.json").unwrap();
     let obj_bench = serde_json::from_str::<TiledPrefab>(&json).unwrap();
@@ -176,7 +186,7 @@ fn load_tsx_tileset(
     let mut loader = tiled::Loader::new();
     let tilesheet = loader
         .load_tsx_tileset(format!("assets/{}.tsx", name))
-        .expect(&format!("could not read file '{}'.tsx", name));
+        .unwrap_or_else(|_| panic!("could not read file '{}'.tsx", name));
 
     // Setting up named tiles (tiles with non-empty type described in the tile sheet)
     let mut named_tiles: HashMap<String, Vec<u32>> = HashMap::new();

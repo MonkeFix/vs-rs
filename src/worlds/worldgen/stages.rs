@@ -1,4 +1,3 @@
-use crate::collisions::Rect;
 use crate::worlds::world::{CellType, IntermediateWorld};
 use crate::worlds::worldgen::{
     gen_rect, intersects_any, is_rect_oob, min_area_constraint, GridGraphPos,
@@ -8,6 +7,7 @@ use pathfinding::directed::astar;
 use rand::{thread_rng, Rng};
 
 use super::delaunay2d::Delaunay2D;
+use super::get_border_points;
 use super::prim::{self, PrimEdge};
 use crate::worlds::bitmasking::{calc_bitmask, create_bitmap_from, BitMaskDirection};
 
@@ -120,9 +120,9 @@ impl WorldGenStage for WorldGenStage3MinSpanningTree {
     }
 }
 
-pub struct WorldGenStage4PlaceTIles {}
+pub struct WorldGenStage4PlaceTiles {}
 
-impl WorldGenStage for WorldGenStage4PlaceTIles {
+impl WorldGenStage for WorldGenStage4PlaceTiles {
     fn get_description(&self) -> &'static str {
         "Placing tiles"
     }
@@ -178,7 +178,7 @@ impl WorldGenStage for WorldGenStage5AStar {
 
             let path = astar::astar(
                 &start_pos,
-                |p| p.successors(&world, &world.settings),
+                |p| p.successors(world, &world.settings),
                 |p| p.distance(&end_pos),
                 |p| *p == end_pos,
             );
@@ -188,11 +188,35 @@ impl WorldGenStage for WorldGenStage5AStar {
 
                 for point in &path.0 {
                     world.grid[point.1 as usize][point.0 as usize] = CellType::Hallway;
+                    world.grid[point.1 as usize + 1][point.0 as usize] = CellType::Hallway;
+                    world.grid[point.1 as usize][point.0 as usize + 1] = CellType::Hallway;
+                    world.grid[point.1 as usize + 1][point.0 as usize + 1] = CellType::Hallway;
                 }
             }
         }
 
         info!("found {} paths", found_paths);
+    }
+}
+
+pub struct WorldGenStageCreateWalls {}
+
+impl WorldGenStage for WorldGenStageCreateWalls {
+    fn get_description(&self) -> &'static str {
+        "Creating walls around every room's borders"
+    }
+
+    fn execute(&mut self, world: &mut IntermediateWorld) {
+        for rect in &world.room_rects {
+            let border = get_border_points(rect);
+
+            for point in &border {
+                let tile = world.grid[point.1 as usize][point.0 as usize];
+                if tile == CellType::Room || tile == CellType::None {
+                    world.grid[point.1 as usize][point.0 as usize] = CellType::Wall;
+                }
+            }
+        }
     }
 }
 

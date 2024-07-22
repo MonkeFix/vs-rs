@@ -11,8 +11,8 @@ use self::{
     settings::WorldGeneratorSettings,
     stages::{
         WorldGenStage, WorldGenStage1GenRects, WorldGenStage2Triangulate,
-        WorldGenStage3MinSpanningTree, WorldGenStage4PlaceTIles, WorldGenStage5AStar,
-        WorldGenStageCalcBitmapAndBitmask,
+        WorldGenStage3MinSpanningTree, WorldGenStage4PlaceTiles, WorldGenStage5AStar,
+        WorldGenStageCalcBitmapAndBitmask, WorldGenStageCreateWalls,
     },
 };
 
@@ -172,6 +172,34 @@ fn intersects_any(world: &IntermediateWorld, mut rect: Rect, offset: Vec2) -> bo
     false
 }
 
+fn get_border_points(rect: &Rect) -> Vec<(i32, i32)> {
+    let mut res = vec![];
+
+    // --------
+    // .      .
+    // .      .
+    // --------
+    for x in rect.left() as i32..=rect.right() as i32 {
+        // top edge
+        res.push((x, rect.top() as i32));
+        // bottom edge
+        res.push((x, rect.bottom() as i32));
+    }
+
+    // ........
+    // |      |
+    // |      |
+    // ........
+    for y in rect.top() as i32 + 1..=rect.bottom() as i32 - 1 {
+        // left edge
+        res.push((rect.left() as i32, y));
+        // right edge
+        res.push((rect.right() as i32, y));
+    }
+
+    res
+}
+
 pub struct WorldGenerator {
     // TODO: Use double linked list to allow manipulation of stage ordering
     pub stages: Vec<Box<dyn WorldGenStage>>,
@@ -183,7 +211,8 @@ impl Default for WorldGenerator {
             Box::new(WorldGenStage1GenRects {}),
             Box::new(WorldGenStage2Triangulate {}),
             Box::new(WorldGenStage3MinSpanningTree {}),
-            Box::new(WorldGenStage4PlaceTIles {}),
+            Box::new(WorldGenStage4PlaceTiles {}),
+            Box::new(WorldGenStageCreateWalls {}),
             Box::new(WorldGenStage5AStar {}),
             Box::new(WorldGenStageCalcBitmapAndBitmask {}),
         ];

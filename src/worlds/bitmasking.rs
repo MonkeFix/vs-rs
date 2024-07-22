@@ -43,7 +43,7 @@ fn get_dirs_arr(dir: BitMaskDirection) -> &'static [IPoint] {
     }
 }
 
-pub fn create_bitmap_from<T, P>(world: &Vec<Vec<T>>, predicate: P) -> Vec<Vec<bool>>
+pub fn create_bitmap_from<T, P>(world: &[Vec<T>], predicate: P) -> Vec<Vec<bool>>
 where
     P: Fn(&T) -> bool,
 {
@@ -60,7 +60,7 @@ where
     res
 }
 
-pub fn calc_bitmask(bitmap: &Vec<Vec<bool>>, dir: BitMaskDirection) -> Vec<Vec<u32>> {
+pub fn calc_bitmask(bitmap: &[Vec<bool>], dir: BitMaskDirection) -> Vec<Vec<u32>> {
     let h = bitmap.len();
     let w = bitmap[0].len();
 

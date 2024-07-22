@@ -14,7 +14,6 @@ mod input;
 mod math;
 mod movement;
 mod player;
-mod tilemap;
 
 mod assets;
 mod enemy;
@@ -28,7 +27,6 @@ use camera::CameraMovementPlugin;
 use debug::DebugPlugin;
 use movement::steering::SteeringPlugin;
 use player::PlayerPlugin;
-use tilemap::TileMapPlugin;
 
 pub const FRAMERATE: f64 = 60.0;
 pub const FIXED_TIMESTEP: f64 = 1.0 / FRAMERATE;
@@ -59,7 +57,6 @@ fn main() {
     .add_plugins(FrameTimeDiagnosticsPlugin)
     .add_plugins(SimpleTileMapPlugin)
     .add_plugins(input::InputPlugin)
-    .add_plugins(TileMapPlugin)
     .add_plugins(CameraMovementPlugin)
     .add_plugins(PlayerPlugin)
     .add_plugins(SteeringPlugin)

@@ -207,7 +207,7 @@ fn update_atlas(mut query: Query<(&Direction, &mut TextureAtlas), With<Player>>)
     if let Ok((dir, mut atlas)) = query.get_single_mut() {
         if dir.0.y > 0.0 {
             atlas.index = 1;
-        } else if dir.0.x < 0. || dir.0.x > 0. {
+        } else if dir.0.x != 0.0 {
             atlas.index = 2;
         } else {
             atlas.index = 0;
@@ -217,13 +217,7 @@ fn update_atlas(mut query: Query<(&Direction, &mut TextureAtlas), With<Player>>)
 
 fn update_sprite(mut query: Query<(&Direction, &mut Sprite), With<Player>>) {
     if let Ok((dir, mut sprite)) = query.get_single_mut() {
-        if dir.0.x < 0. {
-            sprite.flip_x = false;
-        } else if dir.0.x > 0. {
-            sprite.flip_x = true;
-        } else {
-            sprite.flip_x = false;
-        }
+        sprite.flip_x = dir.0.x > 0.;
     }
 }
 

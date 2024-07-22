@@ -1,0 +1,47 @@
+{
+    "activeFile": "map_example.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "fileStates": {
+        "gy.tmx": {
+            "scale": 1.17822265625,
+            "selectedLayer": 10,
+            "viewCenter": {
+                "x": 529.1869042685454,
+                "y": 321.6709490261086
+            }
+        },
+        "map_example.tmx": {
+            "scale": 1.17822265625,
+            "selectedLayer": 10,
+            "viewCenter": {
+                "x": 511.3634479900539,
+                "y": 353.07418151678405
+            }
+        },
+        "obj_bench.tmx": {
+            "scale": 18.8515625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 32.01326150020721,
+                "y": 32.03978450062163
+            }
+        },
+        "tilesheet.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "openFiles": [
+        "map_example.tmx",
+        "gy.tmx"
+    ],
+    "project": "rooms.tiled-project",
+    "recentFiles": [
+        "gy.tmx",
+        "map_example.tmx",
+        "tilesheet.tsx",
+        "obj_bench.tmx"
+    ]
+}

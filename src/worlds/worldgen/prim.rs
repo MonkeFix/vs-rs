@@ -40,7 +40,7 @@ pub fn min_spanning_tree(edges: &[PrimEdge], start: Vec2) -> Vec<PrimEdge> {
 
     let mut res = vec![];
 
-    while open_set.len() > 0 {
+    while !open_set.is_empty() {
         let mut chosen = false;
         let mut chosen_edge = None;
         let mut min_weight = f32::INFINITY;

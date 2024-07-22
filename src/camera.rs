@@ -32,12 +32,7 @@ fn camera_zoom(
             ortho.scale -= ev.y / 10.0;
         }
 
-        if ortho.scale < 0.5 {
-            ortho.scale = 0.5;
-        }
-        if ortho.scale > 4.0 {
-            ortho.scale = 4.0;
-        }
+        ortho.scale = ortho.scale.clamp(0.5, 4.0);
     }
 }
 

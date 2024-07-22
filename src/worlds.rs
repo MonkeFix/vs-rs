@@ -78,7 +78,15 @@ fn world_to_tilemap(world: &World, tile_sheet: &GameAssetTileSheet) -> TileMap {
             for layer in &world.layers {
                 match layer.1.data[y][x] {
                     CellType::None => {
-                        tilemap.set_tile(pos, None);
+                        tilemap.set_tile(
+                            pos,
+                            Some(Tile {
+                                sprite_index: tile_sheet
+                                    .get_random_tile_id("grass_decorated")
+                                    .unwrap(),
+                                ..default()
+                            }),
+                        );
                     }
                     CellType::Room => {
                         tilemap.set_tile(
