@@ -1,3 +1,7 @@
+use assets::{
+    rooms::{MapAsset, MapAssetLoader},
+    tilesheets::{TsxTilesetAsset, TsxTilesetAssetLoader},
+};
 use bevy::{
     diagnostic::FrameTimeDiagnosticsPlugin,
     input::gamepad::{AxisSettings, GamepadSettings},
@@ -66,7 +70,11 @@ fn main() {
     .add_plugins(GameAssetsPlugin)
     .add_plugins(WorldPlugin)
     .insert_resource(Time::<Fixed>::from_seconds(FIXED_TIMESTEP))
-    .insert_resource(Msaa::Off);
+    .insert_resource(Msaa::Off)
+    .init_asset::<MapAsset>()
+    .init_asset::<TsxTilesetAsset>()
+    .init_asset_loader::<MapAssetLoader>()
+    .init_asset_loader::<TsxTilesetAssetLoader>();
 
     #[cfg(debug_assertions)]
     app.add_plugins(DebugPlugin);

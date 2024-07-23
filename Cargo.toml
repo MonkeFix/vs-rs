@@ -16,6 +16,7 @@ bevy-inspector-egui = { version = "0.25" }
 bevy_simple_tilemap = "0.15"
 tiled = "0.12"
 pathfinding = "4.9"
+thiserror = "1.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

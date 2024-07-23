@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
 
 use crate::{
-    assets::{GameAssetTileSheet, GameAssets},
+    assets::{tilesheets::AssetTileSheet, GameAssets},
     AppState,
 };
 
@@ -66,7 +66,7 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
     ));
 }
 
-fn world_to_tilemap(world: &World, tile_sheet: &GameAssetTileSheet) -> TileMap {
+fn world_to_tilemap(world: &World, tile_sheet: &AssetTileSheet) -> TileMap {
     let mut tilemap = TileMap::default();
 
     world.fill_tilemap(&mut tilemap);

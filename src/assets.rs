@@ -1,104 +1,106 @@
 #![allow(dead_code)]
 
 use crate::AppState;
-use bevy::asset::LoadedFolder;
-use bevy::prelude::*;
-use bevy::utils::HashMap;
-use rand::{thread_rng, Rng};
+use bevy::{asset::LoadedFolder, prelude::*, utils::HashMap};
 use serde::Deserialize;
+use tilesheets::AssetTileSheet;
+
+pub mod rooms;
+pub mod tilesheets;
 
 // TODO: maybe https://bevy-cheatbook.github.io/assets/ready.html will be useful later
 pub struct GameAssetsPlugin;
 
 impl Plugin for GameAssetsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Setup), (load,));
-        app.add_systems(Update, check_textures.run_if(in_state(AppState::Setup)));
+        app.add_systems(OnEnter(AppState::Setup), (start_loading,));
+        app.add_systems(
+            Update,
+            check_asset_folders.run_if(in_state(AppState::Setup)),
+        );
         //app.add_systems(OnEnter(AppState::Finished), (spawn_test,));
-    }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct GameAssetTileSheet {
-    pub name: String,
-    pub layout: Handle<TextureAtlasLayout>,
-    pub image: Handle<Image>,
-    pub named_tiles: Option<HashMap<String, Vec<u32>>>,
-}
-
-impl GameAssetTileSheet {
-    pub fn as_texture_atlas(&self, index: usize) -> TextureAtlas {
-        TextureAtlas {
-            layout: self.layout.clone(),
-            index,
-        }
-    }
-
-    pub fn get_tile_ids(&self, tile_name: &str) -> Option<&Vec<u32>> {
-        if let Some(tiles) = &self.named_tiles {
-            return tiles.get(tile_name);
-        }
-
-        None
-    }
-
-    pub fn get_random_tile_id(&self, tile_name: &str) -> Option<u32> {
-        let mut rng = thread_rng();
-
-        if let Some(tiles) = &self.named_tiles {
-            if let Some(tiles) = tiles.get(tile_name) {
-                let num = rng.gen_range(0..tiles.len());
-                return Some(tiles[num]);
-            } else {
-                return None;
-            }
-        }
-
-        None
     }
 }
 
 #[derive(Default, Resource)]
 pub struct GameAssets {
-    pub tiles_folder: Handle<LoadedFolder>,
-    pub tilesheet_main: GameAssetTileSheet,
-    pub player_tilesheet: GameAssetTileSheet,
+    pub tilesheet_main: AssetTileSheet,
+    pub player_tilesheet: AssetTileSheet,
     pub capybara_texture: Handle<Image>,
     pub capybara_elite_texture: Handle<Image>,
 }
 
-fn check_textures(
+#[derive(Default, Resource)]
+pub struct GameAssetFolders {
+    pub tiles_folder: Handle<LoadedFolder>,
+    pub rooms_folder: Handle<LoadedFolder>,
+    pub tiles_loaded: bool,
+    pub rooms_loaded: bool,
+}
+
+fn check_asset_folders(
+    commands: Commands,
     mut next_state: ResMut<NextState<AppState>>,
-    game_assets: Res<GameAssets>,
+    mut game_assets: ResMut<GameAssetFolders>,
     mut events: EventReader<AssetEvent<LoadedFolder>>,
+    asset_server: Res<AssetServer>,
+    layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     for event in events.read() {
         if event.is_loaded_with_dependencies(&game_assets.tiles_folder) {
             // TODO: Change to WorldGen
-            next_state.set(AppState::Finished);
+            //next_state.set(AppState::Finished);
             info!("Loaded game assets");
+            game_assets.tiles_loaded = true;
         }
+        if event.is_loaded_with_dependencies(&game_assets.rooms_folder) {
+            info!("Loaded rooms");
+            game_assets.rooms_loaded = true;
+        }
+    }
+
+    if game_assets.tiles_loaded && game_assets.rooms_loaded {
+        info!("Finished loading");
+        setup_game_assets(commands, asset_server, layouts);
+        next_state.set(AppState::Finished);
     }
 }
 
-fn load(
+fn start_loading(mut commands: Commands, asset_server: Res<AssetServer>) {
+    info!("Loading game asset folders");
+    let tiles_folder_handle = asset_server.load_folder("textures");
+    let rooms_folder_handle = asset_server.load_folder("rooms");
+
+    let asset_folders = GameAssetFolders {
+        tiles_folder: tiles_folder_handle,
+        rooms_folder: rooms_folder_handle,
+        ..default()
+    };
+
+    commands.insert_resource(asset_folders);
+
+    info!("Finished loading game asset folders");
+}
+
+fn setup_game_assets(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     info!("Loading game assets");
 
-    let folder_handle = asset_server.load_folder("textures");
-
-    let capybara_handle = asset_server.load("textures/capybara.png");
-    let capybara_elite_handle = asset_server.load("textures/capybara_elite.png");
+    let capybara_handle = asset_server
+        .get_handle::<Image>("textures/capybara.png")
+        .unwrap();
+    let capybara_elite_handle = asset_server
+        .get_handle::<Image>("textures/capybara_elite.png")
+        .unwrap();
 
     let player_tilesheet = load_player(&asset_server, &mut layouts);
 
     let tilesheet_main = load_tsx_tileset("tilesheet", &asset_server, &mut layouts);
 
     let game_assets = GameAssets {
-        tiles_folder: folder_handle,
         player_tilesheet,
         tilesheet_main,
         capybara_texture: capybara_handle,
@@ -131,9 +133,9 @@ fn load(
         }
     } */
 
-    let json = std::fs::read_to_string("assets/obj_bench.json").unwrap();
-    let obj_bench = serde_json::from_str::<TiledPrefab>(&json).unwrap();
-    dbg!(&obj_bench);
+    //let json = std::fs::read_to_string("assets/obj_bench.json").unwrap();
+    //let obj_bench = serde_json::from_str::<TiledPrefab>(&json).unwrap();
+    //dbg!(&obj_bench);
 }
 
 #[derive(Debug, Deserialize)]
@@ -162,7 +164,7 @@ fn load_tsx_tileset(
     name: &str,
     asset_server: &AssetServer,
     layouts: &mut Assets<TextureAtlasLayout>,
-) -> GameAssetTileSheet {
+) -> AssetTileSheet {
     info!("Loading tilesheet '{}.tsx'", name);
 
     let mut loader = tiled::Loader::new();
@@ -183,7 +185,7 @@ fn load_tsx_tileset(
         }
     }
 
-    dbg!(&named_tiles);
+    //dbg!(&named_tiles);
 
     let img = tilesheet.image.expect("Image must not be empty");
 
@@ -201,7 +203,7 @@ fn load_tsx_tileset(
     );
     let layout_handle = layouts.add(layout);
 
-    GameAssetTileSheet {
+    AssetTileSheet {
         name: name.to_string(),
         layout: layout_handle,
         image: texture_handle,
@@ -212,14 +214,14 @@ fn load_tsx_tileset(
 fn load_player(
     asset_server: &AssetServer,
     layouts: &mut Assets<TextureAtlasLayout>,
-) -> GameAssetTileSheet {
+) -> AssetTileSheet {
     info!("Loading player");
     let texture_handle = asset_server.load("textures/player.png");
 
     let layout = TextureAtlasLayout::from_grid(UVec2::new(32, 64), 4, 2, None, None);
     let layout_handle = layouts.add(layout);
 
-    GameAssetTileSheet {
+    AssetTileSheet {
         name: "player".to_string(),
         layout: layout_handle,
         image: texture_handle,

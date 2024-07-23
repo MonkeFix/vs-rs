@@ -30,10 +30,10 @@ pub struct CollisionPlugin;
 
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ColliderStore::default()).add_systems(
-            Update,
-            (update_positions, on_collider_added, on_collider_removed),
-        );
+        app.insert_resource(ColliderStore::default())
+            .add_systems(FixedUpdate, (update_positions,));
+        app.observe(on_collider_added);
+        app.observe(on_collider_removed);
     }
 }
 
@@ -47,24 +47,24 @@ fn update_positions(
 }
 
 fn on_collider_added(
+    trigger: Trigger<OnAdd, ColliderComponent>,
     mut collider_set: ResMut<ColliderStore>,
-    colliders: Query<(Entity, &ColliderComponent, &Position), Added<ColliderComponent>>,
+    colliders: Query<(&ColliderComponent, &Position)>,
 ) {
-    for (entity, col, position) in &colliders {
-        collider_set.added_with_position(col.id, position);
-        collider_set.set_entity(col.id, entity);
+    let ent = colliders.get(trigger.entity());
+    if let Ok((collider_id, pos)) = ent {
+        collider_set.added_with_position(collider_id.id, pos);
     }
 }
 
 fn on_collider_removed(
-    mut removed: RemovedComponents<ColliderComponent>,
+    trigger: Trigger<OnRemove, ColliderComponent>,
     mut collider_set: ResMut<ColliderStore>,
     query: Query<&ColliderComponent>,
 ) {
-    for entity in &mut removed.read() {
-        if let Ok(collider_id) = query.get(entity) {
-            collider_set.remove(*collider_id);
-        }
+    let ent = query.get(trigger.entity());
+    if let Ok(collider_id) = ent {
+        collider_set.remove(collider_id.id);
     }
 }
 
