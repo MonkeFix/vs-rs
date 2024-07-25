@@ -1,15 +1,11 @@
 #![allow(dead_code)]
 
 use crate::AppState;
-use bevy::{
-    asset::LoadedFolder,
-    prelude::*,
-    utils::{hashbrown::HashSet, HashMap},
-};
-use rooms::MapAsset;
-use serde::Deserialize;
+use bevy::{asset::LoadedFolder, prelude::*};
+use rooms::{MapAsset, RoomStore};
 use tilesheets::AssetTileSheet;
 
+pub mod prefabs;
 pub mod rooms;
 pub mod tilesheets;
 
@@ -19,27 +15,12 @@ pub struct GameAssetsPlugin;
 impl Plugin for GameAssetsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(RoomStore::default());
-        app.add_systems(OnEnter(AppState::Setup), (start_loading,));
+        app.add_systems(OnEnter(AppState::LoadAssets), (start_loading,));
         app.add_systems(
             Update,
-            check_asset_folders.run_if(in_state(AppState::Setup)),
+            check_asset_folders.run_if(in_state(AppState::LoadAssets)),
         );
-        //app.add_systems(OnEnter(AppState::Finished), (spawn_test,));
-    }
-}
-
-#[derive(Default, Resource)]
-pub struct RoomStore {
-    pub maps: HashMap<u32, Vec<MapAsset>>,
-}
-
-impl RoomStore {
-    pub fn get_room_sizes(&self, map_id: u32) -> HashSet<UVec2> {
-        let rooms = self.maps.get(&map_id).expect("Invalid map id");
-        rooms
-            .iter()
-            .map(|m| UVec2::new(m.map.width, m.map.height))
-            .collect()
+        app.add_systems(OnEnter(AppState::SetupAssets), (setup_game_assets,));
     }
 }
 
@@ -60,14 +41,9 @@ pub struct GameAssetFolders {
 }
 
 fn check_asset_folders(
-    commands: Commands,
     mut next_state: ResMut<NextState<AppState>>,
     mut game_assets: ResMut<GameAssetFolders>,
     mut events: EventReader<AssetEvent<LoadedFolder>>,
-    asset_server: Res<AssetServer>,
-    layouts: ResMut<Assets<TextureAtlasLayout>>,
-    rooms: Res<Assets<MapAsset>>,
-    mut room_store: ResMut<RoomStore>,
 ) {
     for event in events.read() {
         if event.is_loaded_with_dependencies(&game_assets.tiles_folder) {
@@ -84,8 +60,7 @@ fn check_asset_folders(
 
     if game_assets.tiles_loaded && game_assets.rooms_loaded {
         info!("Finished loading");
-        setup_game_assets(commands, asset_server, layouts, rooms, room_store);
-        next_state.set(AppState::Finished);
+        next_state.set(AppState::SetupAssets);
     }
 }
 
@@ -107,12 +82,13 @@ fn start_loading(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn setup_game_assets(
     mut commands: Commands,
+    mut next_state: ResMut<NextState<AppState>>,
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     rooms: Res<Assets<MapAsset>>,
     mut room_store: ResMut<RoomStore>,
 ) {
-    info!("Loading game assets");
+    info!("Setting up game assets");
 
     let capybara_handle = asset_server
         .get_handle::<Image>("textures/capybara.png")
@@ -123,7 +99,7 @@ fn setup_game_assets(
 
     let player_tilesheet = load_player(&asset_server, &mut layouts);
 
-    let tilesheet_main = load_tsx_tileset("tilesheet", &asset_server, &mut layouts);
+    let tilesheet_main = AssetTileSheet::load_by_name("tilesheet", &asset_server, &mut layouts);
 
     let game_assets = GameAssets {
         player_tilesheet,
@@ -159,8 +135,11 @@ fn setup_game_assets(
             .push(map.clone());
     }
 
-    let sizes = room_store.get_room_sizes(1);
-    dbg!(&sizes);
+    info!("Finished setting up game assets");
+    next_state.set(AppState::Finished);
+
+    //let sizes = room_store.get_room_sizes(1);
+    //dbg!(&sizes);
     /* let obj_bench = obj_bench.get_layer(0).unwrap().as_tile_layer().unwrap();
 
     let w = obj_bench.width().unwrap() as i32;
@@ -176,79 +155,6 @@ fn setup_game_assets(
     //let json = std::fs::read_to_string("assets/obj_bench.json").unwrap();
     //let obj_bench = serde_json::from_str::<TiledPrefab>(&json).unwrap();
     //dbg!(&obj_bench);
-}
-
-#[derive(Debug, Deserialize)]
-struct TiledPrefab {
-    pub layers: Vec<TiledPrefabLayer>,
-    pub tileheight: u32,
-    pub tilewidth: u32,
-    pub width: u32,
-    pub height: u32,
-}
-
-#[derive(Debug, Deserialize)]
-struct TiledPrefabLayer {
-    pub id: u32,
-    pub name: String,
-    pub visible: bool,
-    pub width: u32,
-    pub height: u32,
-    pub x: u32,
-    pub y: u32,
-    pub opacity: f32,
-    pub data: Vec<u32>,
-}
-
-fn load_tsx_tileset(
-    name: &str,
-    asset_server: &AssetServer,
-    layouts: &mut Assets<TextureAtlasLayout>,
-) -> AssetTileSheet {
-    info!("Loading tilesheet '{}.tsx'", name);
-
-    let mut loader = tiled::Loader::new();
-    let tilesheet = loader
-        .load_tsx_tileset(format!("assets/{}.tsx", name))
-        .unwrap_or_else(|_| panic!("could not read file '{}'.tsx", name));
-
-    // Setting up named tiles (tiles with non-empty type described in the tile sheet)
-    let mut named_tiles: HashMap<String, Vec<u32>> = HashMap::new();
-
-    for (i, tile) in tilesheet.tiles() {
-        if let Some(ut) = &tile.user_type {
-            if named_tiles.contains_key(ut) {
-                named_tiles.get_mut(ut).unwrap().push(i);
-            } else {
-                named_tiles.insert(ut.to_string(), vec![i]);
-            }
-        }
-    }
-
-    //dbg!(&named_tiles);
-
-    let img = tilesheet.image.expect("Image must not be empty");
-
-    // tilesheet name and texture name must match, and we're not just taking img.source
-    // because tsx loader fucks up the path from being 'assets/textures/a.png'
-    // to 'assets/assets/textures/a.png'
-    let texture_handle = asset_server.load(format!("textures/{}.png", name));
-
-    let layout = TextureAtlasLayout::from_grid(
-        UVec2::new(tilesheet.tile_width, tilesheet.tile_height),
-        tilesheet.columns,
-        img.height as u32 / tilesheet.tile_height,
-        None,
-        None,
-    );
-    let layout_handle = layouts.add(layout);
-
-    AssetTileSheet {
-        name: name.to_string(),
-        layout: layout_handle,
-        image: texture_handle,
-        named_tiles: Some(named_tiles),
-    }
 }
 
 fn load_player(

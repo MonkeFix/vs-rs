@@ -1,7 +1,5 @@
 use bevy::{
-    asset::{io::Reader, Asset, AssetLoader, LoadContext},
-    log::info,
-    reflect::TypePath,
+    asset::{io::Reader, Asset, AssetLoader, LoadContext}, log::info, prelude::*, reflect::TypePath, utils::{HashMap, HashSet}
 };
 use thiserror::Error;
 
@@ -10,6 +8,21 @@ pub struct MapAsset {
     pub name: String,
     pub map_id: u32,
     pub map: tiled::Map,
+}
+
+#[derive(Default, Resource)]
+pub struct RoomStore {
+    pub maps: HashMap<u32, Vec<MapAsset>>,
+}
+
+impl RoomStore {
+    pub fn get_room_sizes(&self, map_id: u32) -> HashSet<UVec2> {
+        let rooms = self.maps.get(&map_id).expect("Invalid map id");
+        rooms
+            .iter()
+            .map(|m| UVec2::new(m.map.width, m.map.height))
+            .collect()
+    }
 }
 
 #[derive(Default)]

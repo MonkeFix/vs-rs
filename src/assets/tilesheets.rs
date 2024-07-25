@@ -40,6 +40,57 @@ impl AssetTileSheet {
 
         None
     }
+
+    pub fn load_by_name(
+        name: &str,
+        asset_server: &AssetServer,
+        layouts: &mut Assets<TextureAtlasLayout>,
+    ) -> Self {
+        info!("Loading tilesheet '{}.tsx'", name);
+
+        let mut loader = tiled::Loader::new();
+        let tilesheet = loader
+            .load_tsx_tileset(format!("assets/{}.tsx", name))
+            .unwrap_or_else(|_| panic!("could not read file '{}'.tsx", name));
+
+        // Setting up named tiles (tiles with non-empty type described in the tile sheet)
+        let mut named_tiles: HashMap<String, Vec<u32>> = HashMap::new();
+
+        for (i, tile) in tilesheet.tiles() {
+            if let Some(ut) = &tile.user_type {
+                if named_tiles.contains_key(ut) {
+                    named_tiles.get_mut(ut).unwrap().push(i);
+                } else {
+                    named_tiles.insert(ut.to_string(), vec![i]);
+                }
+            }
+        }
+
+        //dbg!(&named_tiles);
+
+        let img = tilesheet.image.expect("Image must not be empty");
+
+        // tilesheet name and texture name must match, and we're not just taking img.source
+        // because tsx loader fucks up the path from being 'assets/textures/a.png'
+        // to 'assets/assets/textures/a.png'
+        let texture_handle = asset_server.load(format!("textures/{}.png", name));
+
+        let layout = TextureAtlasLayout::from_grid(
+            UVec2::new(tilesheet.tile_width, tilesheet.tile_height),
+            tilesheet.columns,
+            img.height as u32 / tilesheet.tile_height,
+            None,
+            None,
+        );
+        let layout_handle = layouts.add(layout);
+
+        AssetTileSheet {
+            name: name.to_string(),
+            layout: layout_handle,
+            image: texture_handle,
+            named_tiles: Some(named_tiles),
+        }
+    }
 }
 
 #[derive(Asset, TypePath, Debug)]

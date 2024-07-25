@@ -38,7 +38,8 @@ pub const FIXED_TIMESTEP: f64 = 1.0 / FRAMERATE;
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 pub enum AppState {
     #[default]
-    Setup,
+    LoadAssets,
+    SetupAssets,
     WorldGen,
     Finished,
 }
