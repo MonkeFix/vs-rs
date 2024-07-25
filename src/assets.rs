@@ -9,7 +9,6 @@ pub mod prefabs;
 pub mod rooms;
 pub mod tilesheets;
 
-// TODO: maybe https://bevy-cheatbook.github.io/assets/ready.html will be useful later
 pub struct GameAssetsPlugin;
 
 impl Plugin for GameAssetsPlugin {
@@ -110,19 +109,6 @@ fn setup_game_assets(
 
     commands.insert_resource(game_assets);
 
-    /* let mut loader = tiled::Loader::new();
-    let obj_bench = loader.load_tmx_map("assets/map_example.tmx").unwrap();
-
-    for layer in obj_bench.layers() {
-        let ltype = layer.layer_type();
-        match ltype {
-            tiled::LayerType::Tiles(tiles) => {}
-            tiled::LayerType::Objects(objects) => {}
-            tiled::LayerType::Image(images) => {}
-            tiled::LayerType::Group(group) => {}
-        }
-    } */
-
     for (_id, map) in rooms.iter() {
         info!(
             "Map id {} ({}x{})",
@@ -137,24 +123,6 @@ fn setup_game_assets(
 
     info!("Finished setting up game assets");
     next_state.set(AppState::Finished);
-
-    //let sizes = room_store.get_room_sizes(1);
-    //dbg!(&sizes);
-    /* let obj_bench = obj_bench.get_layer(0).unwrap().as_tile_layer().unwrap();
-
-    let w = obj_bench.width().unwrap() as i32;
-    let h = obj_bench.height().unwrap() as i32;
-
-    for y in 0..h {
-        for x in 0..w {
-            let tile = obj_bench.get_tile(x, y).unwrap();
-            dbg!(&tile.id());
-        }
-    } */
-
-    //let json = std::fs::read_to_string("assets/obj_bench.json").unwrap();
-    //let obj_bench = serde_json::from_str::<TiledPrefab>(&json).unwrap();
-    //dbg!(&obj_bench);
 }
 
 fn load_player(
