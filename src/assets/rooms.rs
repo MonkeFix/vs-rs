@@ -1,8 +1,14 @@
-use bevy::{asset::{io::Reader, Asset, AssetLoader, LoadContext}, log::info, reflect::TypePath};
+use bevy::{
+    asset::{io::Reader, Asset, AssetLoader, LoadContext},
+    log::info,
+    reflect::TypePath,
+};
 use thiserror::Error;
 
-#[derive(Asset, TypePath, Debug)]
+#[derive(Asset, TypePath, Debug, Clone)]
 pub struct MapAsset {
+    pub name: String,
+    pub map_id: u32,
     pub map: tiled::Map,
 }
 
@@ -33,8 +39,28 @@ impl AssetLoader for MapAssetLoader {
         let path = format!("assets/{}", load_context.path().to_str().unwrap());
         info!("Loading map: {:?}", path);
 
+        let map_id_str = load_context
+            .path()
+            .parent()
+            .expect("Invalid room path (no parent)")
+            .file_name()
+            .expect("Invalid room path (no file name)")
+            .to_str()
+            .expect("Invalid room path (unable to convert to str)")
+            .to_string()
+            .replace("map_0", "");
+        let map_id = map_id_str.parse::<u32>().unwrap();
+
+        let name = load_context
+            .path()
+            .file_stem()
+            .expect("Invalid room path (no file stem)")
+            .to_str()
+            .expect("Invalid room path (unable to convert to str)")
+            .to_string();
+
         let map = loader.load_tmx_map(path)?;
-        Ok(MapAsset { map })
+        Ok(MapAsset { name, map_id, map })
     }
 
     fn extensions(&self) -> &[&str] {

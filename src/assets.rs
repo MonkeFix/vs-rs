@@ -1,7 +1,12 @@
 #![allow(dead_code)]
 
 use crate::AppState;
-use bevy::{asset::LoadedFolder, prelude::*, utils::HashMap};
+use bevy::{
+    asset::LoadedFolder,
+    prelude::*,
+    utils::{hashbrown::HashSet, HashMap},
+};
+use rooms::MapAsset;
 use serde::Deserialize;
 use tilesheets::AssetTileSheet;
 
@@ -13,12 +18,28 @@ pub struct GameAssetsPlugin;
 
 impl Plugin for GameAssetsPlugin {
     fn build(&self, app: &mut App) {
+        app.insert_resource(RoomStore::default());
         app.add_systems(OnEnter(AppState::Setup), (start_loading,));
         app.add_systems(
             Update,
             check_asset_folders.run_if(in_state(AppState::Setup)),
         );
         //app.add_systems(OnEnter(AppState::Finished), (spawn_test,));
+    }
+}
+
+#[derive(Default, Resource)]
+pub struct RoomStore {
+    pub maps: HashMap<u32, Vec<MapAsset>>,
+}
+
+impl RoomStore {
+    pub fn get_room_sizes(&self, map_id: u32) -> HashSet<UVec2> {
+        let rooms = self.maps.get(&map_id).expect("Invalid map id");
+        rooms
+            .iter()
+            .map(|m| UVec2::new(m.map.width, m.map.height))
+            .collect()
     }
 }
 
@@ -45,6 +66,8 @@ fn check_asset_folders(
     mut events: EventReader<AssetEvent<LoadedFolder>>,
     asset_server: Res<AssetServer>,
     layouts: ResMut<Assets<TextureAtlasLayout>>,
+    rooms: Res<Assets<MapAsset>>,
+    mut room_store: ResMut<RoomStore>,
 ) {
     for event in events.read() {
         if event.is_loaded_with_dependencies(&game_assets.tiles_folder) {
@@ -61,7 +84,7 @@ fn check_asset_folders(
 
     if game_assets.tiles_loaded && game_assets.rooms_loaded {
         info!("Finished loading");
-        setup_game_assets(commands, asset_server, layouts);
+        setup_game_assets(commands, asset_server, layouts, rooms, room_store);
         next_state.set(AppState::Finished);
     }
 }
@@ -86,6 +109,8 @@ fn setup_game_assets(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
+    rooms: Res<Assets<MapAsset>>,
+    mut room_store: ResMut<RoomStore>,
 ) {
     info!("Loading game assets");
 
@@ -109,7 +134,7 @@ fn setup_game_assets(
 
     commands.insert_resource(game_assets);
 
-    let mut loader = tiled::Loader::new();
+    /* let mut loader = tiled::Loader::new();
     let obj_bench = loader.load_tmx_map("assets/map_example.tmx").unwrap();
 
     for layer in obj_bench.layers() {
@@ -120,7 +145,22 @@ fn setup_game_assets(
             tiled::LayerType::Image(images) => {}
             tiled::LayerType::Group(group) => {}
         }
+    } */
+
+    for (_id, map) in rooms.iter() {
+        info!(
+            "Map id {} ({}x{})",
+            map.map_id, map.map.width, map.map.height
+        );
+        room_store
+            .maps
+            .entry(map.map_id)
+            .or_insert(vec![map.clone()])
+            .push(map.clone());
     }
+
+    let sizes = room_store.get_room_sizes(1);
+    dbg!(&sizes);
     /* let obj_bench = obj_bench.get_layer(0).unwrap().as_tile_layer().unwrap();
 
     let w = obj_bench.width().unwrap() as i32;
