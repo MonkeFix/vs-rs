@@ -114,6 +114,8 @@ fn setup_game_assets(
             "Map id {} ({}x{})",
             map.map_id, map.map.width, map.map.height
         );
+
+        // TODO: Use handles instead of clones to prevent double memory usage
         room_store
             .maps
             .entry(map.map_id)

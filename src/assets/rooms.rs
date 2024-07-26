@@ -1,13 +1,138 @@
 use bevy::{
-    asset::{io::Reader, Asset, AssetLoader, LoadContext}, log::info, prelude::*, reflect::TypePath, utils::{HashMap, HashSet}
+    asset::{io::Reader, Asset, AssetLoader, LoadContext},
+    log::info,
+    prelude::*,
+    reflect::TypePath,
+    utils::{HashMap, HashSet},
 };
 use thiserror::Error;
+
+use crate::collisions::Rect;
 
 #[derive(Asset, TypePath, Debug, Clone)]
 pub struct MapAsset {
     pub name: String,
     pub map_id: u32,
     pub map: tiled::Map,
+}
+
+impl MapAsset {
+    pub fn get_collision_rects(&self, collision_layer: &str) -> Vec<Rect> {
+        let mut checked_indexes = vec![false; (self.map.width * self.map.height) as usize];
+        let mut rectangles = vec![];
+        let mut start_col: i32 = -1;
+        let mut index: i32 = -1;
+
+        let layer = self
+            .find_layer_by_name(collision_layer)
+            .expect("No layer found");
+
+        for y in 0..self.map.height {
+            for x in 0..self.map.width {
+                index = (y * self.map.width + x) as i32;
+                let tile = match layer.layer_type() {
+                    tiled::LayerType::Tiles(tile) => tile.get_tile(x as i32, y as i32),
+                    _ => None,
+                };
+
+                if tile.is_some() && !checked_indexes[index as usize] {
+                    if start_col < 0 {
+                        start_col = x as i32;
+                    }
+                    checked_indexes[index as usize] = true;
+                } else if (tile.is_none() || checked_indexes[index as usize]) && start_col >= 0 {
+                    rectangles.push(self.find_bounds_rect(
+                        collision_layer,
+                        start_col,
+                        x as i32,
+                        y as i32,
+                        &mut checked_indexes,
+                    ));
+                    start_col = -1;
+                }
+            }
+
+            if start_col >= 0 {
+                rectangles.push(self.find_bounds_rect(
+                    collision_layer,
+                    start_col,
+                    self.map.width as i32,
+                    y as i32,
+                    &mut checked_indexes,
+                ));
+                start_col = -1;
+            }
+        }
+
+        rectangles
+    }
+
+    pub fn find_bounds_rect(
+        &self,
+        collision_layer: &str,
+        start_x: i32,
+        end_x: i32,
+        start_y: i32,
+        checked_indexes: &mut [bool],
+    ) -> Rect {
+        let mut index = -1;
+        let layer = self
+            .find_layer_by_name(collision_layer)
+            .expect("No layer found");
+
+        for y in (start_y + 1)..self.map.height as i32 {
+            for x in start_x..end_x {
+                index = y * self.map.width as i32 + x;
+                let tile = match layer.layer_type() {
+                    tiled::LayerType::Tiles(tile) => tile.get_tile(x, y),
+                    _ => None,
+                };
+
+                if tile.is_none() || checked_indexes[index as usize] {
+                    for _x in start_x..x {
+                        index = y * self.map.width as i32 + x;
+                        checked_indexes[index as usize] = false;
+                    }
+
+                    return Rect {
+                        x: (start_x * self.tile_width() as i32) as f32,
+                        y: (start_y * self.tile_height() as i32) as f32,
+                        width: ((end_x - start_x) * self.tile_width() as i32) as f32,
+                        height: ((y - start_y) * self.tile_height() as i32) as f32,
+                    };
+                }
+
+                checked_indexes[index as usize] = true;
+            }
+        }
+
+        Rect {
+            x: (start_x * self.tile_width() as i32) as f32,
+            y: (start_y * self.tile_height() as i32) as f32,
+            width: ((end_x - start_x) * self.tile_width() as i32) as f32,
+            height: ((self.map.height as i32 - start_y) * self.tile_height() as i32) as f32,
+        }
+    }
+
+    pub fn tile_width(&self) -> u32 {
+        self.map.tile_width
+    }
+
+    pub fn tile_height(&self) -> u32 {
+        self.map.tile_height
+    }
+
+    pub fn full_width(&self) -> u32 {
+        self.map.width * self.tile_width()
+    }
+
+    pub fn full_height(&self) -> u32 {
+        self.map.height * self.tile_height()
+    }
+
+    pub fn find_layer_by_name(&self, layer_name: &str) -> Option<tiled::Layer> {
+        self.map.layers().find(|x| x.name == layer_name)
+    }
 }
 
 #[derive(Default, Resource)]
