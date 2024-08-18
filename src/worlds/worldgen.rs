@@ -127,8 +127,8 @@ fn gen_point(min_w: u32, min_h: u32, max_w: u32, max_h: u32) -> WorldPoint {
 
 fn gen_room(world: &IntermediateWorld, room_store: &RoomStore) -> WorldRoom {
     let all_rooms = room_store.get_rooms(world.settings.room_id);
-    let room = choose_random(all_rooms);
-    let size = UVec2::new(room.map.width, room.map.height);
+    let room = choose_random(&all_rooms);
+    let size = UVec2::new(room.0 .1.x, room.0 .1.y);
 
     // genering a point that will not touch the world's border
     let pos = gen_point(
@@ -146,7 +146,7 @@ fn gen_room(world: &IntermediateWorld, room_store: &RoomStore) -> WorldRoom {
     };
 
     WorldRoom {
-        map_asset: room.clone(),
+        room_index: room.1,
         rect,
     }
 }

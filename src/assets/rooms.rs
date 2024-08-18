@@ -139,27 +139,18 @@ impl MapAsset {
 
 #[derive(Default, Resource)]
 pub struct RoomStore {
-    maps: HashMap<u32, Vec<MapAsset>>,
-    map_sizes: HashMap<u32, Vec<UVec2>>,
+    rooms: HashMap<u32, Vec<(MapAsset, UVec2)>>,
 }
 
 impl RoomStore {
     pub fn insert(&mut self, map: MapAsset) {
-        self.map_sizes
-            .entry(map.map_id)
-            .or_default()
-            .push(UVec2::new(map.map.width, map.map.height));
+        let size = UVec2::new(map.map.width, map.map.height);
 
-        // TODO: Use handles instead of clones to prevent double memory usage
-        self.maps.entry(map.map_id).or_default().push(map);
+        self.rooms.entry(map.map_id).or_default().push((map, size));
     }
 
-    pub fn get_room_sizes(&self, map_id: u32) -> &[UVec2] {
-        &self.map_sizes[&map_id]
-    }
-
-    pub fn get_rooms(&self, map_id: u32) -> &[MapAsset] {
-        &self.maps[&map_id]
+    pub fn get_rooms(&self, map_id: u32) -> &[(MapAsset, UVec2)] {
+        &self.rooms[&map_id]
     }
 }
 

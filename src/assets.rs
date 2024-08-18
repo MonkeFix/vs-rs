@@ -118,8 +118,6 @@ fn setup_game_assets(
         room_store.insert(map.clone());
     }
 
-    info!("Room sizes: {:?}", room_store.get_room_sizes(1));
-
     info!("Finished setting up game assets");
     next_state.set(AppState::Finished);
 }

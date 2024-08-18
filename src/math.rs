@@ -50,8 +50,8 @@ pub fn almost_equal_vec2(left: Vec2, right: Vec2) -> bool {
     almost_equal_f32(left.x, left.y) && almost_equal_f32(right.x, right.y)
 }
 
-pub fn choose_random<T>(arr: &[T]) -> &T {
+pub fn choose_random<T>(arr: &[T]) -> (&T, usize) {
     let mut rand = thread_rng();
     let index = rand.gen_range(0..arr.len());
-    &arr[index]
+    (&arr[index], index)
 }
