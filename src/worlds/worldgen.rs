@@ -3,8 +3,12 @@ use std::time::Instant;
 use bevy::{prelude::*, utils::info};
 use pathfinding::directed::astar;
 use rand::{thread_rng, Rng};
+use room::WorldRoom;
 
-use crate::{collisions::Rect, worlds::world::IntermediateWorld};
+use crate::{
+    assets::rooms::RoomStore, collisions::Rect, math::choose_random,
+    worlds::world::IntermediateWorld,
+};
 
 use self::{
     prim::PrimEdge,
@@ -20,6 +24,7 @@ use super::world::{CellType, World};
 
 pub mod delaunay2d;
 pub mod prim;
+pub mod room;
 pub mod settings;
 mod stages;
 
@@ -120,8 +125,10 @@ fn gen_point(min_w: u32, min_h: u32, max_w: u32, max_h: u32) -> WorldPoint {
     }
 }
 
-fn gen_rect(world: &IntermediateWorld, min_w: u32, min_h: u32, max_w: u32, max_h: u32) -> Rect {
-    let size = gen_point(min_w, min_h, max_w, max_h);
+fn gen_room(world: &IntermediateWorld, room_store: &RoomStore) -> WorldRoom {
+    let all_rooms = room_store.get_rooms(world.settings.room_id);
+    let room = choose_random(all_rooms);
+    let size = UVec2::new(room.map.width, room.map.height);
 
     // genering a point that will not touch the world's border
     let pos = gen_point(
@@ -131,11 +138,16 @@ fn gen_rect(world: &IntermediateWorld, min_w: u32, min_h: u32, max_w: u32, max_h
         world.settings.world_height - size.y - 1,
     );
 
-    Rect {
+    let rect = Rect {
         x: pos.x as f32,
         y: pos.y as f32,
         width: size.x as f32,
         height: size.y as f32,
+    };
+
+    WorldRoom {
+        map_asset: room.clone(),
+        rect,
     }
 }
 
@@ -147,14 +159,14 @@ fn is_rect_oob(world: &IntermediateWorld, rect: &Rect) -> bool {
 }
 
 fn min_area_constraint(world: &IntermediateWorld) -> bool {
-    if world.room_rects.len() >= world.settings.max_rooms as usize {
+    if world.rooms.len() >= world.settings.max_rooms as usize {
         return true;
     }
 
     let mut cur = 0;
 
-    for rect in &world.room_rects {
-        cur += (rect.width * rect.height) as u32;
+    for room in &world.rooms {
+        cur += (room.rect.width * room.rect.height) as u32;
     }
 
     cur >= world.settings.min_used_area
@@ -163,8 +175,8 @@ fn min_area_constraint(world: &IntermediateWorld) -> bool {
 fn intersects_any(world: &IntermediateWorld, mut rect: Rect, offset: Vec2) -> bool {
     rect.inflate(offset.x, offset.y);
 
-    for rect2 in &world.room_rects {
-        if rect2.intersects(rect) {
+    for room in &world.rooms {
+        if room.rect.intersects(rect) {
             return true;
         }
     }
@@ -222,7 +234,7 @@ impl Default for WorldGenerator {
 }
 
 impl WorldGenerator {
-    pub fn generate(&mut self, settings: WorldGeneratorSettings) -> World {
+    pub fn generate(&mut self, settings: WorldGeneratorSettings, room_store: &RoomStore) -> World {
         let w = settings.world_width as usize;
         let h = settings.world_height as usize;
 
@@ -234,7 +246,7 @@ impl WorldGenerator {
         let mut world = IntermediateWorld {
             settings,
             grid: vec![vec![CellType::None; w]; h],
-            room_rects: vec![],
+            rooms: vec![],
             width: w,
             height: h,
             triangulation_graph: None,
@@ -249,7 +261,7 @@ impl WorldGenerator {
         for stage in self.stages.iter_mut() {
             let desc = stage.get_description();
             info!("{}", desc);
-            stage.execute(&mut world);
+            stage.execute(&mut world, room_store);
         }
 
         let elapsed = now.elapsed();

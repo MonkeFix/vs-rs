@@ -1,6 +1,8 @@
+use crate::assets::rooms::RoomStore;
 use crate::worlds::world::{CellType, IntermediateWorld};
+use crate::worlds::worldgen::room::WorldRoom;
 use crate::worlds::worldgen::{
-    gen_rect, intersects_any, is_rect_oob, min_area_constraint, GridGraphPos,
+    gen_room, intersects_any, is_rect_oob, min_area_constraint, GridGraphPos,
 };
 use bevy::prelude::*;
 use pathfinding::directed::astar;
@@ -13,7 +15,7 @@ use crate::worlds::bitmasking::{calc_bitmask, create_bitmap_from, BitMaskDirecti
 
 pub trait WorldGenStage {
     fn get_description(&self) -> &'static str;
-    fn execute(&mut self, world: &mut IntermediateWorld);
+    fn execute(&mut self, world: &mut IntermediateWorld, room_store: &RoomStore);
 }
 
 pub struct WorldGenStage1GenRects {}
@@ -23,39 +25,27 @@ impl WorldGenStage for WorldGenStage1GenRects {
         "Generating random rectangles"
     }
 
-    fn execute(&mut self, world: &mut IntermediateWorld) {
+    fn execute(&mut self, world: &mut IntermediateWorld, room_store: &RoomStore) {
         let mut iter = 0;
 
         while !min_area_constraint(world) {
-            let mut min_w = world.settings.init_min_room_w;
-            let mut min_h = world.settings.init_min_room_h;
-            let mut max_w = world.settings.init_max_room_w;
-            let mut max_h = world.settings.init_max_room_h;
-
-            if iter > world.settings.next_step_iterations {
-                min_w = world.settings.next_min_room_w;
-                min_h = world.settings.next_min_room_h;
-                max_w = world.settings.next_max_room_w;
-                max_h = world.settings.next_max_room_h;
-            }
-
-            let random_rect = gen_rect(world, min_w, min_h, max_w, max_h);
+            let room = gen_room(world, room_store);
 
             let offset = &world.settings.room_spacing;
             if !intersects_any(
                 world,
-                random_rect,
+                room.rect,
                 Vec2::new(offset.x as f32, offset.y as f32),
-            ) || is_rect_oob(world, &random_rect)
+            ) || is_rect_oob(world, &room.rect)
             {
-                world.room_rects.push(random_rect);
+                world.rooms.push(room);
             }
 
             if iter >= world.settings.max_room_iterations {
                 warn!(
                     "Could not create required amount of rooms in {} iterations. Total rooms: {}",
                     iter,
-                    world.room_rects.len()
+                    world.rooms.len()
                 );
                 break;
             }
@@ -66,7 +56,7 @@ impl WorldGenStage for WorldGenStage1GenRects {
         info!(
             "Stage 1 completed in {} iterations. Total rooms: {}",
             iter,
-            world.room_rects.len()
+            world.rooms.len()
         );
     }
 }
@@ -78,8 +68,8 @@ impl WorldGenStage for WorldGenStage2Triangulate {
         "Creating triangulation graph"
     }
 
-    fn execute(&mut self, world: &mut IntermediateWorld) {
-        world.triangulation_graph = Some(Delaunay2D::triangulate_constraint(&world.room_rects));
+    fn execute(&mut self, world: &mut IntermediateWorld, _room_store: &RoomStore) {
+        world.triangulation_graph = Some(Delaunay2D::triangulate_constraint(&world.rooms));
     }
 }
 
@@ -90,7 +80,7 @@ impl WorldGenStage for WorldGenStage3MinSpanningTree {
         "Finding a minimum spanning tree"
     }
 
-    fn execute(&mut self, world: &mut IntermediateWorld) {
+    fn execute(&mut self, world: &mut IntermediateWorld, _room_store: &RoomStore) {
         // find a minimum spanning tree
         let graph = world
             .triangulation_graph
@@ -127,7 +117,7 @@ impl WorldGenStage for WorldGenStage4PlaceTiles {
         "Placing tiles"
     }
 
-    fn execute(&mut self, world: &mut IntermediateWorld) {
+    fn execute(&mut self, world: &mut IntermediateWorld, _room_store: &RoomStore) {
         /* let mut rng = thread_rng();*/
 
         /* for y in 0..self.settings.world_height {
@@ -138,7 +128,8 @@ impl WorldGenStage for WorldGenStage4PlaceTiles {
 
         // create tiles
 
-        for rect in &world.room_rects {
+        for room in &world.rooms {
+            let rect = room.rect;
             let left = rect.x as usize;
             let right = (rect.x + rect.width) as usize;
             let top = rect.y as usize;
@@ -160,7 +151,7 @@ impl WorldGenStage for WorldGenStage5AStar {
         "Pathfinding connections between rooms"
     }
 
-    fn execute(&mut self, world: &mut IntermediateWorld) {
+    fn execute(&mut self, world: &mut IntermediateWorld, room_store: &RoomStore) {
         // Find paths between connected rooms using A* algorithm
         let mut nodes = vec![];
         for edge in &world.edges {
@@ -206,8 +197,9 @@ impl WorldGenStage for WorldGenStageCreateWalls {
         "Creating walls around every room's borders"
     }
 
-    fn execute(&mut self, world: &mut IntermediateWorld) {
-        for rect in &world.room_rects {
+    fn execute(&mut self, world: &mut IntermediateWorld, _room_store: &RoomStore) {
+        for room in &world.rooms {
+            let rect = &room.rect;
             let border = get_border_points(rect);
 
             for point in &border {
@@ -227,7 +219,7 @@ impl WorldGenStage for WorldGenStageCalcBitmapAndBitmask {
         "Calculating bitmap and bitmask"
     }
 
-    fn execute(&mut self, world: &mut IntermediateWorld) {
+    fn execute(&mut self, world: &mut IntermediateWorld, _room_store: &RoomStore) {
         let bitmap = create_bitmap_from(&world.grid, |p| *p == CellType::Wall);
         let bitmask = calc_bitmask(&bitmap, BitMaskDirection::Corners);
 

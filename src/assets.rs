@@ -115,13 +115,10 @@ fn setup_game_assets(
             map.map_id, map.map.width, map.map.height
         );
 
-        // TODO: Use handles instead of clones to prevent double memory usage
-        room_store
-            .maps
-            .entry(map.map_id)
-            .or_insert(vec![map.clone()])
-            .push(map.clone());
+        room_store.insert(map.clone());
     }
+
+    info!("Room sizes: {:?}", room_store.get_room_sizes(1));
 
     info!("Finished setting up game assets");
     next_state.set(AppState::Finished);

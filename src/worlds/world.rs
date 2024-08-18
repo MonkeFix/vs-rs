@@ -5,7 +5,9 @@ use crate::collisions::Rect;
 
 use super::{
     bitmasking::{calc_bitmask, create_bitmap_from},
-    worldgen::{delaunay2d::Delaunay2D, prim::PrimEdge, settings::WorldGeneratorSettings},
+    worldgen::{
+        delaunay2d::Delaunay2D, prim::PrimEdge, room::WorldRoom, settings::WorldGeneratorSettings,
+    },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -50,17 +52,16 @@ pub struct IntermediateWorld {
     pub height: usize,
     pub settings: WorldGeneratorSettings,
     pub grid: Vec<Vec<CellType>>,
-    pub room_rects: Vec<Rect>,
+    pub rooms: Vec<WorldRoom>,
     pub triangulation_graph: Option<Delaunay2D>,
     pub edges: Vec<PrimEdge>,
     pub edges_extra: Vec<PrimEdge>,
     pub bitmap: Vec<Vec<bool>>,
-    pub bitmask: Vec<Vec<u32>>
+    pub bitmask: Vec<Vec<u32>>,
 }
 
 impl IntermediateWorld {
     pub fn to_world(self) -> World {
-
         let mut data = HashMap::new();
         data.insert(
             0,

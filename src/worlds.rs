@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
 
 use crate::{
-    assets::{tilesheets::AssetTileSheet, GameAssets},
+    assets::{rooms::RoomStore, tilesheets::AssetTileSheet, GameAssets},
     AppState,
 };
 
@@ -29,7 +29,7 @@ impl Plugin for WorldPlugin {
     }
 }
 
-fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
+fn spawn_world(mut commands: Commands, assets: Res<GameAssets>, room_store: Res<RoomStore>) {
     let mut world_gen = WorldGenerator::default();
 
     let mut settings = WorldGeneratorSettings::default();
@@ -37,7 +37,7 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>) {
     settings.world_height = 256;
 
     let world_comp = WorldComponent {
-        world: world_gen.generate(settings),
+        world: world_gen.generate(settings, &room_store),
     };
 
     let grass_asset = &assets.tilesheet_main;

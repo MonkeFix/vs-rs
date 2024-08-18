@@ -4,6 +4,8 @@ use bevy::prelude::*;
 
 use crate::{collisions::Rect, math::almost_equal_vec2};
 
+use super::room::WorldRoom;
+
 #[derive(Default, Clone, Copy)]
 pub struct Edge {
     pub u: Vec2,
@@ -66,8 +68,6 @@ impl Triangle {
     }
 }
 
-
-
 pub struct Delaunay2D {
     vertices: Vec<Vec2>,
     pub edges: Vec<Edge>,
@@ -85,17 +85,17 @@ impl Delaunay2D {
         res
     }
 
-    pub fn triangulate_constraint(rects: &[Rect]) -> Delaunay2D {
+    pub fn triangulate_constraint(rooms: &[WorldRoom]) -> Delaunay2D {
         let mut res = Delaunay2D {
             edges: vec![],
             triangles: vec![],
             vertices: vec![],
         };
 
-        for i in 0..rects.len() {
-            for j in (i + 1)..rects.len() {
-                let a = rects[i];
-                let b = rects[j];
+        for i in 0..rooms.len() {
+            for j in (i + 1)..rooms.len() {
+                let a = rooms[i].rect;
+                let b = rooms[j].rect;
 
                 res.edges.push(Edge {
                     u: a.center(),
