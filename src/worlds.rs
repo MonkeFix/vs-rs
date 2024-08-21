@@ -55,7 +55,7 @@ fn spawn_world(
 
     let grass_asset = &assets.tilesheet_main;
 
-    let tilemap = world_to_tilemap(&world_comp.world, grass_asset, &map_assets);
+    let lower_tilemap = world_to_tilemap(&world_comp.world, grass_asset, &map_assets);
 
     let x = -(((world_comp.world.width * 32) / 2) as f32);
     let y = -(((world_comp.world.height * 32) / 2) as f32);
@@ -67,23 +67,53 @@ fn spawn_world(
         Vec2::new(x, y),
     );
 
-    commands.spawn((
-        world_comp,
-        TileMapBundle {
-            texture: grass_asset.image.clone(),
-            tilemap,
-            atlas: TextureAtlas {
-                layout: grass_asset.layout.clone(),
+    let mut upper_tilemap = TileMap::default();
+
+    world_comp
+        .world
+        .fill_tilemap(&mut upper_tilemap, &map_assets, "upper_group");
+
+    commands
+        .spawn((
+            world_comp,
+            SpatialBundle {
+                transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 ..default()
             },
-            transform: Transform {
-                scale: Vec3::splat(1.0),
-                translation: Vec3::new(x, y, 0.0),
-                ..default()
-            },
+        ))
+        .with_children(|c| {
+            c.spawn(create_tile_map_bundle(
+                grass_asset,
+                lower_tilemap,
+                Vec3::new(x, y, 0.0),
+            ));
+            c.spawn(create_tile_map_bundle(
+                grass_asset,
+                upper_tilemap,
+                Vec3::new(x, y, 10.0),
+            ));
+        });
+}
+
+fn create_tile_map_bundle(
+    grass_asset: &AssetTileSheet,
+    tilemap: TileMap,
+    translation: Vec3,
+) -> TileMapBundle {
+    TileMapBundle {
+        texture: grass_asset.image.clone(),
+        tilemap,
+        atlas: TextureAtlas {
+            layout: grass_asset.layout.clone(),
             ..default()
         },
-    ));
+        transform: Transform {
+            scale: Vec3::splat(1.0),
+            translation,
+            ..default()
+        },
+        ..default()
+    }
 }
 
 fn world_to_tilemap(
@@ -92,11 +122,6 @@ fn world_to_tilemap(
     assets: &Assets<MapAsset>,
 ) -> TileMap {
     let mut tilemap = TileMap::default();
-
-    // TODO: Spawn 3 separate tile maps for 3 different layers:
-    // - lower level (characters are over tiles)
-    // - upper level (characters are behind tiles)
-    // - shadows
 
     for y in 0..world.height {
         for x in 0..world.width {
@@ -112,7 +137,7 @@ fn world_to_tilemap(
         }
     }
 
-    world.fill_tilemap(&mut tilemap, assets);
+    world.fill_tilemap(&mut tilemap, assets, "lower_group");
 
     tilemap
 }

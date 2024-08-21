@@ -35,17 +35,17 @@ impl World {
         iw.into_world()
     }
 
-    pub fn fill_tilemap(&self, tilemap: &mut TileMap, assets: &Assets<MapAsset>) {
+    pub fn fill_tilemap(&self, tilemap: &mut TileMap, assets: &Assets<MapAsset>, group_name: &str) {
         let mut i = 1;
         for room in &self.rooms {
-            info!(" >> Filling room #{i}");
+            info!(" >> Filling room group {group_name} #{i}");
 
             let offset_x = room.rect.x as i32;
             let offset_y = room.rect.y as i32;
 
             let map_asset = assets.get(room.map_asset.id()).expect("unknown map asset");
             let mut layer_z = 1;
-            for layer in map_asset.map.layers() {
+            for layer in map_asset.map.layers().filter(|m| m.name == group_name) {
                 self.process_layer(tilemap, layer, offset_x, offset_y, &mut layer_z);
                 //layer_z += 1;
             }
