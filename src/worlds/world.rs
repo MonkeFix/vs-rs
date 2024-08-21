@@ -3,15 +3,17 @@ use bevy_simple_tilemap::{Tile, TileMap};
 use tiled::{Layer, TileLayer};
 
 use crate::{
-    assets::rooms::{MapAsset, RoomStore},
-    collisions::{shapes::ColliderShapeType, store::ColliderStore, Rect},
+    assets::rooms::MapAsset,
+    collisions::{
+        colliders::ColliderData,
+        shapes::{ColliderShape, ColliderShapeType},
+        store::ColliderStore,
+        Rect,
+    },
 };
 
-use super::{
-    bitmasking::{calc_bitmask, create_bitmap_from},
-    worldgen::{
-        delaunay2d::Delaunay2D, prim::PrimEdge, room::WorldRoom, settings::WorldGeneratorSettings,
-    },
+use super::worldgen::{
+    delaunay2d::Delaunay2D, prim::PrimEdge, room::WorldRoom, settings::WorldGeneratorSettings,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -121,15 +123,14 @@ impl World {
                         );
 
                         collider_store.create_and_register(
-                            ColliderShapeType::Box {
-                                width: rect.width,
-                                height: rect.height,
+                            ColliderData {
+                                shape_type: ColliderShapeType::Box {
+                                    width: rect.width,
+                                    height: rect.height,
+                                },
+                                ..default()
                             },
-                            /* ColliderShapeType::Circle {
-                                radius: rect.width / 2.0,
-                            }, */
                             Some(Vec2::new(rect.x, rect.y)),
-                            None,
                         );
                     }
                 }

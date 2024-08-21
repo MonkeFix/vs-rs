@@ -1,6 +1,7 @@
 use crate::assets::GameAssets;
+use crate::collisions::colliders::ColliderData;
 use crate::collisions::plugin::{ColliderBundle, ColliderComponent};
-use crate::collisions::shapes::ColliderShapeType;
+use crate::collisions::shapes::{ColliderShape, ColliderShapeType};
 use crate::collisions::store::{ColliderIdResolver, ColliderStore};
 use crate::enemy::Enemy;
 use crate::input::PlayerControls;
@@ -91,8 +92,12 @@ fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets
             ColliderBundle {
                 collider: ColliderComponent::new(
                     &mut collider_set,
-                    ColliderShapeType::Circle { radius: 10.0 },
-                    Some(Vec2::new(0.0, -16.0)),
+                    ColliderData {
+                        shape_type: ColliderShapeType::Circle { radius: 10.0 },
+                        local_offset: Vec2::new(0.0, -16.0),
+                        ..default()
+                    },
+                    None,
                 ),
             },
         ))

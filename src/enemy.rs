@@ -1,19 +1,21 @@
+use crate::assets::GameAssets;
+use crate::collisions::colliders::ColliderData;
 use crate::collisions::plugin::ColliderBundle;
 use crate::collisions::plugin::ColliderComponent;
+use crate::collisions::shapes::ColliderShape;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::ColliderStore;
 use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::player::*;
 use crate::stats::*;
+use crate::AppState;
 use bevy::prelude::*;
 use bevy::time::TimerMode::Repeating;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
-use crate::AppState;
-use crate::assets::GameAssets;
 
 pub struct EnemyPlugin;
 
@@ -58,7 +60,8 @@ impl Plugin for EnemyPlugin {
                 check_health,
                 change_wave,
                 global_timer_tick,
-            ).run_if(in_state(AppState::Finished)),
+            )
+                .run_if(in_state(AppState::Finished)),
         );
     }
 }
@@ -268,7 +271,10 @@ fn spawn(
                                 ColliderBundle {
                                     collider: ColliderComponent::new(
                                         &mut collider_set,
-                                        ColliderShapeType::Circle { radius: 16.0 },
+                                        ColliderData {
+                                            shape_type: ColliderShapeType::Circle { radius: 16.0 },
+                                            ..default()
+                                        },
                                         None,
                                     ),
                                 },

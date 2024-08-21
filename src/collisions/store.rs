@@ -9,8 +9,11 @@ use bevy::{
 };
 
 use super::{
-    colliders::Collider, plugin::ColliderComponent, shapes::ColliderShapeType,
-    spatial_hash::SpatialHash, ColliderId, RaycastHit,
+    colliders::{Collider, ColliderData},
+    plugin::ColliderComponent,
+    shapes::ColliderShapeType,
+    spatial_hash::SpatialHash,
+    ColliderId, RaycastHit,
 };
 
 pub const ALL_LAYERS: i32 = -1;
@@ -47,20 +50,15 @@ impl ColliderStore {
 
     pub fn create_and_register(
         &mut self,
-        shape_type: ColliderShapeType,
-        position: Option<Vec2>,
-        local_offset: Option<Vec2>,
+        data: ColliderData,
+        initial_pos: Option<Vec2>,
     ) -> ColliderComponent {
-        let mut collider = Collider::new(shape_type, None);
-
-        if let Some(offset) = local_offset {
-            collider.local_offset = offset;
-        }
+        let collider = Collider::new(data, None);
 
         let id = self.register(collider);
 
-        if let Some(position) = position {
-            self.added_with_position(id, &Position(position));
+        if let Some(pos) = initial_pos {
+            self.added_with_position(id, &Position(pos));
         }
 
         ColliderComponent { id }
@@ -182,6 +180,7 @@ impl ColliderStore {
                     Vec2::new(width, height),
                     Color::srgba(1.0, 0., 0., 1.0),
                 ),
+                ColliderShapeType::None => {}
             }
         }
     }

@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 
-use bevy::{math::Vec2, reflect::Reflect};
+use bevy::{math::Vec2, prelude::default, reflect::Reflect};
 
 use super::Rect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub enum ColliderShapeType {
+    None,
     Circle { radius: f32 },
     Box { width: f32, height: f32 },
 }
@@ -16,6 +17,26 @@ pub struct ColliderShape {
     pub(crate) position: Vec2,
     pub(crate) center: Vec2,
     pub(crate) bounds: Rect,
+}
+
+impl Default for ColliderShape {
+    fn default() -> Self {
+        Self {
+            shape_type: ColliderShapeType::None,
+            position: Vec2::ZERO,
+            center: Vec2::ZERO,
+            bounds: Rect::new(0.0, 0.0, 0.0, 0.0),
+        }
+    }
+}
+
+impl ColliderShape {
+    pub fn new(shape_type: ColliderShapeType) -> Self {
+        Self {
+            shape_type,
+            ..default()
+        }
+    }
 }
 
 pub mod collisions {
@@ -78,8 +99,10 @@ pub mod collisions {
                     None
                 }
                 ColliderShapeType::Box { .. } => panic!("second: expected circle, got box"),
+                ColliderShapeType::None => None,
             },
             ColliderShapeType::Box { .. } => panic!("first: expected circle, got box"),
+            ColliderShapeType::None => None,
         }
     }
 
@@ -126,6 +149,7 @@ pub mod collisions {
                 None
             }
             ColliderShapeType::Box { .. } => panic!("circle: expected circle, got box"),
+            ColliderShapeType::None => None,
         }
     }
 
@@ -165,6 +189,7 @@ pub mod collisions {
                 Some(hit)
             }
             ColliderShapeType::Box { .. } => panic!("s: expected circle, got box"),
+            ColliderShapeType::None => None,
         }
     }
 

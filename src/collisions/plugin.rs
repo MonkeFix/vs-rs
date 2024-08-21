@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use super::{shapes::ColliderShapeType, store::ColliderStore, ColliderId};
+use super::{colliders::ColliderData, store::ColliderStore, ColliderId};
 use crate::movement::Position;
 use bevy::{ecs::system::EntityCommands, prelude::*};
 
@@ -18,10 +18,10 @@ impl From<ColliderComponent> for ColliderId {
 impl ColliderComponent {
     pub fn new(
         collider_set: &mut ColliderStore,
-        shape_type: ColliderShapeType,
-        local_offset: Option<Vec2>,
+        data: ColliderData,
+        initial_pos: Option<Vec2>,
     ) -> Self {
-        collider_set.create_and_register(shape_type, None, local_offset)
+        collider_set.create_and_register(data, initial_pos)
     }
 }
 
