@@ -217,16 +217,16 @@ impl Collider {
     pub fn recalc_bounds(&mut self) {
         match self.shape.shape_type {
             ColliderShapeType::Circle { radius } => {
-                self.shape.bounds.x = self.shape.center.x - radius;
-                self.shape.bounds.y = self.shape.center.y - radius;
+                self.shape.bounds.x = self.shape.center.x + self.local_offset.x - radius;
+                self.shape.bounds.y = self.shape.center.y + self.local_offset.y - radius;
                 self.shape.bounds.width = radius * 2.0;
                 self.shape.bounds.height = radius * 2.0;
             }
             ColliderShapeType::Box { width, height } => {
                 let hw = width / 2.0;
                 let hh = height / 2.0;
-                self.shape.bounds.x = self.shape.position.x - hw;
-                self.shape.bounds.y = self.shape.position.y - hh;
+                self.shape.bounds.x = self.shape.position.x + self.local_offset.x - hw;
+                self.shape.bounds.y = self.shape.position.y + self.local_offset.y - hh;
                 self.shape.bounds.width = width;
                 self.shape.bounds.height = height;
             }

@@ -129,6 +129,7 @@ impl World {
                                 radius: rect.width / 2.0,
                             }, */
                             Some(Vec2::new(rect.x, rect.y)),
+                            None,
                         );
                     }
                 }

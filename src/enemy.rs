@@ -269,6 +269,7 @@ fn spawn(
                                     collider: ColliderComponent::new(
                                         &mut collider_set,
                                         ColliderShapeType::Circle { radius: 16.0 },
+                                        None,
                                     ),
                                 },
                             ));

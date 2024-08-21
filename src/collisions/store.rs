@@ -49,8 +49,14 @@ impl ColliderStore {
         &mut self,
         shape_type: ColliderShapeType,
         position: Option<Vec2>,
+        local_offset: Option<Vec2>,
     ) -> ColliderComponent {
-        let collider = Collider::new(shape_type, None);
+        let mut collider = Collider::new(shape_type, None);
+
+        if let Some(offset) = local_offset {
+            collider.local_offset = offset;
+        }
+
         let id = self.register(collider);
 
         if let Some(position) = position {

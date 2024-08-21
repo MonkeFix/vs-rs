@@ -21,7 +21,7 @@ pub struct ColliderShape {
 pub mod collisions {
     use super::{ColliderShape, ColliderShapeType};
     use crate::collisions::{CollisionResultRef, RaycastHit, Rect};
-    use bevy::math::Vec2;
+    use bevy::{log::info, math::Vec2};
 
     pub fn box_to_box<'a>(
         first: &ColliderShape,
@@ -86,19 +86,23 @@ pub mod collisions {
     pub fn circle_to_box<'a>(
         circle: &ColliderShape,
         bx: &ColliderShape,
-        circle_offset: Vec2,
+        mut circle_offset: Vec2,
         box_offset: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
         match circle.shape_type {
             ColliderShapeType::Circle { radius } => {
+                info!("ctb check {:?}", bx.bounds);
                 let mut res = CollisionResultRef::default();
 
                 let circle_pos = circle.position + circle_offset;
                 let box_pos = bx.position + box_offset;
+                //- Vec2::new(bx.bounds.width / 2., bx.bounds.height / 2.);
 
                 let mut bx_bounds = bx.bounds;
-                bx_bounds.x = box_pos.x;
-                bx_bounds.y = box_pos.y;
+                bx_bounds.x += box_offset.x;
+                bx_bounds.y += box_offset.y;
+                //bx_bounds.x = box_pos.x;
+                //bx_bounds.y = box_pos.y;
 
                 let (closest_point, normal) = bx_bounds.closest_point_on_border(circle_pos);
                 res.normal = normal;
@@ -122,10 +126,8 @@ pub mod collisions {
                     let normal = res.normal.normalize_or_zero();
                     res.normal = normal;
                     res.min_translation = depth * normal;
-
                     return Some(res);
                 }
-
                 None
             }
             ColliderShapeType::Box { .. } => panic!("circle: expected circle, got box"),

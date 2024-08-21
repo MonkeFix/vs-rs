@@ -67,7 +67,7 @@ impl PlayerBundle {
 
 fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets: Res<GameAssets>) {
     let player_tileset = &assets.player_tilesheet;
-    
+
     commands
         .spawn((
             PlayerBundle::new(),
@@ -91,7 +91,8 @@ fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets
             ColliderBundle {
                 collider: ColliderComponent::new(
                     &mut collider_set,
-                    ColliderShapeType::Circle { radius: 16.0 },
+                    ColliderShapeType::Circle { radius: 8.0 },
+                    Some(Vec2::new(0.0, -16.0)),
                 ),
             },
         ))

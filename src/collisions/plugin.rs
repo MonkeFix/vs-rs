@@ -16,8 +16,12 @@ impl From<ColliderComponent> for ColliderId {
 }
 
 impl ColliderComponent {
-    pub fn new(collider_set: &mut ColliderStore, shape_type: ColliderShapeType) -> Self {
-        collider_set.create_and_register(shape_type, None)
+    pub fn new(
+        collider_set: &mut ColliderStore,
+        shape_type: ColliderShapeType,
+        local_offset: Option<Vec2>,
+    ) -> Self {
+        collider_set.create_and_register(shape_type, None, local_offset)
     }
 }
 

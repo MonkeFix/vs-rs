@@ -93,8 +93,10 @@ fn calc_movement(
     }
 
     let mut bounds = collider.bounds();
+
     bounds.x += motion.x;
     bounds.y += motion.y;
+
     let neighbors = collider_store.aabb_broadphase_excluding_self(
         collider_id,
         bounds,
