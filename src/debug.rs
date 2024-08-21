@@ -16,6 +16,7 @@ pub struct DebugPlugin;
 #[derive(Default, Resource)]
 pub struct DebugSettings {
     pub collider_draw_enabled: bool,
+    pub disable_enemy_spawns: bool,
 }
 
 #[cfg(debug_assertions)]
@@ -103,6 +104,9 @@ fn handle_input(
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyG) {
         debug_settings.collider_draw_enabled = !debug_settings.collider_draw_enabled;
+    }
+    if keyboard_input.just_pressed(KeyCode::KeyH) {
+        debug_settings.disable_enemy_spawns = !debug_settings.disable_enemy_spawns;
     }
 }
 

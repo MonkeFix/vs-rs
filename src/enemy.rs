@@ -2,9 +2,9 @@ use crate::assets::GameAssets;
 use crate::collisions::colliders::ColliderData;
 use crate::collisions::plugin::ColliderBundle;
 use crate::collisions::plugin::ColliderComponent;
-use crate::collisions::shapes::ColliderShape;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::ColliderStore;
+use crate::debug::DebugSettings;
 use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::player::*;
@@ -51,8 +51,24 @@ impl Plugin for EnemyPlugin {
             Duration::from_secs(GLOBAL_TIME_TICKER_SEC),
             TimerMode::Repeating,
         )))
-        .add_systems(OnEnter(AppState::Finished), (enemy_factory,))
-        .add_systems(
+        .add_systems(OnEnter(AppState::Finished), (enemy_factory,));
+
+        #[cfg(debug_assertions)]
+        app.add_systems(
+            Update,
+            (
+                spawn,
+                movement,
+                check_health,
+                change_wave,
+                global_timer_tick,
+            )
+                .run_if(in_state(AppState::Finished))
+                .run_if(enemy_spawns_enabled),
+        );
+
+        #[cfg(not(debug_assertions))]
+        app.add_systems(
             Update,
             (
                 spawn,
@@ -186,6 +202,11 @@ fn enemy_factory(mut commands: Commands, assets: Res<GameAssets>) {
     let spawners = EnemySpawners(spawn_map);
     commands.insert_resource(spawners.clone());
 }
+
+fn enemy_spawns_enabled(debug_settings: Res<DebugSettings>) -> bool {
+    !debug_settings.disable_enemy_spawns
+}
+
 fn spawn(
     mut collider_set: ResMut<ColliderStore>,
     mut commands: Commands,
