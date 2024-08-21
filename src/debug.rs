@@ -4,12 +4,19 @@ use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use crate::collisions::colliders::Collider;
+use crate::collisions::store::ColliderStore;
 use crate::enemy::Enemy;
 use crate::movement::SteeringHost;
 use crate::player::Player;
 
 #[cfg(debug_assertions)]
 pub struct DebugPlugin;
+
+#[cfg(debug_assertions)]
+#[derive(Default, Resource)]
+pub struct DebugSettings {
+    pub collider_draw_enabled: bool,
+}
 
 #[cfg(debug_assertions)]
 impl Plugin for DebugPlugin {
@@ -21,6 +28,9 @@ impl Plugin for DebugPlugin {
 
         app.add_systems(Startup, (add_enemy_count,));
         app.add_systems(FixedUpdate, (update_enemy_count, update_fps));
+        app.add_systems(Update, (handle_input, debug_draw));
+
+        app.insert_resource(DebugSettings::default());
     }
 }
 
@@ -84,6 +94,25 @@ fn update_enemy_count(
 ) {
     if let Ok(mut text) = text.get_single_mut() {
         text.sections[0].value = format!("Capybaras: {}", enemies.iter().count());
+    }
+}
+
+fn handle_input(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut debug_settings: ResMut<DebugSettings>,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyG) {
+        debug_settings.collider_draw_enabled = !debug_settings.collider_draw_enabled;
+    }
+}
+
+fn debug_draw(
+    debug_settings: Res<DebugSettings>,
+    collider_store: Res<ColliderStore>,
+    mut gizmos: Gizmos,
+) {
+    if debug_settings.collider_draw_enabled {
+        collider_store.debug_draw(&mut gizmos);
     }
 }
 

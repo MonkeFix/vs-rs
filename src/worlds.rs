@@ -12,7 +12,7 @@ use crate::{
 };
 
 use self::{
-    world::{CellType, World},
+    world::World,
     worldgen::{settings::WorldGeneratorSettings, WorldGenerator},
 };
 
@@ -31,12 +31,7 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         //app.add_systems(OnEnter(AppState::WorldGen), (spawn_world,));
         app.add_systems(OnEnter(AppState::Finished), (spawn_world,));
-        app.add_systems(Update, (debug_draw,).run_if(in_state(AppState::Finished)));
     }
-}
-
-fn debug_draw(mut gizmos: Gizmos, collider_store: Res<ColliderStore>) {
-    collider_store.debug_draw(&mut gizmos);
 }
 
 fn spawn_world(
@@ -45,7 +40,6 @@ fn spawn_world(
     room_store: Res<RoomStore>,
     map_assets: Res<Assets<MapAsset>>,
     mut collider_store: ResMut<ColliderStore>,
-    gizmos: Gizmos,
 ) {
     let mut world_gen = WorldGenerator::default();
 

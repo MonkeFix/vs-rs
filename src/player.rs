@@ -91,7 +91,7 @@ fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets
             ColliderBundle {
                 collider: ColliderComponent::new(
                     &mut collider_set,
-                    ColliderShapeType::Circle { radius: 8.0 },
+                    ColliderShapeType::Circle { radius: 10.0 },
                     Some(Vec2::new(0.0, -16.0)),
                 ),
             },
