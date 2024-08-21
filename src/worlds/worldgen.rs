@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use bevy::{prelude::*, utils::info};
+use bevy_simple_tilemap::TileMap;
 use pathfinding::directed::astar;
 use rand::{thread_rng, Rng};
 use room::WorldRoom;
@@ -126,8 +127,8 @@ fn gen_point(min_w: u32, min_h: u32, max_w: u32, max_h: u32) -> WorldPoint {
 }
 
 fn gen_room(world: &IntermediateWorld, room_store: &RoomStore) -> WorldRoom {
-    let all_rooms = room_store.get_rooms(world.settings.room_id);
-    let room = choose_random(&all_rooms);
+    let all_rooms = room_store.get_rooms(world.settings.map_id);
+    let room = choose_random(all_rooms);
     let size = UVec2::new(room.0 .1.x, room.0 .1.y);
 
     // genering a point that will not touch the world's border
@@ -146,7 +147,7 @@ fn gen_room(world: &IntermediateWorld, room_store: &RoomStore) -> WorldRoom {
     };
 
     WorldRoom {
-        room_index: room.1,
+        map_asset: room.0 .0.clone_weak(),
         rect,
     }
 }
@@ -267,6 +268,6 @@ impl WorldGenerator {
         let elapsed = now.elapsed();
         info!("Finished generating. Elapsed: {:.2?}", elapsed);
 
-        world.to_world()
+        world.into_world()
     }
 }

@@ -45,9 +45,17 @@ impl ColliderStore {
         }
     }
 
-    pub fn create_and_register(&mut self, shape_type: ColliderShapeType) -> ColliderComponent {
+    pub fn create_and_register(
+        &mut self,
+        shape_type: ColliderShapeType,
+        position: Option<Vec2>,
+    ) -> ColliderComponent {
         let collider = Collider::new(shape_type, None);
         let id = self.register(collider);
+
+        if let Some(position) = position {
+            self.added_with_position(id, &Position(position));
+        }
 
         ColliderComponent { id }
     }
@@ -153,6 +161,23 @@ impl ColliderStore {
         );
 
         results
+    }
+
+    pub fn debug_draw(&self, gizmos: &mut Gizmos) {
+        for collider in &self.colliders {
+            let pos = collider.1.absolute_position();
+            match collider.1.shape.shape_type {
+                ColliderShapeType::Circle { radius } => {
+                    gizmos.circle_2d(pos, radius, Color::srgba(1.0, 0., 0., 1.0));
+                }
+                ColliderShapeType::Box { width, height } => gizmos.rect_2d(
+                    pos,
+                    0.,
+                    Vec2::new(width, height),
+                    Color::srgba(1.0, 0., 0., 1.0),
+                ),
+            }
+        }
     }
 
     pub(crate) fn clear_hash(&mut self) {

@@ -55,3 +55,4 @@ pub fn choose_random<T>(arr: &[T]) -> (&T, usize) {
     let index = rand.gen_range(0..arr.len());
     (&arr[index], index)
 }
+

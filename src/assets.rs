@@ -109,13 +109,17 @@ fn setup_game_assets(
 
     commands.insert_resource(game_assets);
 
-    for (_id, map) in rooms.iter() {
+    for (id, map) in rooms.iter() {
         info!(
             "Map id {} ({}x{})",
             map.map_id, map.map.width, map.map.height
         );
 
-        room_store.insert(map.clone());
+        let handle = asset_server
+            .get_id_handle(id)
+            .expect(&format!("no handle for MapAsset {:?}", id));
+
+        room_store.insert(handle, map);
     }
 
     info!("Finished setting up game assets");

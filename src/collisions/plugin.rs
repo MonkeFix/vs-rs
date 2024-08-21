@@ -17,7 +17,7 @@ impl From<ColliderComponent> for ColliderId {
 
 impl ColliderComponent {
     pub fn new(collider_set: &mut ColliderStore, shape_type: ColliderShapeType) -> Self {
-        collider_set.create_and_register(shape_type)
+        collider_set.create_and_register(shape_type, None)
     }
 }
 

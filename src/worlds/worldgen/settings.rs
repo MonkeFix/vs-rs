@@ -21,13 +21,13 @@ pub struct WorldGeneratorSettings {
     pub cost_hallway: u32,
     pub cost_wall: u32,
 
-    pub room_id: u32,
+    pub map_id: u32,
 }
 
 impl Default for WorldGeneratorSettings {
     fn default() -> Self {
         Self {
-            max_rooms: 20,
+            max_rooms: 35,
             min_used_area: 50_000, // max: 65_536 (256*256)
 
             world_width: 256,
@@ -44,7 +44,7 @@ impl Default for WorldGeneratorSettings {
             cost_hallway: 3,
             cost_wall: 20,
 
-            room_id: 1,
+            map_id: 1,
         }
     }
 }

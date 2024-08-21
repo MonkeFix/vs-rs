@@ -32,7 +32,6 @@ impl MapAsset {
                 index = (y * self.map.width + x) as i32;
                 let tile = match layer.layer_type() {
                     tiled::LayerType::Tiles(tile) => tile.get_tile(x as i32, y as i32),
-                    // TODO: Check tiled::LayerType::Group
                     _ => None,
                 };
 
@@ -139,18 +138,25 @@ impl MapAsset {
 
 #[derive(Default, Resource)]
 pub struct RoomStore {
-    rooms: HashMap<u32, Vec<(MapAsset, UVec2)>>,
+    rooms: HashMap<u32, Vec<(Handle<MapAsset>, UVec2)>>,
 }
 
 impl RoomStore {
-    pub fn insert(&mut self, map: MapAsset) {
+    pub fn insert(&mut self, map_handle: Handle<MapAsset>, map: &MapAsset) {
         let size = UVec2::new(map.map.width, map.map.height);
 
-        self.rooms.entry(map.map_id).or_default().push((map, size));
+        self.rooms
+            .entry(map.map_id)
+            .or_default()
+            .push((map_handle, size));
     }
 
-    pub fn get_rooms(&self, map_id: u32) -> &[(MapAsset, UVec2)] {
+    pub fn get_rooms(&self, map_id: u32) -> &[(Handle<MapAsset>, UVec2)] {
         &self.rooms[&map_id]
+    }
+
+    pub fn get_room_by_index(&self, map_id: u32, index: usize) -> &(Handle<MapAsset>, UVec2) {
+        &self.rooms[&map_id][index]
     }
 }
 

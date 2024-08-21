@@ -2,7 +2,12 @@ use bevy::prelude::*;
 use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
 
 use crate::{
-    assets::{rooms::RoomStore, tilesheets::AssetTileSheet, GameAssets},
+    assets::{
+        rooms::{MapAsset, RoomStore},
+        tilesheets::AssetTileSheet,
+        GameAssets,
+    },
+    collisions::store::ColliderStore,
     AppState,
 };
 
@@ -26,15 +31,29 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         //app.add_systems(OnEnter(AppState::WorldGen), (spawn_world,));
         app.add_systems(OnEnter(AppState::Finished), (spawn_world,));
+        app.add_systems(Update, (debug_draw,).run_if(in_state(AppState::Finished)));
     }
 }
 
-fn spawn_world(mut commands: Commands, assets: Res<GameAssets>, room_store: Res<RoomStore>) {
+fn debug_draw(mut gizmos: Gizmos, collider_store: Res<ColliderStore>) {
+    collider_store.debug_draw(&mut gizmos);
+}
+
+fn spawn_world(
+    mut commands: Commands,
+    assets: Res<GameAssets>,
+    room_store: Res<RoomStore>,
+    map_assets: Res<Assets<MapAsset>>,
+    mut collider_store: ResMut<ColliderStore>,
+    gizmos: Gizmos,
+) {
     let mut world_gen = WorldGenerator::default();
 
-    let mut settings = WorldGeneratorSettings::default();
-    settings.world_width = 256;
-    settings.world_height = 256;
+    let settings = WorldGeneratorSettings {
+        world_width: 256,
+        world_height: 256,
+        ..default()
+    };
 
     let world_comp = WorldComponent {
         world: world_gen.generate(settings, &room_store),
@@ -42,10 +61,17 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>, room_store: Res<
 
     let grass_asset = &assets.tilesheet_main;
 
-    let tilemap = world_to_tilemap(&world_comp.world, grass_asset);
+    let tilemap = world_to_tilemap(&world_comp.world, grass_asset, &map_assets);
 
     let x = -(((world_comp.world.width * 32) / 2) as f32);
     let y = -(((world_comp.world.height * 32) / 2) as f32);
+
+    world_comp.world.add_colliders(
+        &map_assets,
+        "collision",
+        &mut collider_store,
+        Vec2::new(x, y),
+    );
 
     commands.spawn((
         world_comp,
@@ -66,73 +92,33 @@ fn spawn_world(mut commands: Commands, assets: Res<GameAssets>, room_store: Res<
     ));
 }
 
-fn world_to_tilemap(world: &World, tile_sheet: &AssetTileSheet) -> TileMap {
+fn world_to_tilemap(
+    world: &World,
+    tile_sheet: &AssetTileSheet,
+    assets: &Assets<MapAsset>,
+) -> TileMap {
     let mut tilemap = TileMap::default();
 
-    world.fill_tilemap(&mut tilemap);
+    // TODO: Spawn 3 separate tile maps for 3 different layers:
+    // - lower level (characters are over tiles)
+    // - upper level (characters are behind tiles)
+    // - shadows
 
     for y in 0..world.height {
         for x in 0..world.width {
             let pos = IVec3::new(x as i32, y as i32, 0);
 
-            for layer in &world.layers {
-                match layer.1.data[y][x] {
-                    CellType::None => {
-                        tilemap.set_tile(
-                            pos,
-                            Some(Tile {
-                                sprite_index: tile_sheet
-                                    .get_random_tile_id("grass_decorated")
-                                    .unwrap(),
-                                ..default()
-                            }),
-                        );
-                    }
-                    CellType::Room => {
-                        tilemap.set_tile(
-                            pos,
-                            Some(Tile {
-                                sprite_index: tile_sheet
-                                    .get_random_tile_id("grass_decorated")
-                                    .unwrap(),
-                                ..default()
-                            }),
-                        );
-                    }
-                    CellType::Hallway => {
-                        tilemap.set_tile(
-                            pos,
-                            Some(Tile {
-                                sprite_index: tile_sheet.get_random_tile_id("grass_road").unwrap(),
-                                ..default()
-                            }),
-                        );
-                    }
-                    CellType::Wall => {
-                        tilemap.set_tile(
-                            pos,
-                            Some(Tile {
-                                sprite_index: 355, //tile_sheet.get_random_tile_id("grass_road").unwrap(),
-                                ..default()
-                            }),
-                        );
-                    }
-                }
-            }
-
-            if x == 0 || y == 0 || x == world.width - 1 || y == world.height - 1 {
-                tilemap.set_tile(
-                    pos,
-                    Some({
-                        Tile {
-                            sprite_index: 355,
-                            ..default()
-                        }
-                    }),
-                );
-            }
+            tilemap.set_tile(
+                pos,
+                Some(Tile {
+                    sprite_index: tile_sheet.get_random_tile_id("grass_decorated").unwrap(),
+                    ..default()
+                }),
+            );
         }
     }
+
+    world.fill_tilemap(&mut tilemap, assets);
 
     tilemap
 }
