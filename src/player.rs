@@ -1,7 +1,7 @@
 use crate::assets::GameAssets;
 use crate::collisions::colliders::ColliderData;
 use crate::collisions::plugin::{ColliderBundle, ColliderComponent};
-use crate::collisions::shapes::{ColliderShape, ColliderShapeType};
+use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::{ColliderIdResolver, ColliderStore};
 use crate::enemy::Enemy;
 use crate::input::PlayerControls;
@@ -9,7 +9,6 @@ use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::stats::*;
 use crate::AppState;
-use bevy::log;
 use bevy::sprite::Anchor;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
 use std::time::Duration;
@@ -42,9 +41,6 @@ struct PlTimer(Timer);
 #[derive(Component)]
 struct Direction(Vec2);
 
-#[derive(Event)]
-struct TimerCallbackEvent(());
-
 #[derive(Bundle)]
 struct PlayerBundle {
     player: Player,
@@ -72,17 +68,12 @@ fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets
     commands
         .spawn((
             PlayerBundle::new(),
-            /* SpriteBundle {
-                texture: assets.player_texture.clone(),
-                transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
-                ..default()
-            }, */
-            SpriteSheetBundle {
+            TextureAtlas {
+                layout: player_tileset.layout.clone(),
+                index: 0,
+            },
+            SpriteBundle {
                 sprite: Sprite::default(),
-                atlas: TextureAtlas {
-                    layout: player_tileset.layout.clone(),
-                    index: 0,
-                },
                 texture: player_tileset.image.clone(),
                 transform: Transform::from_xyz(0.0, 0.0, 1.0),
                 ..default()
@@ -102,23 +93,25 @@ fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets
             },
         ))
         .with_children(|c| {
-            c.spawn(SpriteSheetBundle {
-                sprite: Sprite {
-                    anchor: Anchor::Center,
-                    color: Color::rgba(1.0, 1.0, 1.0, 0.3),
-                    ..default()
-                },
-                atlas: TextureAtlas {
+            c.spawn((
+                TextureAtlas {
                     layout: player_tileset.layout.clone(),
                     index: 3,
                 },
-                texture: player_tileset.image.clone(),
-                transform: Transform {
-                    translation: Vec3::new(0.0, 0.0, -1.0),
+                SpriteBundle {
+                    sprite: Sprite {
+                        anchor: Anchor::Center,
+                        color: Color::srgba(1.0, 1.0, 1.0, 0.3),
+                        ..default()
+                    },
+                    texture: player_tileset.image.clone(),
+                    transform: Transform {
+                        translation: Vec3::new(0.0, 0.0, -1.0),
+                        ..default()
+                    },
                     ..default()
                 },
-                ..default()
-            });
+            ));
         });
 }
 

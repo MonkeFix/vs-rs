@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::{collisions::Rect, math::almost_equal_vec2};
+use crate::math::almost_equal_vec2;
 
 use super::room::WorldRoom;
 

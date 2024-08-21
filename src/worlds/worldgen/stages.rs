@@ -1,6 +1,5 @@
 use crate::assets::rooms::RoomStore;
 use crate::worlds::world::{CellType, IntermediateWorld};
-use crate::worlds::worldgen::room::WorldRoom;
 use crate::worlds::worldgen::{
     gen_room, intersects_any, is_rect_oob, min_area_constraint, GridGraphPos,
 };
@@ -151,7 +150,7 @@ impl WorldGenStage for WorldGenStage5AStar {
         "Pathfinding connections between rooms"
     }
 
-    fn execute(&mut self, world: &mut IntermediateWorld, room_store: &RoomStore) {
+    fn execute(&mut self, world: &mut IntermediateWorld, _room_store: &RoomStore) {
         // Find paths between connected rooms using A* algorithm
         let mut nodes = vec![];
         for edge in &world.edges {

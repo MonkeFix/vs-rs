@@ -117,7 +117,7 @@ fn setup_game_assets(
 
         let handle = asset_server
             .get_id_handle(id)
-            .expect(&format!("no handle for MapAsset {:?}", id));
+            .unwrap_or_else(|| panic!("no handle for MapAsset {:?}", id));
 
         room_store.insert(handle, map);
     }

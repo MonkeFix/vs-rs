@@ -3,7 +3,7 @@
 use bevy::{
     log,
     math::Vec2,
-    prelude::{default, Circle},
+    prelude::*,
     utils::{hashbrown::HashSet, HashMap},
 };
 
@@ -11,9 +11,7 @@ use crate::math::{self, approach};
 
 use super::{
     colliders::{Collider, ColliderData},
-    rect_to_circle,
-    shapes::ColliderShape,
-    ColliderId, Ray2D, RaycastHit, Rect,
+    rect_to_circle, ColliderId, Ray2D, RaycastHit, Rect,
 };
 
 #[derive(Debug)]

@@ -1,8 +1,8 @@
+#![allow(dead_code)]
+
 use std::time::Instant;
 
-use bevy::{prelude::*, utils::info};
-use bevy_simple_tilemap::TileMap;
-use pathfinding::directed::astar;
+use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 use room::WorldRoom;
 
@@ -34,7 +34,7 @@ struct GraphPos(pub i32, pub i32);
 
 impl GraphPos {
     fn distance(&self, other: &GraphPos) -> u32 {
-        (self.0.abs_diff(other.0) + self.1.abs_diff(other.1)) as u32
+        self.0.abs_diff(other.0) + self.1.abs_diff(other.1)
     }
 
     fn successors(&self, nodes: &[PrimEdge]) -> Vec<(GraphPos, u32)> {
@@ -60,7 +60,7 @@ struct GridGraphPos(pub i32, pub i32);
 
 impl GridGraphPos {
     fn distance(&self, other: &GridGraphPos) -> u32 {
-        (self.0.abs_diff(other.0) + self.1.abs_diff(other.1)) as u32
+        self.0.abs_diff(other.0) + self.1.abs_diff(other.1)
     }
 
     fn successors(
@@ -112,7 +112,7 @@ impl GridGraphPos {
     }
 }
 
-struct WorldPoint {
+pub struct WorldPoint {
     pub x: u32,
     pub y: u32,
 }

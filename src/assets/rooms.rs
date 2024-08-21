@@ -3,7 +3,7 @@ use bevy::{
     log::info,
     prelude::*,
     reflect::TypePath,
-    utils::{HashMap, HashSet},
+    utils::HashMap,
 };
 use thiserror::Error;
 
@@ -21,7 +21,7 @@ impl MapAsset {
         let mut checked_indexes = vec![false; (self.map.width * self.map.height) as usize];
         let mut rectangles = vec![];
         let mut start_col: i32 = -1;
-        let mut index: i32 = -1;
+        let mut index: i32;
 
         let layer = self
             .find_layer_by_name(collision_layer)
@@ -75,7 +75,7 @@ impl MapAsset {
         start_y: i32,
         checked_indexes: &mut [bool],
     ) -> Rect {
-        let mut index = -1;
+        let mut index;
         let layer = self
             .find_layer_by_name(collision_layer)
             .expect("No layer found");

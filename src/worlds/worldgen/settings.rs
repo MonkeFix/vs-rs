@@ -8,13 +8,9 @@ pub struct WorldGeneratorSettings {
     pub world_width: u32,
     /// In tiles
     pub world_height: u32,
-
-    pub next_step_iterations: u32,
     pub max_room_iterations: u32,
 
     pub room_spacing: WorldPoint,
-
-    pub random_edge_inclusion_chance: f32,
 
     pub cost_empty_space: u32,
     pub cost_room: u32,
@@ -33,11 +29,8 @@ impl Default for WorldGeneratorSettings {
             world_width: 256,
             world_height: 256,
 
-            next_step_iterations: 4_000,
             max_room_iterations: 400_000,
             room_spacing: WorldPoint { x: 8, y: 8 },
-
-            random_edge_inclusion_chance: 0.125,
 
             cost_empty_space: 2,
             cost_room: 1,

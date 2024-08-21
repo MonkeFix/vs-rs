@@ -1,15 +1,12 @@
-use bevy::{prelude::*, utils::HashMap};
+#![allow(dead_code)]
+
+use bevy::prelude::*;
 use bevy_simple_tilemap::{Tile, TileMap};
 use tiled::{Layer, TileLayer};
 
 use crate::{
     assets::rooms::MapAsset,
-    collisions::{
-        colliders::ColliderData,
-        shapes::{ColliderShape, ColliderShapeType},
-        store::ColliderStore,
-        Rect,
-    },
+    collisions::{colliders::ColliderData, shapes::ColliderShapeType, store::ColliderStore, Rect},
 };
 
 use super::worldgen::{
@@ -24,25 +21,11 @@ pub enum CellType {
     Wall,
 }
 
-pub struct WorldLayer {
-    pub id: usize,
-    /// Layer's width in tiles
-    pub width: usize,
-    /// Layer's height in tiles
-    pub height: usize,
-    /// Layer's offset in pixels
-    pub offset: Vec2,
-    /// 2D matrix which describes layer's grid. Specific tile can be accessed via `data[y][x]`
-    pub data: Vec<Vec<CellType>>,
-}
-
 pub struct World {
     /// World's width in tiles
     pub width: usize,
     /// World's height in tiles
     pub height: usize,
-    /// All world's layers in a hash map, key is the layer id
-    pub layers: HashMap<usize, WorldLayer>,
     pub rooms: Vec<WorldRoom>,
     pub map_id: u32,
 }
@@ -216,22 +199,9 @@ pub struct IntermediateWorld {
 
 impl IntermediateWorld {
     pub fn into_world(self) -> World {
-        let mut data = HashMap::new();
-        data.insert(
-            0,
-            WorldLayer {
-                id: 0,
-                offset: Vec2::new(0.0, 0.0),
-                width: self.width,
-                height: self.height,
-                data: self.grid,
-            },
-        );
-
         World {
             width: self.width,
             height: self.height,
-            layers: data,
             rooms: self.rooms,
             map_id: self.settings.map_id,
         }
