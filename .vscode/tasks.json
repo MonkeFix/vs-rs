@@ -13,9 +13,14 @@
 				"isDefault": true
 			},
 			"args": [
+				"--bin",
+				"vs-rs",
 				"--features",
 				"bevy/dynamic_linking"
-			]
+			],
+			"options": {
+				"cwd": "./vs-rs/"
+			}
 		}
 	]
 }

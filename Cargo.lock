@@ -1464,6 +1464,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "collisions"
+version = "0.1.0"
+
+[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1509,6 +1513,10 @@ dependencies = [
  "bytes",
  "memchr",
 ]
+
+[[package]]
+name = "common"
+version = "0.1.0"
 
 [[package]]
 name = "concurrent-queue"
@@ -2674,6 +2682,10 @@ dependencies = [
  "adler",
  "simd-adler32",
 ]
+
+[[package]]
+name = "movement"
+version = "0.1.0"
 
 [[package]]
 name = "naga"
@@ -4106,6 +4118,9 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_framepace",
  "bevy_simple_tilemap",
+ "collisions",
+ "common",
+ "movement",
  "num_enum",
  "pathfinding",
  "rand",
@@ -4113,6 +4128,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tiled",
+ "worldgen",
 ]
 
 [[package]]
@@ -4916,6 +4932,10 @@ checksum = "68a9bda4691f099d435ad181000724da8e5899daa10713c2d432552b9ccd3a6f"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "worldgen"
+version = "0.1.0"
 
 [[package]]
 name = "x11-dl"

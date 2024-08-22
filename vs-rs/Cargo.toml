@@ -1,0 +1,23 @@
+[package]
+name = "vs-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+common = { path = "../common" }
+collisions = { path = "../collisions" }
+movement = { path = "../movement" }
+worldgen = { path = "../worldgen" }
+bevy = { version = "0.14", features = ["dynamic_linking"] }
+rand = "0.8.5"
+serde_json = "1.0"
+serde = "1.0"
+num_enum = "0.7"
+bevy_framepace = "0.17"
+bevy-inspector-egui = { version = "0.25" }
+bevy_simple_tilemap = "0.15"
+tiled = "0.12"
+pathfinding = "4.9"
+thiserror = "1.0"

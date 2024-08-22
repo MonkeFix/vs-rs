@@ -184,6 +184,7 @@ impl AssetLoader for MapAssetLoader {
         load_context: &'a mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut loader = tiled::Loader::new();
+
         let path = format!("assets/{}", load_context.path().to_str().unwrap());
         info!("Loading map: {:?}", path);
 
