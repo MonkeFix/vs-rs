@@ -12,6 +12,7 @@ impl Plugin for CameraMovementPlugin {
     }
 }
 
+#[cfg(debug_assertions)]
 fn camera_zoom(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut scroll_evr: EventReader<MouseWheel>,

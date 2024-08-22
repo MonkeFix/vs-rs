@@ -1,3 +1,4 @@
+#![cfg(debug_assertions)]
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 #[cfg(debug_assertions)]
@@ -97,7 +98,7 @@ fn update_enemy_count(
         text.sections[0].value = format!("Capybaras: {}", enemies.iter().count());
     }
 }
-
+#[cfg(debug_assertions)]
 fn handle_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut debug_settings: ResMut<DebugSettings>,
@@ -110,6 +111,7 @@ fn handle_input(
     }
 }
 
+#[cfg(debug_assertions)]
 fn debug_draw(
     debug_settings: Res<DebugSettings>,
     collider_store: Res<ColliderStore>,

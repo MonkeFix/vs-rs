@@ -4,6 +4,7 @@ use crate::collisions::plugin::ColliderBundle;
 use crate::collisions::plugin::ColliderComponent;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::ColliderStore;
+#[cfg(debug_assertions)]
 use crate::debug::DebugSettings;
 use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
@@ -203,6 +204,7 @@ fn enemy_factory(mut commands: Commands, assets: Res<GameAssets>) {
     commands.insert_resource(spawners.clone());
 }
 
+#[cfg(debug_assertions)]
 fn enemy_spawns_enabled(debug_settings: Res<DebugSettings>) -> bool {
     !debug_settings.disable_enemy_spawns
 }
