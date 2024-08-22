@@ -1,14 +1,14 @@
 use crate::assets::GameAssets;
 use crate::enemy::Enemy;
 use crate::input::PlayerControls;
-use crate::movement::behaviors::SteerSeek;
-use crate::movement::{PhysicsParams, SteeringBundle, SteeringHost};
 use crate::stats::*;
 use crate::AppState;
 use bevy::sprite::Anchor;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
 use collisions::prelude::*;
 use common::Position;
+use movement::behaviors::SteerSeek;
+use movement::prelude::*;
 use std::time::Duration;
 
 pub struct PlayerPlugin;

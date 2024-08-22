@@ -1,14 +1,19 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use bevy::math::Vec2;
+
+pub mod behaviors;
+pub mod paths;
+pub mod plugin;
+pub mod prelude;
+
+pub trait SteeringTarget {
+    fn position(&self) -> Vec2;
+    fn velocity(&self) -> Vec2 {
+        Vec2::ZERO
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+impl SteeringTarget for Vec2 {
+    fn position(&self) -> Vec2 {
+        *self
     }
 }

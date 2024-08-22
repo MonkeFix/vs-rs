@@ -6,9 +6,9 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use common::Position;
 
 use crate::enemy::Enemy;
-use crate::movement::SteeringHost;
 use crate::player::Player;
 use collisions::prelude::*;
+use movement::prelude::*;
 
 #[cfg(debug_assertions)]
 pub struct DebugPlugin;

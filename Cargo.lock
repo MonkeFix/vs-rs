@@ -2695,6 +2695,11 @@ dependencies = [
 [[package]]
 name = "movement"
 version = "0.1.0"
+dependencies = [
+ "bevy",
+ "collisions",
+ "common",
+]
 
 [[package]]
 name = "naga"

@@ -1,6 +1,7 @@
-#![allow(dead_code)]
-
-use super::{steering::SteeringTarget, PhysicsParams, SteeringHost};
+use crate::{
+    plugin::{PhysicsParams, SteeringHost},
+    SteeringTarget,
+};
 use bevy::prelude::*;
 use collisions::{
     colliders::Collider,

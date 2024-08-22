@@ -1,8 +1,6 @@
 use crate::assets::GameAssets;
 #[cfg(debug_assertions)]
 use crate::debug::DebugSettings;
-use crate::movement::behaviors::SteerSeek;
-use crate::movement::{PhysicsParams, SteeringBundle, SteeringHost};
 use crate::player::*;
 use crate::stats::*;
 use crate::AppState;
@@ -10,6 +8,8 @@ use bevy::prelude::*;
 use bevy::time::TimerMode::Repeating;
 use collisions::prelude::*;
 use common::Position;
+use movement::behaviors::SteerSeek;
+use movement::prelude::*;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

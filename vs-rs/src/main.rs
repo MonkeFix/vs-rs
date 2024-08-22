@@ -9,12 +9,12 @@ use bevy::{
 };
 use bevy_simple_tilemap::plugin::SimpleTileMapPlugin;
 use collisions::plugin::CollisionPlugin;
+use movement::plugin::SteeringPlugin;
 use worlds::WorldPlugin;
 
 mod camera;
 mod debug;
 mod input;
-mod movement;
 mod player;
 
 mod assets;
@@ -27,7 +27,6 @@ use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;
 #[cfg(debug_assertions)]
 use debug::DebugPlugin;
-use movement::steering::SteeringPlugin;
 use player::PlayerPlugin;
 
 pub const FRAMERATE: f64 = 60.0;
