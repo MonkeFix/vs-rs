@@ -5,9 +5,8 @@ use bevy::{
     reflect::TypePath,
     utils::HashMap,
 };
+use common::FRect;
 use thiserror::Error;
-
-use crate::collisions::Rect;
 
 #[derive(Asset, TypePath, Debug, Clone)]
 pub struct MapAsset {
@@ -17,7 +16,7 @@ pub struct MapAsset {
 }
 
 impl MapAsset {
-    pub fn get_collision_rects(&self, collision_layer: &str) -> Vec<Rect> {
+    pub fn get_collision_rects(&self, collision_layer: &str) -> Vec<FRect> {
         let mut checked_indexes = vec![false; (self.map.width * self.map.height) as usize];
         let mut rectangles = vec![];
         let mut start_col: i32 = -1;
@@ -74,7 +73,7 @@ impl MapAsset {
         end_x: i32,
         start_y: i32,
         checked_indexes: &mut [bool],
-    ) -> Rect {
+    ) -> FRect {
         let mut index;
         let layer = self
             .find_layer_by_name(collision_layer)
@@ -95,7 +94,7 @@ impl MapAsset {
                         checked_indexes[index as usize] = false;
                     }
 
-                    return Rect {
+                    return FRect {
                         x: (start_x * self.tile_width() as i32) as f32,
                         y: (start_y * self.tile_height() as i32) as f32,
                         width: ((end_x - start_x) * self.tile_width() as i32) as f32,
@@ -107,7 +106,7 @@ impl MapAsset {
             }
         }
 
-        Rect {
+        FRect {
             x: (start_x * self.tile_width() as i32) as f32,
             y: (start_y * self.tile_height() as i32) as f32,
             width: ((end_x - start_x) * self.tile_width() as i32) as f32,

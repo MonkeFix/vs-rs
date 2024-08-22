@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 
 use bevy::prelude::*;
 use rand::{thread_rng, Rng};

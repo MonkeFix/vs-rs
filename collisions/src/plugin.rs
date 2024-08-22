@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use super::{colliders::ColliderData, store::ColliderStore, ColliderId};
-use crate::movement::Position;
 use bevy::{ecs::system::EntityCommands, prelude::*};
+use common::Position;
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Reflect, Hash)]
 pub struct ColliderComponent {

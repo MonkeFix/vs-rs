@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 
-use std::sync::atomic::{AtomicU32, Ordering};
-
-use crate::movement::Position;
 use bevy::{
     prelude::*,
     utils::{hashbrown::HashSet, HashMap},
 };
+use common::FRect;
+use std::sync::atomic::{AtomicU32, Ordering};
+
+use common::Position;
 
 use super::{
     colliders::{Collider, ColliderData},
@@ -86,11 +87,7 @@ impl ColliderStore {
         self.colliders.remove(&id)
     }
 
-    pub fn aabb_broadphase(
-        &self,
-        rect: super::Rect,
-        layer_mask: Option<i32>,
-    ) -> HashSet<ColliderId> {
+    pub fn aabb_broadphase(&self, rect: FRect, layer_mask: Option<i32>) -> HashSet<ColliderId> {
         let layer_mask = layer_mask.unwrap_or(ALL_LAYERS);
 
         self.spatial_hash
@@ -100,7 +97,7 @@ impl ColliderStore {
     pub fn aabb_broadphase_excluding_self(
         &self,
         self_collider: ColliderId,
-        rect: super::Rect,
+        rect: FRect,
         layer_mask: Option<i32>,
     ) -> HashSet<ColliderId> {
         let layer_mask = layer_mask.unwrap_or(ALL_LAYERS);
@@ -148,7 +145,7 @@ impl ColliderStore {
 
     pub fn overlap_rectangle(
         &self,
-        rect: super::Rect,
+        rect: FRect,
         excluding_collider: Option<ColliderId>,
         layer_mask: Option<i32>,
     ) -> Vec<ColliderId> {

@@ -1,17 +1,13 @@
 #![allow(dead_code)]
 
+use super::{steering::SteeringTarget, PhysicsParams, SteeringHost};
 use bevy::prelude::*;
-
-use crate::{
-    collisions::{
-        colliders::Collider,
-        plugin::ColliderComponent,
-        store::{ColliderIdResolver, ColliderStore},
-    },
-    math::rng_f32,
+use collisions::{
+    colliders::Collider,
+    plugin::ColliderComponent,
+    store::{ColliderIdResolver, ColliderStore},
 };
-
-use super::{steering::SteeringTarget, PhysicsParams, Position, SteeringHost};
+use common::{math::rng_f32, Position};
 
 /// Seeks the specified target moving directly towards it.
 pub struct SteerSeek;

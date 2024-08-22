@@ -3,8 +3,9 @@
 use std::collections::VecDeque;
 
 use bevy::prelude::*;
+use common::Position;
 
-use super::{steering::SteeringTarget, Position, SteeringHost};
+use super::{steering::SteeringTarget, SteeringHost};
 
 #[derive(Debug, Clone, Copy, Reflect)]
 pub struct SteerPathNode {

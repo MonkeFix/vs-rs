@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
+use collisions::prelude::*;
 
 use crate::{
     assets::{
@@ -7,7 +8,6 @@ use crate::{
         tilesheets::AssetTileSheet,
         GameAssets,
     },
-    collisions::store::ColliderStore,
     AppState,
 };
 

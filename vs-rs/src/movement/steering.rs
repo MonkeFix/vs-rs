@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 
 use bevy::prelude::*;
-
-use crate::collisions::{
-    plugin::ColliderComponent,
-    store::{ColliderIdResolver, ColliderStore},
-    ColliderId, CollisionResult,
+use collisions::{
+    plugin::ColliderComponent, store::ColliderIdResolver, store::ColliderStore, ColliderId,
+    CollisionResult,
 };
-use crate::movement::{PhysicsParams, Position, SteeringHost};
+use common::{math::truncate_vec2, Position};
+
+use crate::movement::{PhysicsParams, SteeringHost};
 
 pub trait SteeringTarget {
     fn position(&self) -> Vec2;
@@ -52,11 +52,11 @@ fn update_translation(mut host: Query<(&mut Transform, &Position)>) {
 
 fn steer(mut host: Query<(&mut SteeringHost, &PhysicsParams)>) {
     for (mut host, params) in &mut host {
-        host.steering = crate::math::truncate_vec2(host.steering, params.max_force);
+        host.steering = truncate_vec2(host.steering, params.max_force);
         host.steering /= params.mass;
 
         let steering = host.steering;
-        host.velocity = crate::math::truncate_vec2(host.velocity + steering, params.max_velocity);
+        host.velocity = truncate_vec2(host.velocity + steering, params.max_velocity);
     }
 }
 
@@ -88,7 +88,7 @@ fn calc_movement(
 
     let collider = collider_store.get(collider_id).unwrap();
 
-    if collider.data.is_trigger || !collider.is_registered {
+    if collider.data.is_trigger {
         return None;
     }
 

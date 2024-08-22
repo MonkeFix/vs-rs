@@ -1,18 +1,15 @@
 use crate::assets::GameAssets;
-use crate::collisions::colliders::ColliderData;
-use crate::collisions::plugin::ColliderBundle;
-use crate::collisions::plugin::ColliderComponent;
-use crate::collisions::shapes::ColliderShapeType;
-use crate::collisions::store::ColliderStore;
 #[cfg(debug_assertions)]
 use crate::debug::DebugSettings;
 use crate::movement::behaviors::SteerSeek;
-use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
+use crate::movement::{PhysicsParams, SteeringBundle, SteeringHost};
 use crate::player::*;
 use crate::stats::*;
 use crate::AppState;
 use bevy::prelude::*;
 use bevy::time::TimerMode::Repeating;
+use collisions::prelude::*;
+use common::Position;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

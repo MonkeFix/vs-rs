@@ -1,8 +1,5 @@
-#![allow(dead_code)]
-
 use bevy::{math::Vec2, prelude::default, reflect::Reflect};
-
-use super::Rect;
+use common::FRect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub enum ColliderShapeType {
@@ -16,7 +13,7 @@ pub struct ColliderShape {
     pub shape_type: ColliderShapeType,
     pub(crate) position: Vec2,
     pub(crate) center: Vec2,
-    pub(crate) bounds: Rect,
+    pub(crate) bounds: FRect,
 }
 
 impl Default for ColliderShape {
@@ -25,7 +22,7 @@ impl Default for ColliderShape {
             shape_type: ColliderShapeType::None,
             position: Vec2::ZERO,
             center: Vec2::ZERO,
-            bounds: Rect::new(0.0, 0.0, 0.0, 0.0),
+            bounds: FRect::new(0.0, 0.0, 0.0, 0.0),
         }
     }
 }
@@ -40,9 +37,11 @@ impl ColliderShape {
 }
 
 pub mod collisions {
+    use crate::{CollisionResultRef, RaycastHit};
+
     use super::{ColliderShape, ColliderShapeType};
-    use crate::collisions::{CollisionResultRef, RaycastHit, Rect};
     use bevy::math::Vec2;
+    use common::FRect;
 
     pub fn box_to_box<'a>(
         first: &ColliderShape,
@@ -198,7 +197,7 @@ pub mod collisions {
         second: &ColliderShape,
         first_offset: Vec2,
         second_offset: Vec2,
-    ) -> Rect {
+    ) -> FRect {
         let pos1 = first.position + first_offset;
         let b1 = first.bounds.location() + first_offset;
         let b2 = second.bounds.location() + second_offset;
@@ -208,6 +207,6 @@ pub mod collisions {
             b1 + pos_offset - Vec2::new(b2.x + second.bounds.width, b2.y + second.bounds.height);
         let full_size = first.bounds.size() + second.bounds.size();
 
-        Rect::new(top_left.x, top_left.y, full_size.x, full_size.y)
+        FRect::new(top_left.x, top_left.y, full_size.x, full_size.y)
     }
 }

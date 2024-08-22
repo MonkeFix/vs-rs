@@ -1,8 +1,7 @@
 #![allow(dead_code)]
 
 use bevy::prelude::*;
-
-use crate::math::almost_equal_vec2;
+use common::math::almost_equal_vec2;
 
 use super::room::WorldRoom;
 

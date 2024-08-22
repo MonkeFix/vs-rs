@@ -1,10 +1,9 @@
-#![allow(dead_code)]
-
-use crate::movement::Position;
 use bevy::prelude::*;
+use common::FRect;
+use common::Position;
 
 use super::{
-    circle_to_circle, rect_to_circle, rect_to_rect,
+    shape_tests::*,
     shapes::{ColliderShape, ColliderShapeType},
     store::ALL_LAYERS,
     ColliderId, CollisionResultRef, RaycastHit,
@@ -52,10 +51,10 @@ impl Collider {
     pub fn new(data: ColliderData, entity: Option<Entity>) -> Self {
         let bounds = match data.shape_type {
             ColliderShapeType::Circle { radius } => {
-                super::Rect::new(0.0, 0.0, radius * 2.0, radius * 2.0)
+                FRect::new(0.0, 0.0, radius * 2.0, radius * 2.0)
             }
-            ColliderShapeType::Box { width, height } => super::Rect::new(0.0, 0.0, width, height),
-            ColliderShapeType::None => super::Rect::new(0.0, 0.0, 0.0, 0.0),
+            ColliderShapeType::Box { width, height } => FRect::new(0.0, 0.0, width, height),
+            ColliderShapeType::None => FRect::new(0.0, 0.0, 0.0, 0.0),
         };
 
         let mut shape = ColliderShape::new(data.shape_type);
@@ -78,7 +77,7 @@ impl Collider {
         self.shape.position + self.data.local_offset
     }
 
-    pub fn bounds(&self) -> super::Rect {
+    pub fn bounds(&self) -> FRect {
         self.shape.bounds
     }
 
@@ -240,20 +239,16 @@ impl Collider {
     pub fn recalc_bounds(&mut self) {
         match self.shape.shape_type {
             ColliderShapeType::Circle { radius } => {
-                self.shape.bounds.x =
-                    self.shape.center.x + self.data.local_offset.x - radius;
-                self.shape.bounds.y =
-                    self.shape.center.y + self.data.local_offset.y - radius;
+                self.shape.bounds.x = self.shape.center.x + self.data.local_offset.x - radius;
+                self.shape.bounds.y = self.shape.center.y + self.data.local_offset.y - radius;
                 self.shape.bounds.width = radius * 2.0;
                 self.shape.bounds.height = radius * 2.0;
             }
             ColliderShapeType::Box { width, height } => {
                 let hw = width / 2.0;
                 let hh = height / 2.0;
-                self.shape.bounds.x =
-                    self.shape.position.x + self.data.local_offset.x - hw;
-                self.shape.bounds.y =
-                    self.shape.position.y + self.data.local_offset.y - hh;
+                self.shape.bounds.x = self.shape.position.x + self.data.local_offset.x - hw;
+                self.shape.bounds.y = self.shape.position.y + self.data.local_offset.y - hh;
                 self.shape.bounds.width = width;
                 self.shape.bounds.height = height;
             }
@@ -299,8 +294,6 @@ impl Collider {
     }
 
     fn needs_update(&self, position: &Position) -> bool {
-        !self.is_registered
-            || self.shape.position != position.0
-            || self.shape.center != position.0
+        !self.is_registered || self.shape.position != position.0 || self.shape.center != position.0
     }
 }

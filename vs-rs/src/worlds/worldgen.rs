@@ -3,11 +3,12 @@
 use std::time::Instant;
 
 use bevy::prelude::*;
+use common::{math::choose_random, FRect};
 use rand::{thread_rng, Rng};
 use room::WorldRoom;
 
 use crate::{
-    assets::rooms::RoomStore, collisions::Rect, math::choose_random,
+    assets::rooms::RoomStore,
     worlds::world::IntermediateWorld,
 };
 
@@ -139,7 +140,7 @@ fn gen_room(world: &IntermediateWorld, room_store: &RoomStore) -> WorldRoom {
         world.settings.world_height - size.y - 1,
     );
 
-    let rect = Rect {
+    let rect = FRect {
         x: pos.x as f32,
         y: pos.y as f32,
         width: size.x as f32,
@@ -152,7 +153,7 @@ fn gen_room(world: &IntermediateWorld, room_store: &RoomStore) -> WorldRoom {
     }
 }
 
-fn is_rect_oob(world: &IntermediateWorld, rect: &Rect) -> bool {
+fn is_rect_oob(world: &IntermediateWorld, rect: &FRect) -> bool {
     rect.x < 0.
         || rect.x >= world.settings.world_width as f32 - 1.
         || rect.y < 0.
@@ -173,7 +174,7 @@ fn min_area_constraint(world: &IntermediateWorld) -> bool {
     cur >= world.settings.min_used_area
 }
 
-fn intersects_any(world: &IntermediateWorld, mut rect: Rect, offset: Vec2) -> bool {
+fn intersects_any(world: &IntermediateWorld, mut rect: FRect, offset: Vec2) -> bool {
     rect.inflate(offset.x, offset.y);
 
     for room in &world.rooms {
@@ -185,7 +186,7 @@ fn intersects_any(world: &IntermediateWorld, mut rect: Rect, offset: Vec2) -> bo
     false
 }
 
-fn get_border_points(rect: &Rect) -> Vec<(i32, i32)> {
+fn get_border_points(rect: &FRect) -> Vec<(i32, i32)> {
     let mut res = vec![];
 
     // --------

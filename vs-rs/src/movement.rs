@@ -1,11 +1,9 @@
 use bevy::prelude::*;
+use common::Position;
 
 pub mod behaviors;
 pub mod paths;
 pub mod steering;
-
-#[derive(Component, Debug, Default, Clone, Copy, PartialEq, Reflect)]
-pub struct Position(pub Vec2);
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Reflect)]
 pub struct PhysicsParams {

@@ -2,12 +2,11 @@
 
 use bevy::prelude::*;
 use bevy_simple_tilemap::{Tile, TileMap};
+use common::FRect;
 use tiled::{Layer, TileLayer};
 
-use crate::{
-    assets::rooms::MapAsset,
-    collisions::{colliders::ColliderData, shapes::ColliderShapeType, store::ColliderStore, Rect},
-};
+use crate::assets::rooms::MapAsset;
+use collisions::prelude::*;
 
 use super::worldgen::{
     delaunay2d::Delaunay2D, prim::PrimEdge, room::WorldRoom, settings::WorldGeneratorSettings,
@@ -100,7 +99,7 @@ impl World {
                 for x in 0..w {
                     let tile = collision_layer.get_tile(x, y);
                     if tile.is_some() {
-                        let rect = Rect::new(
+                        let rect = FRect::new(
                             offset.x + offset_x + x as f32 * tw,
                             offset.y + offset_y + (room_height - y as f32 * th),
                             tw,

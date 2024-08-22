@@ -1466,6 +1466,11 @@ dependencies = [
 [[package]]
 name = "collisions"
 version = "0.1.0"
+dependencies = [
+ "bevy",
+ "common",
+ "num_enum",
+]
 
 [[package]]
 name = "color_quant"
@@ -1517,6 +1522,10 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.1.0"
+dependencies = [
+ "bevy",
+ "rand",
+]
 
 [[package]]
 name = "concurrent-queue"

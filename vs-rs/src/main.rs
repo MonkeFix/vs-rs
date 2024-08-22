@@ -12,10 +12,8 @@ use collisions::plugin::CollisionPlugin;
 use worlds::WorldPlugin;
 
 mod camera;
-mod collisions;
 mod debug;
 mod input;
-mod math;
 mod movement;
 mod player;
 

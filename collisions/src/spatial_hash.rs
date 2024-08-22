@@ -1,17 +1,18 @@
-#![allow(dead_code)]
-
 use bevy::{
     log,
     math::Vec2,
     prelude::*,
     utils::{hashbrown::HashSet, HashMap},
 };
+use common::{
+    math::{approach, floor_to_int},
+    FRect, Ray2D,
+};
 
-use crate::math::{self, approach};
-
-use super::{
+use crate::{
     colliders::{Collider, ColliderData},
-    rect_to_circle, ColliderId, Ray2D, RaycastHit, Rect,
+    shape_tests::*,
+    ColliderId, RaycastHit,
 };
 
 #[derive(Debug)]
@@ -19,8 +20,8 @@ pub struct SpatialHash {
     cell_size: i32,
     inverse_cell_size: f32,
     cell_map: IntIntMap,
-    pub grid_bounds: Rect,
-    tmp_hashset: HashSet<ColliderId>,
+    pub grid_bounds: FRect,
+    //tmp_hashset: HashSet<ColliderId>,
 }
 
 impl SpatialHash {
@@ -29,8 +30,8 @@ impl SpatialHash {
             cell_size,
             inverse_cell_size: 1.0 / cell_size as f32,
             cell_map: IntIntMap::default(),
-            grid_bounds: Rect::new(0.0, 0.0, 0.0, 0.0),
-            tmp_hashset: HashSet::new(),
+            grid_bounds: FRect::new(0.0, 0.0, 0.0, 0.0),
+            //tmp_hashset: HashSet::new(),
         }
     }
 
@@ -85,7 +86,7 @@ impl SpatialHash {
 
     pub fn aabb_broadphase<'a, F>(
         &'a self,
-        bounds: &Rect,
+        bounds: &FRect,
         exclude_collider: Option<ColliderId>,
         layer_mask: i32,
         collider_finder: F,
@@ -223,7 +224,7 @@ impl SpatialHash {
 
     pub fn overlap_rectangle<'a, F>(
         &'a self,
-        rect: &Rect,
+        rect: &FRect,
         exclude_collider: Option<ColliderId>,
         results: &mut Vec<ColliderId>,
         layer_mask: i32,
@@ -270,7 +271,7 @@ impl SpatialHash {
     where
         F: Fn(&ColliderId) -> Option<&'a Collider>,
     {
-        let bounds = Rect::new(
+        let bounds = FRect::new(
             circle_center.x - radius,
             circle_center.y - radius,
             radius * 2.0,
@@ -312,8 +313,8 @@ impl SpatialHash {
 
     fn cell_coords(&self, x: f32, y: f32) -> Vec2 {
         Vec2::new(
-            math::floor_to_int(x * self.inverse_cell_size) as f32,
-            math::floor_to_int(y * self.inverse_cell_size) as f32,
+            floor_to_int(x * self.inverse_cell_size) as f32,
+            floor_to_int(y * self.inverse_cell_size) as f32,
         )
     }
 
