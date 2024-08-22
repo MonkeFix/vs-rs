@@ -58,10 +58,12 @@ impl World {
         &self,
         assets: &Assets<MapAsset>,
         collision_layer_name: &str,
+        collision_fine_layer_name: &str,
         collider_store: &mut ColliderStore,
         offset: Vec2,
     ) {
         for room in &self.rooms {
+            // Add tilemap colliders
             let map_asset = assets.get(room.map_asset.id()).expect("unknown map asset");
 
             let tw = map_asset.map.tile_width as f32;
@@ -69,7 +71,7 @@ impl World {
 
             let offset_x = room.rect.x * tw;
             let offset_y = room.rect.y * th;
-            let height = room.rect.height * th;
+            let room_height = room.rect.height * th;
 
             /* let collision_rects = map_asset.get_collision_rects(collision_layer_name);
             for rect in &collision_rects {
@@ -100,7 +102,7 @@ impl World {
                     if tile.is_some() {
                         let rect = Rect::new(
                             offset.x + offset_x + x as f32 * tw,
-                            offset.y + offset_y + (height - y as f32 * th),
+                            offset.y + offset_y + (room_height - y as f32 * th),
                             tw,
                             th,
                         );
@@ -116,6 +118,49 @@ impl World {
                             Some(Vec2::new(rect.x, rect.y)),
                         );
                     }
+                }
+            }
+
+            // Add object colliders
+            let collision_layer = map_asset
+                .find_layer_by_name(collision_fine_layer_name)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "invalid collision fine layer name: {}",
+                        collision_fine_layer_name
+                    )
+                });
+
+            let collision_layer = collision_layer
+                .as_object_layer()
+                .expect("expected an object layer");
+            for obj in collision_layer.objects() {
+                match obj.shape {
+                    tiled::ObjectShape::Rect { width, height } => {
+                        let pos = Vec2::new(
+                            offset.x + offset_x + obj.x + width / 2.0 - 16.0,
+                            offset.y + offset_y + (room_height - (obj.y + height / 2.0)) + 16.0,
+                        );
+
+                        collider_store.create_and_register(
+                            ColliderData {
+                                shape_type: ColliderShapeType::Box { width, height },
+                                ..default()
+                            },
+                            Some(pos),
+                        );
+                    }
+                    tiled::ObjectShape::Ellipse { .. } => {
+                        unimplemented!("ellipse is not implemented")
+                    }
+                    tiled::ObjectShape::Polyline { .. } => {
+                        unimplemented!("polyline is not implemented")
+                    }
+                    tiled::ObjectShape::Polygon { .. } => {
+                        unimplemented!("polygon is not implemented")
+                    }
+                    tiled::ObjectShape::Point(_, _) => unimplemented!("point is not implemented"),
+                    tiled::ObjectShape::Text { .. } => unimplemented!("text is not implemented"),
                 }
             }
         }

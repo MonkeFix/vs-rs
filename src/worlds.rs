@@ -63,6 +63,7 @@ fn spawn_world(
     world_comp.world.add_colliders(
         &map_assets,
         "collision",
+        "collision_fine",
         &mut collider_store,
         Vec2::new(x, y),
     );
