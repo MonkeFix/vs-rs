@@ -51,22 +51,6 @@ fn close_on_esc(
     }
 }
 
-fn close_on_esc(
-    mut commands: Commands,
-    focused_windows: Query<(Entity, &Window)>,
-    input: Res<ButtonInput<KeyCode>>,
-) {
-    for (window, focus) in focused_windows.iter() {
-        if !focus.focused {
-            continue;
-        }
-
-        if input.just_pressed(KeyCode::Escape) {
-            commands.entity(window).despawn();
-        }
-    }
-}
-
 fn add_enemy_count(mut commands: Commands) {
     commands.spawn(
         TextBundle::from_section(
