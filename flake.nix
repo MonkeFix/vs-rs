@@ -16,31 +16,32 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs { inherit system; };
       lib = pkgs.lib;
-      craneLib = crane.lib.${system}.overrideToolchain
+      craneLib = (crane.mkLib nixpkgs.legacyPackages.${system}).overrideToolchain
         fenix.packages.${system}.minimal.toolchain;
 
       buildInputs = with pkgs; [
-          pkg-config
-          udev
-          alsaLib
-          xorg.libX11
-          xorg.libXcursor
-          xorg.libXrandr
-          xorg.libXi
-          vulkan-tools
-          vulkan-headers
-          vulkan-loader
-          vulkan-validation-layers
+        pkg-config
+        udev
+        alsaLib
+        xorg.libX11
+        xorg.libXcursor
+        xorg.libXrandr
+        xorg.libXi
+        vulkan-tools
+        vulkan-headers
+        vulkan-loader
+        vulkan-validation-layers
       ];
-
+      # TODO: deduplicate
       LD_LIBRARY_PATH = with pkgs; ''${lib.makeLibraryPath [
-          alsaLib
-          udev
-          xorg.libX11
-          xorg.libXcursor
-          vulkan-loader
-          xorg.libXi
-          xorg.libXrandr
+        alsaLib
+        udev
+        xorg.libX11
+        xorg.libXcursor
+        vulkan-loader
+        xorg.libXi
+        xorg.libXrandr
+        libxkbcommon
       ]}'';
 
       commonArgs = {
