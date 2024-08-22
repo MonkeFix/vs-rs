@@ -4,6 +4,7 @@ members = [
     "common",
     "collisions", 
     "movement", 
+    "vs-assets",
     "worldgen",
     "vs-rs"
 ]

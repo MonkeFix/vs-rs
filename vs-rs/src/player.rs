@@ -1,4 +1,3 @@
-use crate::assets::GameAssets;
 use crate::enemy::Enemy;
 use crate::input::PlayerControls;
 use crate::stats::*;
@@ -9,6 +8,7 @@ use collisions::prelude::*;
 use common::Position;
 use movement::behaviors::SteerSeek;
 use movement::prelude::*;
+use vs_assets::plugin::GameAssets;
 use std::time::Duration;
 
 pub struct PlayerPlugin;

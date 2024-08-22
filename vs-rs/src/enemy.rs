@@ -1,4 +1,3 @@
-use crate::assets::GameAssets;
 #[cfg(debug_assertions)]
 use crate::debug::DebugSettings;
 use crate::player::*;
@@ -12,6 +11,7 @@ use movement::behaviors::SteerSeek;
 use movement::prelude::*;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+use vs_assets::plugin::GameAssets;
 use std::collections::HashMap;
 use std::time::Duration;
 

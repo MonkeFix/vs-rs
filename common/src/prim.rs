@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use common::math::almost_equal_f32;
+
+use crate::math::almost_equal_f32;
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct PrimEdge {

@@ -1,16 +1,20 @@
-use crate::assets::rooms::RoomStore;
-use crate::worlds::world::{CellType, IntermediateWorld};
-use crate::worlds::worldgen::{
-    gen_room, intersects_any, is_rect_oob, min_area_constraint, GridGraphPos,
-};
 use bevy::prelude::*;
+use common::{
+    bitmasking::{calc_bitmask, create_bitmap_from, BitMaskDirection},
+    delaunay2d::Delaunay2D,
+    prim::{min_spanning_tree, PrimEdge},
+    FRect,
+};
 use pathfinding::directed::astar;
 use rand::{thread_rng, Rng};
+use vs_assets::rooms::RoomStore;
 
-use super::delaunay2d::Delaunay2D;
+use crate::{
+    generation::{gen_room, intersects_any, is_rect_oob, min_area_constraint, GridGraphPos},
+    world::{CellType, IntermediateWorld},
+};
+
 use super::get_border_points;
-use super::prim::{self, PrimEdge};
-use crate::worlds::bitmasking::{calc_bitmask, create_bitmap_from, BitMaskDirection};
 
 pub trait WorldGenStage {
     fn get_description(&self) -> &'static str;
@@ -68,7 +72,8 @@ impl WorldGenStage for WorldGenStage2Triangulate {
     }
 
     fn execute(&mut self, world: &mut IntermediateWorld, _room_store: &RoomStore) {
-        world.triangulation_graph = Some(Delaunay2D::triangulate_constraint(&world.rooms));
+        let rooms = &world.rooms.iter().map(|x| x.rect).collect::<Vec<FRect>>();
+        world.triangulation_graph = Some(Delaunay2D::triangulate_constraint(rooms));
     }
 }
 
@@ -93,7 +98,7 @@ impl WorldGenStage for WorldGenStage3MinSpanningTree {
             .map(|x| PrimEdge::new(x.u, x.v))
             .collect::<Vec<PrimEdge>>();
 
-        world.edges = prim::min_spanning_tree(&prim_edges, start);
+        world.edges = min_spanning_tree(&prim_edges, start);
 
         let mut rng = thread_rng();
         let mut extra_edges = 0;

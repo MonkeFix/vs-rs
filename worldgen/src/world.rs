@@ -1,16 +1,12 @@
-#![allow(dead_code)]
 
 use bevy::prelude::*;
 use bevy_simple_tilemap::{Tile, TileMap};
-use common::FRect;
+use common::{delaunay2d::Delaunay2D, prim::PrimEdge, FRect};
 use tiled::{Layer, TileLayer};
-
-use crate::assets::rooms::MapAsset;
 use collisions::prelude::*;
+use vs_assets::rooms::MapAsset;
 
-use super::worldgen::{
-    delaunay2d::Delaunay2D, prim::PrimEdge, room::WorldRoom, settings::WorldGeneratorSettings,
-};
+use crate::generation::{room::WorldRoom, settings::WorldGeneratorSettings};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CellType {

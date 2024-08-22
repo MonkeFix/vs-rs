@@ -1,24 +1,10 @@
 use bevy::prelude::*;
 use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
 use collisions::prelude::*;
+use vs_assets::prelude::*;
+use worldgen::{generation::{settings::WorldGeneratorSettings, WorldGenerator}, world::World};
 
-use crate::{
-    assets::{
-        rooms::{MapAsset, RoomStore},
-        tilesheets::AssetTileSheet,
-        GameAssets,
-    },
-    AppState,
-};
-
-use self::{
-    world::World,
-    worldgen::{settings::WorldGeneratorSettings, WorldGenerator},
-};
-
-pub mod bitmasking;
-pub mod world;
-pub mod worldgen;
+use crate::AppState;
 
 #[derive(Component)]
 pub struct WorldComponent {

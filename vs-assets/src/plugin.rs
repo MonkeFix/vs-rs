@@ -1,25 +1,33 @@
-#![allow(dead_code)]
-
-use crate::AppState;
 use bevy::{asset::LoadedFolder, prelude::*};
-use rooms::{MapAsset, RoomStore};
-use tilesheets::AssetTileSheet;
 
-pub mod prefabs;
-pub mod rooms;
-pub mod tilesheets;
+use crate::{
+    rooms::{MapAsset, RoomStore},
+    tilesheets::AssetTileSheet,
+};
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
+pub enum AssetLoadingState {
+    #[default]
+    LoadAssets,
+    SetupAssets,
+    Finished,
+}
 
 pub struct GameAssetsPlugin;
 
 impl Plugin for GameAssetsPlugin {
     fn build(&self, app: &mut App) {
+        app.init_state::<AssetLoadingState>();
         app.insert_resource(RoomStore::default());
-        app.add_systems(OnEnter(AppState::LoadAssets), (start_loading,));
+        app.add_systems(OnEnter(AssetLoadingState::LoadAssets), (start_loading,));
         app.add_systems(
             Update,
-            check_asset_folders.run_if(in_state(AppState::LoadAssets)),
+            check_asset_folders.run_if(in_state(AssetLoadingState::LoadAssets)),
         );
-        app.add_systems(OnEnter(AppState::SetupAssets), (setup_game_assets,));
+        app.add_systems(
+            OnEnter(AssetLoadingState::SetupAssets),
+            (setup_game_assets,),
+        );
     }
 }
 
@@ -40,7 +48,7 @@ pub struct GameAssetFolders {
 }
 
 fn check_asset_folders(
-    mut next_state: ResMut<NextState<AppState>>,
+    mut next_state: ResMut<NextState<AssetLoadingState>>,
     mut game_assets: ResMut<GameAssetFolders>,
     mut events: EventReader<AssetEvent<LoadedFolder>>,
 ) {
@@ -59,7 +67,7 @@ fn check_asset_folders(
 
     if game_assets.tiles_loaded && game_assets.rooms_loaded {
         info!("Finished loading");
-        next_state.set(AppState::SetupAssets);
+        next_state.set(AssetLoadingState::SetupAssets);
     }
 }
 
@@ -81,7 +89,7 @@ fn start_loading(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn setup_game_assets(
     mut commands: Commands,
-    mut next_state: ResMut<NextState<AppState>>,
+    mut next_state: ResMut<NextState<AssetLoadingState>>,
     asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     rooms: Res<Assets<MapAsset>>,
@@ -123,7 +131,7 @@ fn setup_game_assets(
     }
 
     info!("Finished setting up game assets");
-    next_state.set(AppState::Finished);
+    next_state.set(AssetLoadingState::Finished);
 }
 
 fn load_player(

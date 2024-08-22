@@ -1,7 +1,3 @@
-use assets::{
-    rooms::{MapAsset, MapAssetLoader},
-    tilesheets::{TsxTilesetAsset, TsxTilesetAssetLoader},
-};
 use bevy::{
     diagnostic::FrameTimeDiagnosticsPlugin,
     input::gamepad::{AxisSettings, GamepadSettings},
@@ -10,19 +6,21 @@ use bevy::{
 use bevy_simple_tilemap::plugin::SimpleTileMapPlugin;
 use collisions::plugin::CollisionPlugin;
 use movement::plugin::SteeringPlugin;
+use vs_assets::{
+    plugin::{AssetLoadingState, GameAssetsPlugin},
+    rooms::{MapAsset, MapAssetLoader},
+    tilesheets::{TsxTilesetAsset, TsxTilesetAssetLoader},
+};
 use worlds::WorldPlugin;
 
 mod camera;
 mod debug;
+mod enemy;
 mod input;
 mod player;
-
-mod assets;
-mod enemy;
 mod stats;
 mod worlds;
 
-use crate::assets::GameAssetsPlugin;
 use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;
 #[cfg(debug_assertions)]
@@ -36,7 +34,6 @@ pub const FIXED_TIMESTEP: f64 = 1.0 / FRAMERATE;
 pub enum AppState {
     #[default]
     LoadAssets,
-    SetupAssets,
     WorldGen,
     Finished,
 }
@@ -65,6 +62,10 @@ fn main() {
     .add_plugins(EnemyPlugin)
     .add_plugins(CollisionPlugin)
     .add_systems(Startup, (spawn_camera, setup_gamepad))
+    .add_systems(
+        Update,
+        (monitor_asset_loading_state,).run_if(in_state(AppState::LoadAssets)),
+    )
     .add_plugins(GameAssetsPlugin)
     .add_plugins(WorldPlugin)
     .insert_resource(Time::<Fixed>::from_seconds(FIXED_TIMESTEP))
@@ -89,4 +90,13 @@ fn setup_gamepad(mut gamepad_settings: ResMut<GamepadSettings>) {
     let settings = settings.unwrap();
 
     gamepad_settings.default_axis_settings = settings.clone();
+}
+
+fn monitor_asset_loading_state(
+    asset_state: Res<State<AssetLoadingState>>,
+    mut next_state: ResMut<NextState<AppState>>,
+) {
+    if asset_state.get() == &AssetLoadingState::Finished {
+        next_state.set(AppState::Finished);
+    }
 }

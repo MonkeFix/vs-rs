@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
+pub mod bitmasking;
+pub mod delaunay2d;
 pub mod math;
+pub mod prim;
 
 #[derive(Component, Debug, Default, Clone, Copy, PartialEq, Reflect)]
 pub struct Position(pub Vec2);

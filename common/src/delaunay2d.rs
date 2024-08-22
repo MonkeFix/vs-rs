@@ -1,9 +1,6 @@
-#![allow(dead_code)]
-
 use bevy::prelude::*;
-use common::math::almost_equal_vec2;
 
-use super::room::WorldRoom;
+use crate::{math::almost_equal_vec2, FRect};
 
 #[derive(Default, Clone, Copy)]
 pub struct Edge {
@@ -84,7 +81,7 @@ impl Delaunay2D {
         res
     }
 
-    pub fn triangulate_constraint(rooms: &[WorldRoom]) -> Delaunay2D {
+    pub fn triangulate_constraint(rooms: &[FRect]) -> Delaunay2D {
         let mut res = Delaunay2D {
             edges: vec![],
             triangles: vec![],
@@ -93,8 +90,8 @@ impl Delaunay2D {
 
         for i in 0..rooms.len() {
             for j in (i + 1)..rooms.len() {
-                let a = rooms[i].rect;
-                let b = rooms[j].rect;
+                let a = rooms[i];
+                let b = rooms[j];
 
                 res.edges.push(Edge {
                     u: a.center(),

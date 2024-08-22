@@ -1,34 +1,21 @@
-#![allow(dead_code)]
-
 use std::time::Instant;
 
-use bevy::prelude::*;
-use common::{math::choose_random, FRect};
+use bevy::{
+    log::info,
+    math::{UVec2, Vec2},
+};
+use common::{math::choose_random, prim::PrimEdge, FRect};
 use rand::{thread_rng, Rng};
 use room::WorldRoom;
+use settings::WorldGeneratorSettings;
+use stages::*;
+use vs_assets::rooms::RoomStore;
 
-use crate::{
-    assets::rooms::RoomStore,
-    worlds::world::IntermediateWorld,
-};
+use crate::world::{CellType, IntermediateWorld, World};
 
-use self::{
-    prim::PrimEdge,
-    settings::WorldGeneratorSettings,
-    stages::{
-        WorldGenStage, WorldGenStage1GenRects, WorldGenStage2Triangulate,
-        WorldGenStage3MinSpanningTree, WorldGenStage4PlaceTiles, WorldGenStage5AStar,
-        WorldGenStageCalcBitmapAndBitmask, WorldGenStageCreateWalls,
-    },
-};
-
-use super::world::{CellType, World};
-
-pub mod delaunay2d;
-pub mod prim;
 pub mod room;
 pub mod settings;
-mod stages;
+pub mod stages;
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct GraphPos(pub i32, pub i32);
