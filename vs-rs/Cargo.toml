@@ -11,7 +11,7 @@ collisions = { path = "../collisions" }
 movement = { path = "../movement" }
 worldgen = { path = "../worldgen" }
 vs-assets = { path = "../vs-assets" }
-bevy = { version = "0.14", features = ["dynamic_linking"] }
+bevy = { version = "0.14" }
 rand = "0.8.5"
 serde_json = "1.0"
 serde = "1.0"
