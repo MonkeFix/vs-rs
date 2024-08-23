@@ -7,6 +7,7 @@ use bevy_simple_tilemap::plugin::SimpleTileMapPlugin;
 use collisions::plugin::CollisionPlugin;
 use movement::plugin::SteeringPlugin;
 use vs_assets::{
+    enemies::{EnemyConfig, EnemyConfigLoader},
     plugin::{AssetLoadingState, GameAssetsPlugin},
     rooms::{MapAsset, MapAssetLoader},
     tilesheets::{TsxTilesetAsset, TsxTilesetAssetLoader},
@@ -72,8 +73,10 @@ fn main() {
     .insert_resource(Msaa::Off)
     .init_asset::<MapAsset>()
     .init_asset::<TsxTilesetAsset>()
+    .init_asset::<EnemyConfig>()
     .init_asset_loader::<MapAssetLoader>()
-    .init_asset_loader::<TsxTilesetAssetLoader>();
+    .init_asset_loader::<TsxTilesetAssetLoader>()
+    .init_asset_loader::<EnemyConfigLoader>();
 
     #[cfg(debug_assertions)]
     app.add_plugins(DebugPlugin);

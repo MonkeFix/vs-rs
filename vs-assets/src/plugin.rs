@@ -1,6 +1,8 @@
 use bevy::{asset::LoadedFolder, prelude::*};
 
 use crate::{
+    enemies::EnemyConfig,
+    prelude::TsxTilesetAsset,
     rooms::{MapAsset, RoomStore},
     tilesheets::AssetTileSheet,
 };
@@ -19,6 +21,7 @@ impl Plugin for GameAssetsPlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<AssetLoadingState>();
         app.insert_resource(RoomStore::default());
+        app.insert_resource(Configs::default());
         app.add_systems(OnEnter(AssetLoadingState::LoadAssets), (start_loading,));
         app.add_systems(
             Update,
@@ -40,9 +43,15 @@ pub struct GameAssets {
 }
 
 #[derive(Default, Resource)]
+pub struct Configs {
+    pub enemy_config: Handle<EnemyConfig>,
+}
+
+#[derive(Default, Resource)]
 pub struct GameAssetFolders {
     pub tiles_folder: Handle<LoadedFolder>,
     pub rooms_folder: Handle<LoadedFolder>,
+    pub tileset_main: Handle<TsxTilesetAsset>,
     pub tiles_loaded: bool,
     pub rooms_loaded: bool,
 }
@@ -71,14 +80,22 @@ fn check_asset_folders(
     }
 }
 
-fn start_loading(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn start_loading(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut configs: ResMut<Configs>,
+) {
     info!("Loading game asset folders");
     let tiles_folder_handle = asset_server.load_folder("textures");
     let rooms_folder_handle = asset_server.load_folder("rooms");
+    let tileset_main = asset_server.load("tilesheet.tsx");
+
+    configs.enemy_config = asset_server.load("configs/enemies.json");
 
     let asset_folders = GameAssetFolders {
         tiles_folder: tiles_folder_handle,
         rooms_folder: rooms_folder_handle,
+        tileset_main,
         ..default()
     };
 
@@ -94,6 +111,8 @@ fn setup_game_assets(
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     rooms: Res<Assets<MapAsset>>,
     mut room_store: ResMut<RoomStore>,
+    tilesets: Res<Assets<TsxTilesetAsset>>,
+    folders: Res<GameAssetFolders>,
 ) {
     info!("Setting up game assets");
 
@@ -106,7 +125,12 @@ fn setup_game_assets(
 
     let player_tilesheet = load_player(&asset_server, &mut layouts);
 
-    let tilesheet_main = AssetTileSheet::load_by_name("tilesheet", &asset_server, &mut layouts);
+    let tileset = tilesets.get(folders.tileset_main.id()).unwrap();
+    let tilesheet_main = AssetTileSheet::create_layout(
+        &tileset.tileset,
+        tileset.image_handle.as_ref().unwrap().clone_weak(),
+        &mut layouts,
+    );
 
     let game_assets = GameAssets {
         player_tilesheet,

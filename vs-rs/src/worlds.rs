@@ -2,7 +2,10 @@ use bevy::prelude::*;
 use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
 use collisions::prelude::*;
 use vs_assets::prelude::*;
-use worldgen::{generation::{settings::WorldGeneratorSettings, WorldGenerator}, world::World};
+use worldgen::{
+    generation::{settings::WorldGeneratorSettings, WorldGenerator},
+    world::World,
+};
 
 use crate::AppState;
 
@@ -39,9 +42,7 @@ fn spawn_world(
         world: world_gen.generate(settings, &room_store),
     };
 
-    let grass_asset = &assets.tilesheet_main;
-
-    let lower_tilemap = world_to_tilemap(&world_comp.world, grass_asset, &map_assets);
+    let lower_tilemap = world_to_tilemap(&world_comp.world, &assets.tilesheet_main, &map_assets);
 
     let x = -(((world_comp.world.width * 32) / 2) as f32);
     let y = -(((world_comp.world.height * 32) / 2) as f32);
@@ -70,12 +71,12 @@ fn spawn_world(
         ))
         .with_children(|c| {
             c.spawn(create_tile_map_bundle(
-                grass_asset,
+                &assets.tilesheet_main,
                 lower_tilemap,
                 Vec3::new(x, y, 0.0),
             ));
             c.spawn(create_tile_map_bundle(
-                grass_asset,
+                &assets.tilesheet_main,
                 upper_tilemap,
                 Vec3::new(x, y, 10.0),
             ));

@@ -10,10 +10,11 @@ use common::Position;
 use movement::behaviors::SteerSeek;
 use movement::prelude::*;
 use rand::{thread_rng, Rng};
-use serde::{Deserialize, Serialize};
-use vs_assets::plugin::GameAssets;
 use std::collections::HashMap;
 use std::time::Duration;
+use vs_assets::enemies::EnemyConfig;
+use vs_assets::plugin::Configs;
+use vs_assets::plugin::GameAssets;
 
 pub struct EnemyPlugin;
 
@@ -93,13 +94,6 @@ const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 5, max: 20 };
 #[derive(Resource)]
 struct GlobalTimeTickerResource(Timer);
 
-#[derive(Debug, Serialize, Deserialize)]
-struct SpawnWave {
-    from: u16,
-    to: u16,
-    spawn_time: u64,
-}
-
 #[derive(Component, Clone, Debug)]
 struct Rewards {
     _exp: u64,
@@ -141,22 +135,14 @@ struct CurrentWave {
     need_wave_spawn: bool,
 }
 
-fn enemy_factory(mut commands: Commands, assets: Res<GameAssets>) {
-    #[derive(Debug, Serialize, Deserialize)]
-    struct EnemyConfig {
-        name: String,
-        dmg: i64,
-        hp: i64,
-        max_velocity: f32,
-        max_force: f32,
-        mass: f32,
-        asset_path: String,
-        is_elite: Option<bool>,
-        spawn_waves: Vec<SpawnWave>,
-    }
-
-    let conf = std::fs::read_to_string("configs/enemies.json").unwrap();
-    let data = serde_json::from_str::<Vec<EnemyConfig>>(&conf).unwrap();
+fn enemy_factory(
+    mut commands: Commands,
+    assets: Res<GameAssets>,
+    configs: Res<Configs>,
+    config_assets: Res<Assets<EnemyConfig>>,
+) {
+    let data = config_assets.get(configs.enemy_config.id()).unwrap();
+    let data = &data.param_list;
 
     let mut spawn_map: HashMap<u16, Vec<EnemySpawnComponent>> = HashMap::new();
 
@@ -164,7 +150,7 @@ fn enemy_factory(mut commands: Commands, assets: Res<GameAssets>) {
         // TODO: use file from the config
         let texture_handle: Handle<Image> = assets.capybara_texture.clone();
         let mut enemy = EnemySpawnComponent {
-            name: enemy_conf.name,
+            name: enemy_conf.name.clone(),
             _enemy: Enemy,
             health: Health(enemy_conf.hp),
             damage: Damage(enemy_conf.dmg),
@@ -180,7 +166,7 @@ fn enemy_factory(mut commands: Commands, assets: Res<GameAssets>) {
             timer: Default::default(),
         };
 
-        for waves in enemy_conf.spawn_waves {
+        for waves in &enemy_conf.spawn_waves {
             for n in waves.from..waves.to + 1 {
                 if let Some(components) = spawn_map.get_mut(&n) {
                     enemy.timer =

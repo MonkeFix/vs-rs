@@ -1,6 +1,5 @@
 use bevy::{
     asset::{io::Reader, Asset, AssetLoader, LoadContext},
-    log::info,
     prelude::*,
     reflect::TypePath,
     utils::HashMap,
@@ -184,9 +183,6 @@ impl AssetLoader for MapAssetLoader {
     ) -> Result<Self::Asset, Self::Error> {
         let mut loader = tiled::Loader::new();
 
-        let path = format!("assets/{}", load_context.path().to_str().unwrap());
-        info!("Loading map: {:?}", path);
-
         let map_id_str = load_context
             .path()
             .parent()
@@ -207,7 +203,26 @@ impl AssetLoader for MapAssetLoader {
             .expect("Invalid room path (unable to convert to str)")
             .to_string();
 
+        let cmd = std::env::var("CARGO_MANIFEST_DIR");
+
+        let assets_dir = std::path::Path::new("assets");
+        let path = match cmd {
+            Ok(dir) => std::path::Path::new(&dir)
+                .join(assets_dir)
+                .join(load_context.path()),
+            Err(_) => {
+                let cur_exe = std::env::current_exe().unwrap();
+                cur_exe
+                    .as_path()
+                    .parent()
+                    .unwrap()
+                    .join(assets_dir)
+                    .join(load_context.path())
+            }
+        };
+
         let map = loader.load_tmx_map(path)?;
+
         Ok(MapAsset { name, map_id, map })
     }
 

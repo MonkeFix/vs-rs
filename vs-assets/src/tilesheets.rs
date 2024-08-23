@@ -1,6 +1,7 @@
 use bevy::{asset::AssetLoader, prelude::*, sprite::TextureAtlasLayout, utils::HashMap};
 use rand::{thread_rng, Rng};
 use thiserror::Error;
+use tiled::Tileset;
 
 #[derive(Debug, Default, Clone, Asset, TypePath)]
 pub struct AssetTileSheet {
@@ -41,18 +42,11 @@ impl AssetTileSheet {
         None
     }
 
-    pub fn load_by_name(
-        name: &str,
-        asset_server: &AssetServer,
+    pub fn create_layout(
+        tilesheet: &Tileset,
+        tilesheet_texture: Handle<Image>,
         layouts: &mut Assets<TextureAtlasLayout>,
     ) -> Self {
-        info!("Loading tilesheet '{}.tsx'", name);
-
-        let mut loader = tiled::Loader::new();
-        let tilesheet = loader
-            .load_tsx_tileset(format!("assets/{}.tsx", name))
-            .unwrap_or_else(|_| panic!("could not read file '{}'.tsx", name));
-
         // Setting up named tiles (tiles with non-empty type described in the tile sheet)
         let mut named_tiles: HashMap<String, Vec<u32>> = HashMap::new();
 
@@ -66,14 +60,7 @@ impl AssetTileSheet {
             }
         }
 
-        //dbg!(&named_tiles);
-
-        let img = tilesheet.image.expect("Image must not be empty");
-
-        // tilesheet name and texture name must match, and we're not just taking img.source
-        // because tsx loader fucks up the path from being 'assets/textures/a.png'
-        // to 'assets/assets/textures/a.png'
-        let texture_handle = asset_server.load(format!("textures/{}.png", name));
+        let img = tilesheet.image.as_ref().expect("Image must not be empty");
 
         let layout = TextureAtlasLayout::from_grid(
             UVec2::new(tilesheet.tile_width, tilesheet.tile_height),
@@ -84,10 +71,10 @@ impl AssetTileSheet {
         );
         let layout_handle = layouts.add(layout);
 
-        AssetTileSheet {
-            name: name.to_string(),
+        Self {
+            name: tilesheet.name.clone(),
             layout: layout_handle,
-            image: texture_handle,
+            image: tilesheet_texture,
             named_tiles: Some(named_tiles),
         }
     }
@@ -96,6 +83,7 @@ impl AssetTileSheet {
 #[derive(Asset, TypePath, Debug)]
 pub struct TsxTilesetAsset {
     pub tileset: tiled::Tileset,
+    pub image_handle: Option<Handle<Image>>,
 }
 #[derive(Default)]
 pub struct TsxTilesetAssetLoader;
@@ -105,7 +93,7 @@ pub struct TsxTilesetAssetLoader;
 pub enum TsxTilesetAssetLoaderError {
     #[error("Could not load asset: {0}")]
     Io(#[from] std::io::Error),
-    #[error("Could not load TMX map: {0}")]
+    #[error("Could not load TSX tileset: {0}")]
     TmxError(#[from] tiled::Error),
 }
 
@@ -121,11 +109,38 @@ impl AssetLoader for TsxTilesetAssetLoader {
         load_context: &'a mut bevy::asset::LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut loader = tiled::Loader::new();
-        let path = format!("assets/{}", load_context.path().to_str().unwrap());
-        info!("Loading tileset: {:?}", path);
 
+        let cmd = std::env::var("CARGO_MANIFEST_DIR");
+        let assets_dir = std::path::Path::new("assets");
+        let path = match cmd {
+            Ok(dir) => std::path::Path::new(&dir)
+                .join(assets_dir)
+                .join(load_context.path()),
+            Err(_) => {
+                let cur_exe = std::env::current_exe().unwrap();
+                cur_exe
+                    .as_path()
+                    .parent()
+                    .unwrap()
+                    .join(assets_dir)
+                    .join(load_context.path())
+            }
+        };
+
+        info!("Loading tileset: {:?}", path);
         let tileset = loader.load_tsx_tileset(path)?;
-        Ok(TsxTilesetAsset { tileset })
+
+        let image_handle = if let Some(img) = &tileset.image {
+            let tileset_texture = load_context.load::<Image>(img.source.clone());
+            Some(tileset_texture)
+        } else {
+            None
+        };
+
+        Ok(TsxTilesetAsset {
+            tileset,
+            image_handle,
+        })
     }
 
     fn extensions(&self) -> &[&str] {

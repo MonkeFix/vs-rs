@@ -1,9 +1,8 @@
-
 use bevy::prelude::*;
 use bevy_simple_tilemap::{Tile, TileMap};
+use collisions::prelude::*;
 use common::{delaunay2d::Delaunay2D, prim::PrimEdge, FRect};
 use tiled::{Layer, TileLayer};
-use collisions::prelude::*;
 use vs_assets::rooms::MapAsset;
 
 use crate::generation::{room::WorldRoom, settings::WorldGeneratorSettings};
@@ -31,10 +30,7 @@ impl World {
     }
 
     pub fn fill_tilemap(&self, tilemap: &mut TileMap, assets: &Assets<MapAsset>, group_name: &str) {
-        let mut i = 1;
         for room in &self.rooms {
-            info!(" >> Filling room group {group_name} #{i}");
-
             let offset_x = room.rect.x as i32;
             let offset_y = room.rect.y as i32;
 
@@ -42,10 +38,7 @@ impl World {
             let mut layer_z = 1;
             for layer in map_asset.map.layers().filter(|m| m.name == group_name) {
                 self.process_layer(tilemap, layer, offset_x, offset_y, &mut layer_z);
-                //layer_z += 1;
             }
-
-            i += 1;
         }
     }
 
@@ -169,9 +162,7 @@ impl World {
         offset_y: i32,
         z: &mut i32,
     ) {
-        info!("found layer \"{}\"", layer.name);
         if !layer.visible {
-            info!("layer \"{}\" is not visible, skipping", layer.name);
             return;
         }
         let layer_type = layer.layer_type();
@@ -198,8 +189,6 @@ impl World {
         z: i32,
     ) {
         let height = tiles.height().expect("no height wtf");
-
-        info!(z);
 
         for y in 0..height {
             for x in 0..tiles.width().expect("no width wtf") {
