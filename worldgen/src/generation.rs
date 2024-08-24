@@ -203,15 +203,16 @@ fn get_border_points(rect: &FRect) -> Vec<(i32, i32)> {
     res
 }
 
-pub struct WorldGenerator {
-    // TODO: Use double linked list to allow manipulation of stage ordering
-    pub stages: Vec<Box<dyn WorldGenStage>>,
+type GenStages<'a> = Vec<Box<dyn WorldGenStage + 'a>>;
+
+pub struct WorldGenerator<'a> {
+    pub stages: GenStages<'a>,
 }
 
-impl Default for WorldGenerator {
-    fn default() -> Self {
-        let stages: Vec<Box<dyn WorldGenStage>> = vec![
-            Box::new(WorldGenStage1GenRects {}),
+impl<'a> WorldGenerator<'a> {
+    pub fn new(room_store: &'a RoomStore) -> Self {
+        let stages: GenStages<'a> = vec![
+            Box::new(WorldGenStage1GenRects { room_store }),
             Box::new(WorldGenStage2Triangulate {}),
             Box::new(WorldGenStage3MinSpanningTree {}),
             Box::new(WorldGenStage4PlaceTiles {}),
@@ -222,10 +223,8 @@ impl Default for WorldGenerator {
 
         Self { stages }
     }
-}
 
-impl WorldGenerator {
-    pub fn generate(&mut self, settings: WorldGeneratorSettings, room_store: &RoomStore) -> World {
+    pub fn generate(&mut self, settings: WorldGeneratorSettings) -> World {
         let w = settings.world_width as usize;
         let h = settings.world_height as usize;
 
@@ -252,7 +251,7 @@ impl WorldGenerator {
         for stage in self.stages.iter_mut() {
             let desc = stage.get_description();
             info!("{}", desc);
-            stage.execute(&mut world, room_store);
+            stage.execute(&mut world);
         }
 
         let elapsed = now.elapsed();
