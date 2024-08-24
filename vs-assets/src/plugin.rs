@@ -104,6 +104,7 @@ fn start_loading(
     info!("Finished loading game asset folders");
 }
 
+#[allow(clippy::too_many_arguments)]
 fn setup_game_assets(
     mut commands: Commands,
     mut next_state: ResMut<NextState<AssetLoadingState>>,
