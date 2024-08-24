@@ -21,6 +21,7 @@ mod input;
 mod player;
 mod stats;
 mod worlds;
+mod prelude;
 
 use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;

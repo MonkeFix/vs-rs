@@ -1,7 +1,5 @@
-use bevy::prelude::*;
+use crate::prelude::*;
 use bevy_simple_tilemap::{prelude::TileMapBundle, Tile, TileMap};
-use collisions::prelude::*;
-use vs_assets::prelude::*;
 use worldgen::{
     generation::{settings::WorldGeneratorSettings, WorldGenerator},
     world::World,
@@ -30,7 +28,7 @@ fn spawn_world(
     map_assets: Res<Assets<MapAsset>>,
     mut collider_store: ResMut<ColliderStore>,
 ) {
-    let mut world_gen = WorldGenerator::default();
+    let mut world_gen = WorldGenerator::new(&room_store);
 
     let settings = WorldGeneratorSettings {
         world_width: 256,
@@ -39,7 +37,7 @@ fn spawn_world(
     };
 
     let world_comp = WorldComponent {
-        world: world_gen.generate(settings, &room_store),
+        world: world_gen.generate(settings),
     };
 
     let lower_tilemap = world_to_tilemap(&world_comp.world, &assets.tilesheet_main, &map_assets);

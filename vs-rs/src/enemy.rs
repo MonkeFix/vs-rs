@@ -1,15 +1,11 @@
 #[cfg(debug_assertions)]
 use crate::debug::DebugSettings;
 use crate::player::*;
+use crate::prelude::*;
 use crate::stats::*;
 use crate::AppState;
-use bevy::prelude::*;
 use bevy::time::TimerMode::Repeating;
-use collisions::prelude::*;
-use common::Position;
 use movement::behaviors::SteerSeek;
-use movement::prelude::*;
-use rand::{thread_rng, Rng};
 use std::collections::HashMap;
 use std::time::Duration;
 use vs_assets::enemies::EnemyConfig;
