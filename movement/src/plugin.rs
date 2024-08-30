@@ -64,16 +64,6 @@ impl Plugin for SteeringPlugin {
     }
 }
 
-// Useful for debugging
-/*fn host_added(mut gizmos: Gizmos, query: Query<(&SteeringHost)>) {
-    for (host) in &query {
-        gizmos.circle_2d(host.position, 16.0, Color::BLUE);
-        // gizmos.ray_2d(host.position, host.cur_velocity.normalize_or_zero() * 100.0, Color::RED);
-        // gizmos.ray_2d(host.position, host.desired_velocity.normalize_or_zero() * 1000.0, Color::BLUE);
-        // gizmos.ray_2d(host.position, host.steering.normalize_or_zero() * 80.0, Color::YELLOW);
-    }
-}*/
-
 fn update_translation(mut host: Query<(&mut Transform, &Position)>) {
     for (mut transform, pos) in &mut host {
         transform.translation = pos.0.extend(1.0);

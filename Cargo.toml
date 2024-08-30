@@ -6,7 +6,8 @@ members = [
     "movement", 
     "vs-assets",
     "worldgen",
-    "vs-rs"
+    "vs-rs",
+    "physics"
 ]
 
 [profile.release]
