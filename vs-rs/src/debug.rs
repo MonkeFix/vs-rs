@@ -4,7 +4,6 @@ use bevy::prelude::*;
 #[cfg(debug_assertions)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use colliders::Collider;
-use common::Position;
 use steering::SteeringHost;
 
 use crate::enemy::Enemy;
@@ -26,7 +25,6 @@ impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<SteeringHost>();
         app.register_type::<Collider>();
-        app.register_type::<Position>();
         app.add_plugins(WorldInspectorPlugin::new());
         app.add_systems(Update, close_on_esc);
 
