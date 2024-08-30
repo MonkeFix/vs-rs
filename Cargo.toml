@@ -2,11 +2,10 @@
 resolver = "2"
 members = [
     "common",
-    "collisions", 
-    "movement", 
     "vs-assets",
     "worldgen",
-    "vs-rs"
+    "vs-rs",
+    "physics"
 ]
 
 [profile.release]

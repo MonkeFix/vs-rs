@@ -1,25 +1,25 @@
-use bevy::{math::Vec2, prelude::default, reflect::Reflect};
+use bevy::prelude::*;
 use common::FRect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
-pub enum ColliderShapeType {
+pub enum ShapeType {
     None,
     Circle { radius: f32 },
     Box { width: f32, height: f32 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
-pub struct ColliderShape {
-    pub shape_type: ColliderShapeType,
+pub struct Shape {
+    pub shape_type: ShapeType,
     pub(crate) position: Vec2,
     pub(crate) center: Vec2,
-    pub(crate) bounds: FRect,
+    pub(crate) bounds: FRect 
 }
 
-impl Default for ColliderShape {
+impl Default for Shape {
     fn default() -> Self {
         Self {
-            shape_type: ColliderShapeType::None,
+            shape_type: ShapeType::None,
             position: Vec2::ZERO,
             center: Vec2::ZERO,
             bounds: FRect::new(0.0, 0.0, 0.0, 0.0),
@@ -27,25 +27,31 @@ impl Default for ColliderShape {
     }
 }
 
-impl ColliderShape {
-    pub fn new(shape_type: ColliderShapeType) -> Self {
+impl Shape {
+    pub fn new(shape_type: ShapeType) -> Self {
         Self {
             shape_type,
             ..default()
         }
     }
+
+    pub fn bounds(&self) -> FRect {
+        self.bounds
+    }
 }
 
-pub mod collisions {
-    use crate::{CollisionResultRef, RaycastHit};
 
-    use super::{ColliderShape, ColliderShapeType};
+pub mod collisions {
     use bevy::math::Vec2;
     use common::FRect;
 
+    use crate::prelude::{CollisionResultRef, RaycastHit};
+
+    use super::{Shape, ShapeType};
+
     pub fn box_to_box<'a>(
-        first: &ColliderShape,
-        second: &ColliderShape,
+        first: &Shape,
+        second: &Shape,
         first_offset: Vec2,
         second_offset: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
@@ -69,14 +75,14 @@ pub mod collisions {
     }
 
     pub fn circle_to_circle<'a>(
-        first: &ColliderShape,
-        second: &ColliderShape,
+        first: &Shape,
+        second: &Shape,
         first_offset: Vec2,
         second_offset: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
         match first.shape_type {
-            ColliderShapeType::Circle { radius: r1 } => match second.shape_type {
-                ColliderShapeType::Circle { radius: r2 } => {
+            ShapeType::Circle { radius: r1 } => match second.shape_type {
+                ShapeType::Circle { radius: r2 } => {
                     let mut res = CollisionResultRef::default();
 
                     let first_pos = first.position + first_offset;
@@ -97,22 +103,22 @@ pub mod collisions {
 
                     None
                 }
-                ColliderShapeType::Box { .. } => panic!("second: expected circle, got box"),
-                ColliderShapeType::None => None,
+                ShapeType::Box { .. } => panic!("second: expected circle, got box"),
+                ShapeType::None => None,
             },
-            ColliderShapeType::Box { .. } => panic!("first: expected circle, got box"),
-            ColliderShapeType::None => None,
+            ShapeType::Box { .. } => panic!("first: expected circle, got box"),
+            ShapeType::None => None,
         }
     }
 
     pub fn circle_to_box<'a>(
-        circle: &ColliderShape,
-        bx: &ColliderShape,
+        circle: &Shape,
+        bx: &Shape,
         circle_offset: Vec2,
         box_offset: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
         match circle.shape_type {
-            ColliderShapeType::Circle { radius } => {
+            ShapeType::Circle { radius } => {
                 let mut res = CollisionResultRef::default();
 
                 let circle_pos = circle.position + circle_offset;
@@ -147,14 +153,14 @@ pub mod collisions {
                 }
                 None
             }
-            ColliderShapeType::Box { .. } => panic!("circle: expected circle, got box"),
-            ColliderShapeType::None => None,
+            ShapeType::Box { .. } => panic!("circle: expected circle, got box"),
+            ShapeType::None => None,
         }
     }
 
-    pub fn line_to_circle(start: Vec2, end: Vec2, s: &ColliderShape) -> Option<RaycastHit> {
+    pub fn line_to_circle(start: Vec2, end: Vec2, s: &Shape) -> Option<RaycastHit> {
         match s.shape_type {
-            ColliderShapeType::Circle { radius } => {
+            ShapeType::Circle { radius } => {
                 let mut hit = RaycastHit::default();
 
                 let length = start.distance(end);
@@ -187,14 +193,14 @@ pub mod collisions {
 
                 Some(hit)
             }
-            ColliderShapeType::Box { .. } => panic!("s: expected circle, got box"),
-            ColliderShapeType::None => None,
+            ShapeType::Box { .. } => panic!("s: expected circle, got box"),
+            ShapeType::None => None,
         }
     }
 
     fn minkowski_diff(
-        first: &ColliderShape,
-        second: &ColliderShape,
+        first: &Shape,
+        second: &Shape,
         first_offset: Vec2,
         second_offset: Vec2,
     ) -> FRect {

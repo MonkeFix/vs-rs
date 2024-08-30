@@ -1,14 +1,8 @@
-use crate::{
-    plugin::{PhysicsParams, SteeringHost},
-    SteeringTarget,
-};
+use crate::prelude::{colliders::Collider, spatial_hash::SpatialHash};
+
+use super::steering::{PhysicalParams, SteeringHost, SteeringTarget};
 use bevy::prelude::*;
-use collisions::{
-    colliders::Collider,
-    plugin::ColliderComponent,
-    store::{ColliderIdResolver, ColliderStore},
-};
-use common::{math::rng_f32, Position};
+use common::math::rng_f32;
 
 /// Seeks the specified target moving directly towards it.
 pub struct SteerSeek;
@@ -16,12 +10,12 @@ pub struct SteerSeek;
 impl SteerSeek {
     pub fn steer(
         &self,
-        position: &Position,
+        position: &Transform,
         host: &SteeringHost,
-        params: &PhysicsParams,
+        params: &PhysicalParams,
         target: &impl SteeringTarget,
     ) -> Vec2 {
-        let dv = target.position() - position.0;
+        let dv = target.position() - position.translation.xy();
         let dv = dv.normalize_or_zero();
 
         dv * params.max_velocity - host.velocity
@@ -35,12 +29,12 @@ pub struct SteerFlee;
 impl SteerFlee {
     pub fn steer(
         &self,
-        position: &Position,
+        position: &Transform,
         host: &SteeringHost,
-        params: &PhysicsParams,
+        params: &PhysicalParams,
         target: &impl SteeringTarget,
     ) -> Vec2 {
-        let dv = target.position() - position.0;
+        let dv = target.position() - position.translation.xy();
         let dv = dv.normalize_or_zero();
 
         -dv * params.max_velocity - host.velocity
@@ -66,12 +60,12 @@ impl Default for SteerArrival {
 impl SteerArrival {
     pub fn steer(
         &self,
-        position: &Position,
+        position: &Transform,
         host: &SteeringHost,
-        params: &PhysicsParams,
+        params: &PhysicalParams,
         target: &impl SteeringTarget,
     ) -> Vec2 {
-        let dv = target.position() - position.0;
+        let dv = target.position() - position.translation.xy();
         let distance = dv.length();
         let dv = if distance < self.slowing_radius {
             dv.normalize_or_zero() * params.max_velocity * (distance / self.slowing_radius)
@@ -89,12 +83,12 @@ pub struct SteerEvade;
 impl SteerEvade {
     pub fn steer(
         &self,
-        position: &Position,
+        position: &Transform,
         host: &SteeringHost,
-        params: &PhysicsParams,
+        params: &PhysicalParams,
         target: &impl SteeringTarget,
     ) -> Vec2 {
-        let distance = (target.position() - position.0).length();
+        let distance = (target.position() - position.translation.xy()).length();
         let updates_ahead = distance / params.max_velocity;
 
         let future_pos = target.position() + target.velocity() * updates_ahead;
@@ -109,12 +103,12 @@ pub struct SteerPursuit;
 impl SteerPursuit {
     pub fn steer(
         &self,
-        position: &Position,
+        position: &Transform,
         host: &SteeringHost,
-        params: &PhysicsParams,
+        params: &PhysicalParams,
         target: &impl SteeringTarget,
     ) -> Vec2 {
-        let distance = (target.position() - position.0).length();
+        let distance = (target.position() - position.translation.xy()).length();
         let updates_ahead = distance / params.max_velocity;
 
         let future_pos = target.position() + target.velocity() * updates_ahead;
@@ -153,7 +147,7 @@ impl SteerWander {
 }
 
 impl SteerWander {
-    pub fn steer(&mut self, host: &SteeringHost, params: &PhysicsParams) -> Vec2 {
+    pub fn steer(&mut self, host: &SteeringHost, params: &PhysicalParams) -> Vec2 {
         let circle_center = host.velocity.normalize_or_zero() * self.circle_distance;
 
         let displacement = Vec2::new(0.0, -1.0) * self.circle_radius;
@@ -167,7 +161,7 @@ impl SteerWander {
         wander_force.normalize_or_zero() * params.max_velocity - host.velocity
     }
 }
-
+/*
 /// Tries to avoid all collisions by checking the closest threatening collider on its way.
 #[derive(Debug, Clone, Copy, Reflect)]
 pub struct SteerCollisionAvoidance {
@@ -190,25 +184,24 @@ impl Default for SteerCollisionAvoidance {
 impl SteerCollisionAvoidance {
     pub fn steer(
         &mut self,
-        position: &Position,
+        position: &Transform,
         host: &SteeringHost,
-        params: &PhysicsParams,
-        collider: &ColliderComponent,
-        collider_store: &ColliderStore,
+        params: &PhysicalParams,
+        collider: &Collider,
+        hash: &SpatialHash,
         layer_mask: Option<i32>,
     ) -> Vec2 {
         let dv = host.velocity.normalize_or_zero()
             * (self.max_see_ahead * host.velocity.length() / params.max_velocity);
 
-        self.ahead = position.0 + dv;
+        self.ahead = position.translation.xy() + dv;
 
-        let collider = collider_store.get(collider.id).unwrap();
         let mut rect = collider.bounds();
         rect.x += self.ahead.x;
         rect.y += self.ahead.y;
 
         let neighbors =
-            collider_store.aabb_broadphase_excluding_self(collider.id, rect, layer_mask);
+            hash.aabb_broadphase(collider.id, rect, layer_mask);
 
         let mut distance = f32::MAX;
         let mut closest = None;
@@ -254,9 +247,8 @@ impl Default for SteerSeparation {
 impl SteerSeparation {
     pub fn steer(
         &self,
-        position: &Position,
-        collider: &ColliderComponent,
-        collider_store: &ColliderStore,
+        position: &Transform,
+        collider: &Collider,
         layer_mask: Option<i32>,
     ) -> Vec2 {
         let mut force = Vec2::ZERO;
@@ -266,12 +258,12 @@ impl SteerSeparation {
 
         // TODO: Check if this method works, if not, use aabb_broadphase()
         let neighbors =
-            collider_store.overlap_circle(position.0, self.radius, Some(collider.id), layer_mask);
+            collider_store.overlap_circle(position.translation.xy(), self.radius, Some(collider.id), layer_mask);
         let neighbor_count = neighbors.len();
 
         for neighbor_id in neighbors {
             let neighbor = collider_store.get(neighbor_id).unwrap();
-            force += neighbor.position() - position.0;
+            force += neighbor.position() - position.translation.xy();
         }
 
         if neighbor_count != 0 {
@@ -312,10 +304,9 @@ pub struct SteerQueueResult {
 impl SteerQueue {
     pub fn steer(
         &self,
-        position: &Position,
+        position: &Transform,
         host: &SteeringHost,
-        collider: &ColliderComponent,
-        collider_store: &ColliderStore,
+        collider: &Collider,
         layer_mask: Option<i32>,
     ) -> SteerQueueResult {
         let mut velocity = host.velocity;
@@ -329,7 +320,7 @@ impl SteerQueue {
             velocity *= -1.0;
             brake += velocity;
 
-            if (neighbor.position() - position.0).length() <= self.max_radius {
+            if (neighbor.position() - position.translation.xy()).length() <= self.max_radius {
                 velocity_multiplier = self.velocity_mult;
             }
         }
@@ -340,22 +331,21 @@ impl SteerQueue {
         }
     }
 
-    fn get_neighbor_ahead<'a>(
+    fn get_neighbor_ahead(
         &self,
-        position: &Position,
+        position: &Transform,
         host: &SteeringHost,
-        collider: &ColliderComponent,
-        collider_store: &'a ColliderStore,
+        collider: &Collider,
         layer_mask: Option<i32>,
-    ) -> Option<&'a Collider> {
+    ) -> Option<&Collider> {
         let qa = host.velocity.normalize_or_zero() * self.max_ahead;
 
-        let ahead = position.0 + qa;
+        let ahead = position.translation.xy() + qa;
 
         let collider = collider_store.get(collider.id).unwrap();
         // TODO: Check if this method works, if not, use aabb_broadphase()
         let neighbors = collider_store.overlap_circle(
-            position.0,
+            position.translation.xy(),
             self.max_radius,
             Some(collider.id),
             layer_mask,
@@ -401,23 +391,24 @@ impl Default for SteerLeaderFollowing {
 }
 
 impl SteerLeaderFollowing {
-    pub fn steer(&mut self, position: &Position, host: &SteeringHost) -> Vec2 {
+    pub fn steer(&mut self, position: &Transform, host: &SteeringHost) -> Vec2 {
         let mut dv = host.velocity.normalize_or_zero() * self.leader_behind_dist;
 
-        self.ahead = position.0 + dv;
+        self.ahead = position.translation.xy() + dv;
         dv *= -1.0;
-        self.behind = position.0 + dv;
+        self.behind = position.translation.xy() + dv;
 
         self.behind
     }
 
-    pub fn get_leader_ahead(&self, position: &Position, host: &SteeringHost) -> Vec2 {
+    pub fn get_leader_ahead(&self, position: &Transform, host: &SteeringHost) -> Vec2 {
         let dv = host.velocity.normalize_or_zero() * self.leader_behind_dist;
-        position.0 + dv
+        position.translation.xy() + dv
     }
 
-    pub fn is_on_leader_sight(&self, leader_position: &Position, position: &Position) -> bool {
-        (self.ahead - position.0).length() <= self.leader_sight_radius
-            || (leader_position.0 - position.0).length() <= self.leader_sight_radius
+    pub fn is_on_leader_sight(&self, leader_position: &Transform, position: &Transform) -> bool {
+        (self.ahead - position.translation.xy()).length() <= self.leader_sight_radius
+            || (leader_position.translation.xy() - position.translation.xy()).length() <= self.leader_sight_radius
     }
 }
+ */

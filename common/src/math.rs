@@ -1,4 +1,3 @@
-
 use bevy::prelude::*;
 use rand::{thread_rng, Rng};
 
@@ -55,3 +54,14 @@ pub fn choose_random<T>(arr: &[T]) -> (&T, usize) {
     (&arr[index], index)
 }
 
+pub fn is_flag_set(bits: i32, flag: i32) -> bool {
+    (bits & flag) != 0
+}
+
+pub fn sign(val: f32) -> i32 {
+    match val.partial_cmp(&0.0).unwrap() {
+        std::cmp::Ordering::Less => -1,
+        std::cmp::Ordering::Equal => 0,
+        std::cmp::Ordering::Greater => 1,
+    }
+}

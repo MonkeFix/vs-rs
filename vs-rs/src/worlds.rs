@@ -26,7 +26,6 @@ fn spawn_world(
     assets: Res<GameAssets>,
     room_store: Res<RoomStore>,
     map_assets: Res<Assets<MapAsset>>,
-    mut collider_store: ResMut<ColliderStore>,
 ) {
     let mut world_gen = WorldGenerator::new(&room_store);
 
@@ -49,7 +48,7 @@ fn spawn_world(
         &map_assets,
         "collision",
         "collision_fine",
-        &mut collider_store,
+        &mut commands,
         Vec2::new(x, y),
     );
 
