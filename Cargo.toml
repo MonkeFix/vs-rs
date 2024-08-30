@@ -2,8 +2,6 @@
 resolver = "2"
 members = [
     "common",
-    "collisions", 
-    "movement", 
     "vs-assets",
     "worldgen",
     "vs-rs",

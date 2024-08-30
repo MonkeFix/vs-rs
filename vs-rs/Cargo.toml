@@ -7,8 +7,6 @@ edition = "2021"
 
 [dependencies]
 common = { path = "../common" }
-#collisions = { path = "../collisions" }
-#movement = { path = "../movement" }
 worldgen = { path = "../worldgen" }
 vs-assets = { path = "../vs-assets" }
 physics = { path = "../physics" }

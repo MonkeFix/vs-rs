@@ -1464,15 +1464,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "collisions"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "common",
- "num_enum",
-]
-
-[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2690,15 +2681,6 @@ checksum = "b8a240ddb74feaf34a79a7add65a741f3167852fba007066dcac1ca548d89c08"
 dependencies = [
  "adler",
  "simd-adler32",
-]
-
-[[package]]
-name = "movement"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "collisions",
- "common",
 ]
 
 [[package]]
