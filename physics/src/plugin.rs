@@ -1,9 +1,12 @@
-use crate::{prelude::*, MovementCalculateEvent, PositionUpdateEvent};
+use crate::{prelude::*, InvokeTriggerEvent, MovementCalculateEvent, PositionUpdateEvent};
 use bevy::{color::palettes::css::RED, prelude::*};
 use colliders::Collider;
 use common::math::{is_flag_set, truncate_vec2};
 use spatial_hash::SpatialHash;
 use steering::*;
+
+#[derive(Component, Default)]
+pub struct RigidBodyStatic;
 
 pub struct PhysicsPlugin;
 
@@ -12,6 +15,7 @@ impl Plugin for PhysicsPlugin {
         app.insert_resource(SpatialHash::new(40))
             .add_event::<MovementCalculateEvent>()
             .add_event::<PositionUpdateEvent>()
+            .add_event::<InvokeTriggerEvent>()
             //.add_systems(Update, debug_draw)
             .add_systems(FixedUpdate, (steer, calc_movement, update_position).chain())
             .observe(on_collider_added)
@@ -89,6 +93,7 @@ fn steer(
 fn calc_movement(
     mut evt_movement_calc: EventReader<MovementCalculateEvent>,
     mut evt_pos_update: EventWriter<PositionUpdateEvent>,
+    mut evt_invoke_trigger: EventWriter<InvokeTriggerEvent>,
     spatial_hash: Res<SpatialHash>,
     hosts: Query<&SteeringHost>,
     colliders: Query<&Collider>,
@@ -102,8 +107,7 @@ fn calc_movement(
         let mut process_collider = |collider: &Collider| {
             // Host has a collider, calculating correct movement
             if collider.is_trigger {
-                // TODO: Invoke trigger
-                info!("collider.is_trigger");
+                // Skipping the trigger
                 send_pos_update(&mut evt_pos_update, evt);
                 return;
             }
@@ -125,15 +129,16 @@ fn calc_movement(
                     info!("no flag");
                     continue;
                 }
-                /* if !bounds.intersects(collider.bounds()) {
-                    continue;
-                } */
 
                 if let Some(collision) = collider.collides_with_motion(neighbor, motion) {
                     if !neighbor.is_trigger {
                         motion -= collision.min_translation;
                     } else {
-                        // TODO: Invoke trigger
+                        info!("collided with a trigger");
+                        evt_invoke_trigger.send(InvokeTriggerEvent {
+                            entity_main: evt.entity,
+                            entity_trigger: entity,
+                        });
                     }
                 }
             }

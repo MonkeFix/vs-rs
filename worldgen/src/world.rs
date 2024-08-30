@@ -117,6 +117,7 @@ impl World {
                                 width: rect.width,
                                 height: rect.height,
                             }),
+                            RigidBodyStatic,
                         ));
                     }
                 }
@@ -156,6 +157,7 @@ impl World {
                                 ..default()
                             },
                             Collider::new(shapes::ShapeType::Box { width, height }),
+                            RigidBodyStatic,
                         ));
                     }
                     tiled::ObjectShape::Ellipse { .. } => {

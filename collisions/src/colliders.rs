@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use common::FRect;
-use common::Position;
 
 use super::{
     shape_tests::*,

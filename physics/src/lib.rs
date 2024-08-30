@@ -16,3 +16,9 @@ pub(crate) struct PositionUpdateEvent {
     entity: Entity,
     movement: Vec2,
 }
+
+#[derive(Debug, Event)]
+pub struct InvokeTriggerEvent {
+    entity_main: Entity,
+    entity_trigger: Entity
+}
