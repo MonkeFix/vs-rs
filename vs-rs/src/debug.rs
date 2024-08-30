@@ -3,12 +3,13 @@ use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 #[cfg(debug_assertions)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use colliders::Collider;
 use common::Position;
+use steering::SteeringHost;
 
 use crate::enemy::Enemy;
 use crate::player::Player;
-use collisions::prelude::*;
-use movement::prelude::*;
+use crate::prelude::*;
 
 #[cfg(debug_assertions)]
 pub struct DebugPlugin;
@@ -115,11 +116,11 @@ fn handle_input(
 #[cfg(debug_assertions)]
 fn debug_draw(
     debug_settings: Res<DebugSettings>,
-    collider_store: Res<ColliderStore>,
+    //collider_store: Res<ColliderStore>,
     mut gizmos: Gizmos,
 ) {
     if debug_settings.collider_draw_enabled {
-        collider_store.debug_draw(&mut gizmos);
+        //collider_store.debug_draw(&mut gizmos);
     }
 }
 

@@ -32,14 +32,14 @@ fn calc_bounds(shape: &Shape, local_offset: Vec2) -> FRect {
     match shape.shape_type {
         ShapeType::None => FRect::new(0.0, 0.0, 0.0, 0.0),
         ShapeType::Circle { radius } => FRect::new(
-            shape.position.x + local_offset.x,
-            shape.position.y + local_offset.y,
+            shape.position.x + local_offset.x - radius,
+            shape.position.y + local_offset.y - radius,
             radius * 2.0,
             radius * 2.0,
         ),
         ShapeType::Box { width, height } => FRect::new(
-            shape.position.x + local_offset.x,
-            shape.position.y + local_offset.y,
+            shape.position.x + local_offset.x - width / 2.0,
+            shape.position.y + local_offset.y - height / 2.0,
             width,
             height,
         ),

@@ -1,7 +1,4 @@
 use bevy::prelude::*;
-use common::math::*;
-
-use crate::{MovementCalculateEvent, PositionUpdateEvent};
 
 pub trait SteeringTarget {
     fn position(&self) -> Vec2;

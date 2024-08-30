@@ -4,10 +4,14 @@ use crate::player::*;
 use crate::prelude::*;
 use crate::stats::*;
 use crate::AppState;
+use behaviors::SteerSeek;
 use bevy::time::TimerMode::Repeating;
-use movement::behaviors::SteerSeek;
+use colliders::Collider;
 use std::collections::HashMap;
 use std::time::Duration;
+use steering::PhysicalParams;
+use steering::SteeringBundle;
+use steering::SteeringHost;
 use vs_assets::enemies::EnemyConfig;
 use vs_assets::plugin::Configs;
 use vs_assets::plugin::GameAssets;
@@ -189,7 +193,6 @@ fn enemy_spawns_enabled(debug_settings: Res<DebugSettings>) -> bool {
 }
 
 fn spawn(
-    mut collider_set: ResMut<ColliderStore>,
     mut commands: Commands,
     mut spawn_map: ResMut<EnemySpawners>,
     mut player: Query<&mut Transform, With<Player>>,
@@ -214,7 +217,7 @@ fn spawn(
                             SpriteBundle,
                             SteeringBundle,
                             Name,
-                            ColliderBundle,
+                            Collider,
                         )> = Vec::new();
 
                         for i in
@@ -260,8 +263,7 @@ fn spawn(
                                     ..default()
                                 },
                                 SteeringBundle {
-                                    position: Position(Vec2::new(m_x, m_y)),
-                                    physics_params: PhysicsParams {
+                                    physics_params: PhysicalParams {
                                         max_velocity: spawner.max_velocity,
                                         max_force: spawner.max_force,
                                         mass: spawner.mass,
@@ -270,7 +272,8 @@ fn spawn(
                                     ..default()
                                 },
                                 Name::new(spawner.name.clone() + &i.to_string()),
-                                ColliderBundle {
+                                Collider::new(shapes::ShapeType::Circle { radius: 16.0 }),
+                                /* ColliderBundle {
                                     collider: ColliderComponent::new(
                                         &mut collider_set,
                                         ColliderData {
@@ -279,7 +282,7 @@ fn spawn(
                                         },
                                         None,
                                     ),
-                                },
+                                }, */
                             ));
                             if let Some(true) = spawner.is_elite {
                                 break;
@@ -298,16 +301,17 @@ fn spawn(
 
 #[allow(clippy::type_complexity)]
 fn movement(
-    player: Query<&Position, With<Player>>,
+    player: Query<&Transform, With<Player>>,
     mut enemies: Query<
-        (&mut Transform, &mut SteeringHost, &Position, &PhysicsParams),
+        (&mut Transform, &mut SteeringHost, &PhysicalParams),
         (With<Enemy>, Without<Player>),
     >,
 ) {
     if let Ok(player) = player.get_single() {
-        for (mut transform, mut host, pos, params) in &mut enemies {
-            let steering = SteerSeek.steer(pos, &host, params, &player.0);
-            host.steering += steering;
+        for (mut transform, mut host, params) in &mut enemies {
+            let steering = SteerSeek.steer(&transform, &host, params, &player.translation.xy());
+            //host.steering += steering;
+            host.steer(steering);
 
             if host.velocity.x < 0.0 {
                 transform.scale.x = -1.0;

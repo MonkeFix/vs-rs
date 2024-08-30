@@ -3,11 +3,16 @@ use crate::input::PlayerControls;
 use crate::prelude::*;
 use crate::stats::*;
 use crate::AppState;
+use behaviors::SteerSeek;
 use bevy::sprite::Anchor;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
-use collisions::prelude::*;
-use movement::behaviors::SteerSeek;
+use colliders::Collider;
+use physics::prelude::*;
+use shapes::Shape;
 use std::time::Duration;
+use steering::PhysicalParams;
+use steering::SteeringBundle;
+use steering::SteeringHost;
 use vs_assets::plugin::GameAssets;
 
 pub struct PlayerPlugin;
@@ -59,7 +64,7 @@ impl PlayerBundle {
     }
 }
 
-fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets: Res<GameAssets>) {
+fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
     let player_tileset = &assets.player_tilesheet;
 
     commands
@@ -77,16 +82,10 @@ fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets
             },
             SteeringBundle { ..default() },
             Name::new("player"),
-            ColliderBundle {
-                collider: ColliderComponent::new(
-                    &mut collider_set,
-                    ColliderData {
-                        shape_type: ColliderShapeType::Circle { radius: 10.0 },
-                        local_offset: Vec2::new(0.0, -16.0),
-                        ..default()
-                    },
-                    None,
-                ),
+            Collider {
+                shape: Shape::new(shapes::ShapeType::Circle { radius: 10.0 }),
+                local_offset: Vec2::new(0.0, -16.0),
+                ..default()
             },
         ))
         .with_children(|c| {
@@ -182,8 +181,8 @@ fn movement(
     mut steering_host: Query<
         (
             &mut SteeringHost,
-            &Position,
-            &PhysicsParams,
+            &Transform,
+            &PhysicalParams,
             &Direction,
             &Player,
         ),
@@ -191,7 +190,7 @@ fn movement(
     >,
 ) {
     if let Ok((mut host, pos, params, dir, player)) = steering_host.get_single_mut() {
-        let target = pos.0 + dir.0;
+        let target = pos.translation.xy() + dir.0;
 
         let steering = player.steer_seek.steer(pos, &host, params, &target);
 
@@ -219,15 +218,15 @@ fn update_sprite(mut query: Query<(&Direction, &mut Sprite), With<Player>>) {
 
 fn check_enemy_collision(
     time: Res<Time>,
-    mut player_collider: Query<(&ColliderComponent, &mut Health, &mut PlTimer), With<Player>>,
+    mut player_collider: Query<(&Collider, &mut Health, &mut PlTimer), With<Player>>,
     enemies: Query<&Damage, (With<Enemy>, Without<Player>)>,
-    collider_store: Res<ColliderStore>,
 ) {
-    if let Ok((id, mut hp, mut timer)) = player_collider.get_single_mut() {
-        let player_collider = collider_store.get(id.id).unwrap();
+    if let Ok((player_collider, mut hp, mut timer)) = player_collider.get_single_mut() {
+        // TODO: Observe collisions
+        //let player_collider = collider_store.get(id.id).unwrap();
 
-        let rect = player_collider.bounds();
-        let neighbors = collider_store.aabb_broadphase_excluding_self(id.id, rect, None);
+        /* let rect = player_collider.bounds();
+        let neighbors = collider_store.aabb_broadphase_excluding_self(player_collider.id, rect, None);
         for neighbor in neighbors {
             let collider = collider_store.get(neighbor).unwrap();
             if player_collider.collides_with(collider).is_some() {
@@ -243,7 +242,7 @@ fn check_enemy_collision(
                     }
                 }
             }
-        }
+        } */
     }
 }
 

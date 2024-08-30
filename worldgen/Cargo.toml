@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 "common" = { path = "../common" }
-"collisions" = { path = "../collisions" }
+#"collisions" = { path = "../collisions" }
+physics = { path = "../physics" }
 "vs-assets" = { path = "../vs-assets" }
 "bevy" = { version = "0.14"}
 bevy_simple_tilemap = "0.15"

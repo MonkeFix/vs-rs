@@ -5,17 +5,14 @@ use common::math::{is_flag_set, truncate_vec2};
 use spatial_hash::SpatialHash;
 use steering::*;
 
-// Order of actions:
-// 1) SteeringHost::steer() call
-// 2) steering::steer() system which updates SteeringHost's fields (velocity and steering)
-// 3) steering::update_positions() system which calls calc_movement() function
-
 pub struct PhysicsPlugin;
 
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SpatialHash::new(40))
-            .add_systems(Update, debug_draw)
+            .add_event::<MovementCalculateEvent>()
+            .add_event::<PositionUpdateEvent>()
+            //.add_systems(Update, debug_draw)
             .add_systems(FixedUpdate, (steer, calc_movement, update_position).chain())
             .observe(on_collider_added)
             .observe(on_collider_removed);
@@ -34,11 +31,14 @@ fn debug_draw(
             match collider.shape.shape_type {
                 shapes::ShapeType::None => {}
                 shapes::ShapeType::Circle { radius } => {
-                    gizmos.circle_2d(collider.shape.position, radius, RED);
+                    gizmos.circle_2d(collider.absolute_position(), radius, RED);
                 }
-                shapes::ShapeType::Box { width, height } => {
-                    gizmos.rect_2d(collider.shape.position, 0.0, Vec2::new(width, height), RED)
-                }
+                shapes::ShapeType::Box { width, height } => gizmos.rect_2d(
+                    collider.absolute_position(),
+                    0.0,
+                    Vec2::new(width, height),
+                    RED,
+                ),
             }
         }
     }
@@ -76,11 +76,11 @@ fn steer(
         host.velocity = truncate_vec2(host.velocity + steering, params.max_velocity);
 
         host.movement = host.velocity * time.delta_seconds();
-
-        evt_movement_calc.send(MovementCalculateEvent {
+        let evt = MovementCalculateEvent {
             entity,
             movement: host.movement,
-        });
+        };
+        evt_movement_calc.send(evt);
 
         host.velocity *= params.friction;
     }
@@ -99,46 +99,50 @@ fn calc_movement(
 
         let mut motion = evt.movement;
 
+        let mut process_collider = |collider: &Collider| {
+            // Host has a collider, calculating correct movement
+            if collider.is_trigger {
+                // TODO: Invoke trigger
+                info!("collider.is_trigger");
+                send_pos_update(&mut evt_pos_update, evt);
+                return;
+            }
+
+            let mut bounds = collider.bounds();
+            bounds.x += evt.movement.x;
+            bounds.y += evt.movement.y;
+
+            let neighbors = spatial_hash.get_nearby_bounds(bounds);
+            for entity in neighbors {
+                // Skip self
+                if entity == evt.entity {
+                    continue;
+                }
+                let neighbor = colliders.get(entity).ok().unwrap();
+
+                // Skip if collider doesn't collide with neighbor's physics layer
+                if !is_flag_set(collider.collides_with_layers, neighbor.physics_layer) {
+                    info!("no flag");
+                    continue;
+                }
+                /* if !bounds.intersects(collider.bounds()) {
+                    continue;
+                } */
+
+                if let Some(collision) = collider.collides_with_motion(neighbor, motion) {
+                    if !neighbor.is_trigger {
+                        motion -= collision.min_translation;
+                    } else {
+                        // TODO: Invoke trigger
+                    }
+                }
+            }
+        };
+
         if let Ok(_host) = host {
             match collider {
                 Ok(collider) => {
-                    // Host has a collider, calculating correct movement
-                    if collider.is_trigger {
-                        // TODO: Invoke trigger
-                        send_pos_update(&mut evt_pos_update, evt);
-                        continue;
-                    }
-
-                    let mut bounds = collider.bounds();
-                    bounds.x += evt.movement.x;
-                    bounds.y += evt.movement.y;
-
-                    let neighbors = spatial_hash.get_nearby_bounds(bounds);
-                    for entity in neighbors {
-                        // Skip self
-                        if entity == evt.entity {
-                            continue;
-                        }
-                        let neighbor = colliders.get(entity).ok().unwrap();
-
-                        // Skip if collider doesn't collide with neighbor's physics layer
-                        if !is_flag_set(collider.collides_with_layers, neighbor.physics_layer) {
-                            continue;
-                        }
-                        if !bounds.intersects(collider.bounds()) {
-                            continue;
-                        }
-
-                        if let Some(collision) =
-                            collider.collides_with_motion(neighbor, evt.movement)
-                        {
-                            if !neighbor.is_trigger {
-                                motion -= collision.min_translation;
-                            } else {
-                                // TODO: Invoke trigger
-                            }
-                        }
-                    }
+                    process_collider(collider);
                 }
                 Err(_) => {
                     // Host has no colliders, just sending the event further
