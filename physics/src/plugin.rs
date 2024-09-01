@@ -1,4 +1,7 @@
-use crate::{prelude::*, InvokeTriggerEvent, MovementCalculateEvent, PositionUpdateEvent};
+use crate::{
+    prelude::*, CollideEvent, InvokeTriggerEvent, MovementCalculateEvent, PositionUpdateEvent,
+};
+use behaviors::{steer_seek, steer_seek_vec2};
 use bevy::{color::palettes::css::RED, prelude::*};
 use colliders::Collider;
 use common::math::{is_flag_set, truncate_vec2};
@@ -16,7 +19,7 @@ impl Plugin for PhysicsPlugin {
             .add_event::<MovementCalculateEvent>()
             .add_event::<PositionUpdateEvent>()
             .add_event::<InvokeTriggerEvent>()
-            //.add_systems(Update, debug_draw)
+            .add_systems(Update, (steer_seek, steer_seek_vec2))
             .add_systems(FixedUpdate, (steer, calc_movement, update_position).chain())
             .observe(on_collider_added)
             .observe(on_collider_removed);
@@ -94,6 +97,7 @@ fn calc_movement(
     mut evt_movement_calc: EventReader<MovementCalculateEvent>,
     mut evt_pos_update: EventWriter<PositionUpdateEvent>,
     mut evt_invoke_trigger: EventWriter<InvokeTriggerEvent>,
+    mut commands: Commands,
     spatial_hash: Res<SpatialHash>,
     hosts: Query<&SteeringHost>,
     colliders: Query<&Collider>,
@@ -117,12 +121,12 @@ fn calc_movement(
             bounds.y += evt.movement.y;
 
             let neighbors = spatial_hash.get_nearby_bounds(bounds);
-            for entity in neighbors {
+            for neighbor_entity in neighbors {
                 // Skip self
-                if entity == evt.entity {
+                if neighbor_entity == evt.entity {
                     continue;
                 }
-                let neighbor = colliders.get(entity).ok().unwrap();
+                let neighbor = colliders.get(neighbor_entity).ok().unwrap();
 
                 // Skip if collider doesn't collide with neighbor's physics layer
                 if !is_flag_set(collider.collides_with_layers, neighbor.physics_layer) {
@@ -133,11 +137,22 @@ fn calc_movement(
                 if let Some(collision) = collider.collides_with_motion(neighbor, motion) {
                     if !neighbor.is_trigger {
                         motion -= collision.min_translation;
+                        commands.trigger(CollideEvent {
+                            entity_main: evt.entity,
+                            collided_with: neighbor_entity,
+                        });
+                        commands.trigger_targets(
+                            CollideEvent {
+                                entity_main: evt.entity,
+                                collided_with: neighbor_entity,
+                            },
+                            evt.entity,
+                        );
                     } else {
                         info!("collided with a trigger");
                         evt_invoke_trigger.send(InvokeTriggerEvent {
                             entity_main: evt.entity,
-                            entity_trigger: entity,
+                            entity_trigger: neighbor_entity,
                         });
                     }
                 }

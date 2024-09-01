@@ -19,6 +19,12 @@ pub(crate) struct PositionUpdateEvent {
 
 #[derive(Debug, Event)]
 pub struct InvokeTriggerEvent {
-    entity_main: Entity,
-    entity_trigger: Entity
+    pub entity_main: Entity,
+    pub entity_trigger: Entity,
+}
+
+#[derive(Debug, Event)]
+pub struct CollideEvent {
+    pub entity_main: Entity,
+    pub collided_with: Entity,
 }

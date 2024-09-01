@@ -1,11 +1,47 @@
-use crate::prelude::{colliders::Collider, spatial_hash::SpatialHash};
-
-use super::steering::{PhysicalParams, SteeringHost, SteeringTarget};
+use super::steering::{
+    PhysicalParams, SteeringHost, SteeringTarget, SteeringTargetEntity, SteeringTargetVec2,
+};
 use bevy::prelude::*;
 use common::math::rng_f32;
 
 /// Seeks the specified target moving directly towards it.
+#[derive(Component, Default)]
 pub struct SteerSeek;
+
+pub(crate) fn steer_seek(
+    mut hosts: Query<(
+        &SteerSeek,
+        &SteeringTargetEntity,
+        &mut SteeringHost,
+        &Transform,
+        &PhysicalParams,
+    )>,
+    targets: Query<&Transform>,
+) {
+    for (seek, target_entity, mut host, transform, params) in hosts.iter_mut() {
+        if let Ok(target) = targets.get(target_entity.0) {
+            let steering = seek.steer(transform, &host, params, target);
+            host.steer(steering);
+        }
+    }
+}
+
+pub(crate) fn steer_seek_vec2(
+    mut hosts: Query<(
+        &SteerSeek,
+        &SteeringTargetVec2,
+        &mut SteeringHost,
+        &Transform,
+        &PhysicalParams,
+    )>,
+) {
+    for (seek, target, mut host, transform, params) in hosts.iter_mut() {
+        if target.0 != Vec2::ZERO {
+            let steering = seek.steer(transform, &host, params, &target.0);
+            host.steer(steering);
+        } 
+    }
+}
 
 impl SteerSeek {
     pub fn steer(

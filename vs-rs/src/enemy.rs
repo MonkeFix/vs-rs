@@ -12,6 +12,7 @@ use std::time::Duration;
 use steering::PhysicalParams;
 use steering::SteeringBundle;
 use steering::SteeringHost;
+use steering::SteeringTargetEntity;
 use vs_assets::enemies::EnemyConfig;
 use vs_assets::plugin::Configs;
 use vs_assets::plugin::GameAssets;
@@ -195,7 +196,7 @@ fn enemy_spawns_enabled(debug_settings: Res<DebugSettings>) -> bool {
 fn spawn(
     mut commands: Commands,
     mut spawn_map: ResMut<EnemySpawners>,
-    mut player: Query<&mut Transform, With<Player>>,
+    mut player: Query<(&mut Transform, Entity), With<Player>>,
     mut current_wave: ResMut<CurrentWave>,
     global_time_ticker: Res<GlobalTimeTickerResource>,
 ) {
@@ -209,16 +210,10 @@ fn spawn(
                     if Some(true) == spawner.is_elite && !current_wave.need_wave_spawn {
                         continue;
                     }
-                    if let Ok(p_t) = player.get_single_mut() {
+                    if let Ok((player_transform, player_entity)) = player.get_single_mut() {
                         let is_left = thread_rng().gen_range(0..2);
                         let is_up = thread_rng().gen_range(0..2);
-                        let mut enemy_batch: Vec<(
-                            EnemyBundle,
-                            SpriteBundle,
-                            SteeringBundle,
-                            Name,
-                            Collider,
-                        )> = Vec::new();
+                        let mut enemy_batch = Vec::new();
 
                         for i in
                             1..thread_rng().gen_range(ENEMY_BATCH_SIZE.min..ENEMY_BATCH_SIZE.max)
@@ -226,29 +221,29 @@ fn spawn(
                             let (m_x, m_y, m_z): (f32, f32, f32);
                             if is_left == 1 {
                                 m_x = thread_rng().gen_range(
-                                    p_t.translation.x - SPAWN_DISTANCE.max
-                                        ..p_t.translation.x - SPAWN_DISTANCE.min,
+                                    player_transform.translation.x - SPAWN_DISTANCE.max
+                                        ..player_transform.translation.x - SPAWN_DISTANCE.min,
                                 );
                             } else {
                                 m_x = thread_rng().gen_range(
-                                    p_t.translation.x + SPAWN_DISTANCE.min
-                                        ..p_t.translation.x + SPAWN_DISTANCE.max,
+                                    player_transform.translation.x + SPAWN_DISTANCE.min
+                                        ..player_transform.translation.x + SPAWN_DISTANCE.max,
                                 );
                             }
 
                             if is_up == 1 {
                                 m_y = thread_rng().gen_range(
-                                    p_t.translation.y - SPAWN_DISTANCE.max
-                                        ..p_t.translation.y - SPAWN_DISTANCE.min,
+                                    player_transform.translation.y - SPAWN_DISTANCE.max
+                                        ..player_transform.translation.y - SPAWN_DISTANCE.min,
                                 );
                             } else {
                                 m_y = thread_rng().gen_range(
-                                    p_t.translation.y + SPAWN_DISTANCE.min
-                                        ..p_t.translation.y + SPAWN_DISTANCE.max,
+                                    player_transform.translation.y + SPAWN_DISTANCE.min
+                                        ..player_transform.translation.y + SPAWN_DISTANCE.max,
                                 );
                             }
 
-                            m_z = p_t.translation.z;
+                            m_z = player_transform.translation.z;
                             enemy_batch.push((
                                 EnemyBundle::new(
                                     spawner.health.clone(),
@@ -273,16 +268,8 @@ fn spawn(
                                 },
                                 Name::new(spawner.name.clone() + &i.to_string()),
                                 Collider::new(shapes::ShapeType::Circle { radius: 16.0 }),
-                                /* ColliderBundle {
-                                    collider: ColliderComponent::new(
-                                        &mut collider_set,
-                                        ColliderData {
-                                            shape_type: ColliderShapeType::Circle { radius: 16.0 },
-                                            ..default()
-                                        },
-                                        None,
-                                    ),
-                                }, */
+                                SteerSeek,
+                                SteeringTargetEntity(player_entity),
                             ));
                             if let Some(true) = spawner.is_elite {
                                 break;
@@ -300,24 +287,12 @@ fn spawn(
 }
 
 #[allow(clippy::type_complexity)]
-fn movement(
-    player: Query<&Transform, With<Player>>,
-    mut enemies: Query<
-        (&mut Transform, &mut SteeringHost, &PhysicalParams),
-        (With<Enemy>, Without<Player>),
-    >,
-) {
-    if let Ok(player) = player.get_single() {
-        for (mut transform, mut host, params) in &mut enemies {
-            let steering = SteerSeek.steer(&transform, &host, params, &player.translation.xy());
-            //host.steering += steering;
-            host.steer(steering);
-
-            if host.velocity.x < 0.0 {
-                transform.scale.x = -1.0;
-            } else {
-                transform.scale.x = 1.0
-            }
+fn movement(mut enemies: Query<(&mut Transform, &SteeringHost), (With<Enemy>, Without<Player>)>) {
+    for (mut transform, host) in &mut enemies {
+        if host.velocity.x < 0.0 {
+            transform.scale.x = -1.0;
+        } else {
+            transform.scale.x = 1.0
         }
     }
 }
