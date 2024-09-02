@@ -1,7 +1,9 @@
 use crate::{
     prelude::*, CollideEvent, InvokeTriggerEvent, MovementCalculateEvent, PositionUpdateEvent,
 };
-use behaviors::{steer_seek, steer_seek_vec2};
+use behaviors::{
+    steer_collision_avoidance, steer_entity, steer_vec2, SteerArrival, SteerFlee, SteerSeek,
+};
 use bevy::{color::palettes::css::RED, prelude::*};
 use colliders::Collider;
 use common::math::{is_flag_set, truncate_vec2};
@@ -19,7 +21,16 @@ impl Plugin for PhysicsPlugin {
             .add_event::<MovementCalculateEvent>()
             .add_event::<PositionUpdateEvent>()
             .add_event::<InvokeTriggerEvent>()
-            .add_systems(Update, (steer_seek, steer_seek_vec2))
+            .add_systems(
+                Update,
+                (
+                    steer_entity::<SteerSeek>,
+                    steer_vec2::<SteerSeek>,
+                    steer_entity::<SteerArrival>,
+                    steer_vec2::<SteerArrival>,
+                    steer_collision_avoidance,
+                ),
+            )
             .add_systems(FixedUpdate, (steer, calc_movement, update_position).chain())
             .observe(on_collider_added)
             .observe(on_collider_removed);
@@ -102,6 +113,7 @@ fn calc_movement(
     hosts: Query<&SteeringHost>,
     colliders: Query<&Collider>,
 ) {
+    info_span!("calc_movement", name = "calc_movement");
     for evt in evt_movement_calc.read() {
         let host = hosts.get(evt.entity);
         let collider = colliders.get(evt.entity);
@@ -120,23 +132,22 @@ fn calc_movement(
             bounds.x += evt.movement.x;
             bounds.y += evt.movement.y;
 
-            let neighbors = spatial_hash.get_nearby_bounds(bounds);
-            for neighbor_entity in neighbors {
-                // Skip self
-                if neighbor_entity == evt.entity {
-                    continue;
-                }
-                let neighbor = colliders.get(neighbor_entity).ok().unwrap();
+            let neighbors = spatial_hash.aabb_broadphase(
+                &colliders,
+                bounds,
+                Some(evt.entity),
+                None,
+                //Some(collider.collides_with_layers),
+            );
 
-                // Skip if collider doesn't collide with neighbor's physics layer
-                if !is_flag_set(collider.collides_with_layers, neighbor.physics_layer) {
-                    info!("no flag");
-                    continue;
-                }
+            for neighbor_entity in neighbors {
+                let neighbor = colliders.get(neighbor_entity).ok().unwrap();
 
                 if let Some(collision) = collider.collides_with_motion(neighbor, motion) {
                     if !neighbor.is_trigger {
-                        motion -= collision.min_translation;
+                        if is_flag_set(collider.collides_with_layers, neighbor.physics_layer) {
+                            motion -= collision.min_translation;
+                        }
                         commands.trigger(CollideEvent {
                             entity_main: evt.entity,
                             collided_with: neighbor_entity,
@@ -190,11 +201,14 @@ fn update_position(
         transform.translation.x += ev.movement.x;
         transform.translation.y += ev.movement.y;
 
-        let collider = colliders.get_mut(ev.entity);
-        if let Ok(mut collider) = collider {
-            spatial_hash.remove(&collider, ev.entity);
-            collider.update_from_transform(&transform);
-            spatial_hash.register(&collider, ev.entity);
+        if ev.movement != Vec2::ZERO {
+            let collider = colliders.get_mut(ev.entity);
+            if let Ok(mut collider) = collider {
+                info_span!("update_position_hash", name = "update_position_hash");
+                spatial_hash.remove(&collider, ev.entity);
+                collider.update_from_transform(&transform);
+                spatial_hash.register(&collider, ev.entity);
+            }
         }
     }
 }

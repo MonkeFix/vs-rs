@@ -81,6 +81,8 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
             Collider {
                 shape: Shape::new(shapes::ShapeType::Circle { radius: 10.0 }),
                 local_offset: Vec2::new(0.0, -16.0),
+                physics_layer: 2,
+                collides_with_layers: 1 | 2,
                 ..default()
             },
             SteerSeek,

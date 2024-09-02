@@ -25,9 +25,20 @@ pub struct SteeringTargetComponent;
 #[derive(Component, Debug, Default)]
 pub struct SteeringTargetVec2(pub Vec2);
 
-#[derive(Component, Debug)]
-pub struct SteeringTargetVelocity {
+#[derive(Component, Debug, Default)]
+pub struct SteeringTargetFull {
+    pub position: Vec2,
     pub velocity: Vec2,
+}
+
+impl SteeringTarget for SteeringTargetFull {
+    fn position(&self) -> Vec2 {
+        self.position
+    }
+
+    fn velocity(&self) -> Vec2 {
+        self.velocity
+    }
 }
 
 #[derive(Component, Debug)]

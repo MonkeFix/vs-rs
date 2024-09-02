@@ -1,51 +1,101 @@
+use crate::prelude::{colliders::Collider, spatial_hash::SpatialHash};
+
 use super::steering::{
-    PhysicalParams, SteeringHost, SteeringTarget, SteeringTargetEntity, SteeringTargetVec2,
+    PhysicalParams, SteeringHost, SteeringTarget, SteeringTargetEntity, SteeringTargetFull,
+    SteeringTargetVec2,
 };
 use bevy::prelude::*;
 use common::math::rng_f32;
+
+pub trait SteeringBehavior: Component {
+    fn steer(
+        &mut self,
+        transform: &Transform,
+        host: &SteeringHost,
+        params: &PhysicalParams,
+        target: &impl SteeringTarget,
+    ) -> Vec2;
+}
 
 /// Seeks the specified target moving directly towards it.
 #[derive(Component, Default)]
 pub struct SteerSeek;
 
-pub(crate) fn steer_seek(
+pub(crate) fn steer_entity<T: SteeringBehavior + Component>(
     mut hosts: Query<(
-        &SteerSeek,
+        &mut T,
         &SteeringTargetEntity,
         &mut SteeringHost,
         &Transform,
         &PhysicalParams,
     )>,
-    targets: Query<&Transform>,
+    targets: Query<(&Transform, &SteeringHost), Without<SteeringTargetEntity>>,
 ) {
-    for (seek, target_entity, mut host, transform, params) in hosts.iter_mut() {
-        if let Ok(target) = targets.get(target_entity.0) {
-            let steering = seek.steer(transform, &host, params, target);
+    for (mut behavior, target_entity, mut host, transform, params) in hosts.iter_mut() {
+        if let Ok((target_transform, target_host)) = targets.get(target_entity.0) {
+            let steering = behavior.steer(
+                transform,
+                &host,
+                params,
+                &SteeringTargetFull {
+                    position: target_transform.translation.xy(),
+                    velocity: target_host.velocity,
+                },
+            );
             host.steer(steering);
         }
     }
 }
 
-pub(crate) fn steer_seek_vec2(
+pub(crate) fn steer_vec2<T: SteeringBehavior + Component>(
     mut hosts: Query<(
-        &SteerSeek,
+        &mut T,
         &SteeringTargetVec2,
         &mut SteeringHost,
         &Transform,
         &PhysicalParams,
     )>,
 ) {
-    for (seek, target, mut host, transform, params) in hosts.iter_mut() {
+    for (mut behavior, target, mut host, transform, params) in hosts.iter_mut() {
         if target.0 != Vec2::ZERO {
-            let steering = seek.steer(transform, &host, params, &target.0);
+            let steering = behavior.steer(transform, &host, params, &target.0);
             host.steer(steering);
-        } 
+        }
     }
 }
 
-impl SteerSeek {
-    pub fn steer(
-        &self,
+pub(crate) fn steer_collision_avoidance(
+    mut hosts: Query<(
+        &mut SteerCollisionAvoidance,
+        &Collider,
+        &mut SteeringHost,
+        &Transform,
+        &PhysicalParams,
+        Entity,
+    )>,
+    colliders: Query<&Collider>,
+    hash: Res<SpatialHash>,
+    mut gizmos: Gizmos,
+) {
+    for (mut behavior, collider, mut host, transform, params, entity) in hosts.iter_mut() {
+        let steering = behavior.steer(
+            transform,
+            &host,
+            collider,
+            entity,
+            &colliders,
+            &hash,
+            params,
+            &mut gizmos,
+        );
+        //host.steer(steering);
+        host.steering += steering;
+    }
+}
+
+impl SteeringBehavior for SteerSeek {
+    fn steer(
+        &mut self,
         position: &Transform,
         host: &SteeringHost,
         params: &PhysicalParams,
@@ -60,11 +110,12 @@ impl SteerSeek {
 
 /// Flees from the specified target moving away from it.
 /// Works the same way as `SteerSeek` but the result vector is inverted.
+#[derive(Component)]
 pub struct SteerFlee;
 
-impl SteerFlee {
-    pub fn steer(
-        &self,
+impl SteeringBehavior for SteerFlee {
+    fn steer(
+        &mut self,
         position: &Transform,
         host: &SteeringHost,
         params: &PhysicalParams,
@@ -80,7 +131,7 @@ impl SteerFlee {
 /// Moves towards the specified target slowing down gradually as the host is
 /// getting closer. The slowing starts when the host is within circle with radius
 /// `slowing_radius`.
-#[derive(Debug, Clone, Copy, Reflect)]
+#[derive(Component, Debug, Clone, Copy, Reflect)]
 pub struct SteerArrival {
     pub slowing_radius: f32,
 }
@@ -93,9 +144,9 @@ impl Default for SteerArrival {
     }
 }
 
-impl SteerArrival {
-    pub fn steer(
-        &self,
+impl SteeringBehavior for SteerArrival {
+    fn steer(
+        &mut self,
         position: &Transform,
         host: &SteeringHost,
         params: &PhysicalParams,
@@ -197,6 +248,81 @@ impl SteerWander {
         wander_force.normalize_or_zero() * params.max_velocity - host.velocity
     }
 }
+
+#[derive(Component, Debug, Clone, Copy)]
+pub struct SteerCollisionAvoidance {
+    pub max_see_ahead: f32,
+    pub avoid_force: f32,
+    ahead: Vec2,
+    avoidance: Vec2,
+}
+
+impl Default for SteerCollisionAvoidance {
+    fn default() -> Self {
+        Self {
+            max_see_ahead: 18.0,
+            avoid_force: 200.0,
+            ahead: Vec2::ZERO,
+            avoidance: Vec2::ZERO,
+        }
+    }
+}
+
+impl SteerCollisionAvoidance {
+    fn steer(
+        &mut self,
+        transform: &Transform,
+        host: &SteeringHost,
+        collider: &Collider,
+        entity: Entity,
+        query: &Query<&Collider>,
+        hash: &SpatialHash,
+        params: &PhysicalParams,
+        gizmos: &mut Gizmos,
+    ) -> Vec2 {
+        let dv = host.velocity.normalize_or_zero()
+            * (self.max_see_ahead * host.velocity.length() / params.max_velocity);
+
+        self.ahead = transform.translation.xy() + dv;
+
+        let circle_center = collider.center()
+            - collider.bounds().width / 2.0 // account for the radius
+            + Vec2::new(self.ahead.x, self.ahead.y);
+
+        //gizmos.circle_2d(circle_center, 16., Color::srgb(1.0, 1.0, 0.0));
+        let mut neighbors = vec![];
+        hash.overlap_circle(
+            query,
+            circle_center,
+            16.,
+            Some(entity),
+            Some(&mut neighbors),
+            Some(collider.collides_with_layers),
+        );
+
+        let mut distance = f32::MAX;
+        let mut closest = None;
+
+        for neighbor_id in neighbors {
+            let neighbor = query.get(neighbor_id).ok().unwrap();
+            let d = (neighbor.absolute_position() - collider.absolute_position()).length();
+            if d < distance {
+                distance = d;
+                closest = Some(neighbor);
+            }
+        }
+
+        if let Some(closest) = closest {
+            self.avoidance =
+                (self.ahead - closest.absolute_position()).normalize_or_zero() * self.avoid_force;
+        } else {
+            self.avoidance *= 0.0;
+        }
+
+        self.avoidance
+    }
+}
+
 /*
 /// Tries to avoid all collisions by checking the closest threatening collider on its way.
 #[derive(Debug, Clone, Copy, Reflect)]

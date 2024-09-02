@@ -192,7 +192,7 @@ impl Collider {
         other: &'a Collider,
         motion: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
-        if self.is_trigger || other.is_trigger {
+        if self.is_trigger {
             return None;
         }
 
@@ -268,15 +268,7 @@ impl Collider {
     }
 
     pub(crate) fn update_from_transform(&mut self, transform: &Transform) {
-        if !self.needs_update(transform) {
-            return;
-        }
-
         self.set_position(transform.translation.xy());
-    }
-
-    pub(crate) fn needs_update(&self, transform: &Transform) -> bool {
-        self.shape.position != transform.translation.xy()
     }
 
     fn calc_bounds(&self) -> FRect {

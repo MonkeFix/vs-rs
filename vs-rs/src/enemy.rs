@@ -4,9 +4,12 @@ use crate::player::*;
 use crate::prelude::*;
 use crate::stats::*;
 use crate::AppState;
+use behaviors::SteerArrival;
+use behaviors::SteerCollisionAvoidance;
 use behaviors::SteerSeek;
 use bevy::time::TimerMode::Repeating;
 use colliders::Collider;
+use shapes::Shape;
 use std::collections::HashMap;
 use std::time::Duration;
 use steering::PhysicalParams;
@@ -91,7 +94,7 @@ const SPAWN_DISTANCE: MinMaxStruct<f32> = MinMaxStruct {
     max: 800.0,
 };
 
-const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 5, max: 20 };
+const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 15, max: 20 };
 #[derive(Resource)]
 struct GlobalTimeTickerResource(Timer);
 
@@ -267,8 +270,17 @@ fn spawn(
                                     ..default()
                                 },
                                 Name::new(spawner.name.clone() + &i.to_string()),
-                                Collider::new(shapes::ShapeType::Circle { radius: 16.0 }),
-                                SteerSeek,
+                                Collider {
+                                    shape: Shape::new(shapes::ShapeType::Circle { radius: 16.0 }),
+                                    physics_layer: 0b100,
+                                    collides_with_layers: 0b101,
+                                    ..default()
+                                },
+                                //SteerSeek,
+                                SteerArrival {
+                                    slowing_radius: 64.0,
+                                },
+                                //SteerCollisionAvoidance::default(),
                                 SteeringTargetEntity(player_entity),
                             ));
                             if let Some(true) = spawner.is_elite {
@@ -287,13 +299,22 @@ fn spawn(
 }
 
 #[allow(clippy::type_complexity)]
-fn movement(mut enemies: Query<(&mut Transform, &SteeringHost), (With<Enemy>, Without<Player>)>) {
-    for (mut transform, host) in &mut enemies {
-        if host.velocity.x < 0.0 {
+fn movement(
+    mut enemies: Query<(&mut Transform, &SteeringHost), (With<Enemy>, Without<Player>)>,
+    player: Query<&Transform, (With<Player>, Without<Enemy>)>,
+) {
+    let player = player.get_single().unwrap();
+    for (mut transform, _host) in &mut enemies {
+        if transform.translation.x - player.translation.x < 0.0 {
+            transform.scale.x = 1.0;
+        } else {
+            transform.scale.x = -1.0;
+        }
+        /* if host.velocity.x < 0.0 {
             transform.scale.x = -1.0;
         } else {
             transform.scale.x = 1.0
-        }
+        } */
     }
 }
 
