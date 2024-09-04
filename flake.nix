@@ -48,7 +48,7 @@
         src = lib.cleanSourceWith {
           src = ./.;
           filter = path: type:
-            (lib.hasInfix "/assets/" path) ||
+            (lib.hasInfix "/vs-rs/assets/" path) ||
             (craneLib.filterCargoSources path type)
           ;
         };
@@ -66,7 +66,7 @@
         cargoVendorDir = vendorCargoDeps { cargoLock = ./Cargo.lock; };
 
         postInstall = ''
-          cp -r --no-preserve=mode,ownership ./assets/ $out/bin/assets
+          cp -r --no-preserve=mode,ownership ./vs-rs/assets $out/bin/
         '';
       });
 
