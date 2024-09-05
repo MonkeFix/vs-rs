@@ -1,0 +1,14 @@
+[package]
+name = "worldgen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+"common" = { path = "../common" }
+"collisions" = { path = "../collisions" }
+"vs-assets" = { path = "../vs-assets" }
+"bevy" = { version = "0.14"}
+bevy_simple_tilemap = "0.15"
+tiled = "0.12"
+pathfinding = "4.9"
+rand = "0.8.5"

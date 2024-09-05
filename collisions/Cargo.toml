@@ -1,0 +1,9 @@
+[package]
+name = "collisions"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+"common" = { path = "../common" }
+"bevy" = { version = "0.14"}
+num_enum = "0.7"

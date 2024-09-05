@@ -1464,6 +1464,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "collisions"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "common",
+ "num_enum",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1508,6 +1517,14 @@ checksum = "ba5a308b75df32fe02788e748662718f03fde005016435c444eea572398219fd"
 dependencies = [
  "bytes",
  "memchr",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "rand",
 ]
 
 [[package]]
@@ -2673,6 +2690,15 @@ checksum = "b8a240ddb74feaf34a79a7add65a741f3167852fba007066dcac1ca548d89c08"
 dependencies = [
  "adler",
  "simd-adler32",
+]
+
+[[package]]
+name = "movement"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "collisions",
+ "common",
 ]
 
 [[package]]
@@ -4099,6 +4125,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
+name = "vs-assets"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "common",
+ "rand",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tiled",
+]
+
+[[package]]
 name = "vs-rs"
 version = "0.1.0"
 dependencies = [
@@ -4106,6 +4145,9 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_framepace",
  "bevy_simple_tilemap",
+ "collisions",
+ "common",
+ "movement",
  "num_enum",
  "pathfinding",
  "rand",
@@ -4113,6 +4155,8 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tiled",
+ "vs-assets",
+ "worldgen",
 ]
 
 [[package]]
@@ -4915,6 +4959,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68a9bda4691f099d435ad181000724da8e5899daa10713c2d432552b9ccd3a6f"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "worldgen"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_simple_tilemap",
+ "collisions",
+ "common",
+ "pathfinding",
+ "rand",
+ "tiled",
+ "vs-assets",
 ]
 
 [[package]]
