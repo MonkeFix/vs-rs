@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 
-use bevy::{math::Vec2, reflect::Reflect};
+use bevy::{math::Vec2, prelude::default, reflect::Reflect};
 
 use super::Rect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub enum ColliderShapeType {
+    None,
     Circle { radius: f32 },
     Box { width: f32, height: f32 },
 }
@@ -16,6 +17,26 @@ pub struct ColliderShape {
     pub(crate) position: Vec2,
     pub(crate) center: Vec2,
     pub(crate) bounds: Rect,
+}
+
+impl Default for ColliderShape {
+    fn default() -> Self {
+        Self {
+            shape_type: ColliderShapeType::None,
+            position: Vec2::ZERO,
+            center: Vec2::ZERO,
+            bounds: Rect::new(0.0, 0.0, 0.0, 0.0),
+        }
+    }
+}
+
+impl ColliderShape {
+    pub fn new(shape_type: ColliderShapeType) -> Self {
+        Self {
+            shape_type,
+            ..default()
+        }
+    }
 }
 
 pub mod collisions {
@@ -78,8 +99,10 @@ pub mod collisions {
                     None
                 }
                 ColliderShapeType::Box { .. } => panic!("second: expected circle, got box"),
+                ColliderShapeType::None => None,
             },
             ColliderShapeType::Box { .. } => panic!("first: expected circle, got box"),
+            ColliderShapeType::None => None,
         }
     }
 
@@ -94,11 +117,10 @@ pub mod collisions {
                 let mut res = CollisionResultRef::default();
 
                 let circle_pos = circle.position + circle_offset;
-                let box_pos = bx.position + box_offset;
 
                 let mut bx_bounds = bx.bounds;
-                bx_bounds.x = box_pos.x;
-                bx_bounds.y = box_pos.y;
+                bx_bounds.x += box_offset.x;
+                bx_bounds.y += box_offset.y;
 
                 let (closest_point, normal) = bx_bounds.closest_point_on_border(circle_pos);
                 res.normal = normal;
@@ -122,13 +144,12 @@ pub mod collisions {
                     let normal = res.normal.normalize_or_zero();
                     res.normal = normal;
                     res.min_translation = depth * normal;
-
                     return Some(res);
                 }
-
                 None
             }
             ColliderShapeType::Box { .. } => panic!("circle: expected circle, got box"),
+            ColliderShapeType::None => None,
         }
     }
 
@@ -168,6 +189,7 @@ pub mod collisions {
                 Some(hit)
             }
             ColliderShapeType::Box { .. } => panic!("s: expected circle, got box"),
+            ColliderShapeType::None => None,
         }
     }
 

@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{input::mouse::MouseWheel, prelude::*};
 
 use crate::player::Player;
 
@@ -12,8 +12,10 @@ impl Plugin for CameraMovementPlugin {
     }
 }
 
+#[cfg(debug_assertions)]
 fn camera_zoom(
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut scroll_evr: EventReader<MouseWheel>,
     mut query: Query<&mut OrthographicProjection, With<Camera>>,
 ) {
     if let Ok(mut ortho) = query.get_single_mut() {
@@ -23,10 +25,15 @@ fn camera_zoom(
         if keyboard_input.pressed(KeyCode::KeyX) {
             ortho.scale -= 0.1;
         }
-
-        if ortho.scale < 0.5 {
-            ortho.scale = 0.5;
+        if keyboard_input.pressed(KeyCode::Backspace) {
+            ortho.scale = 1.0;
         }
+
+        for ev in scroll_evr.read() {
+            ortho.scale -= ev.y / 10.0;
+        }
+
+        ortho.scale = ortho.scale.clamp(0.5, 4.0);
     }
 }
 

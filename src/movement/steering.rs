@@ -88,22 +88,24 @@ fn calc_movement(
 
     let collider = collider_store.get(collider_id).unwrap();
 
-    if collider.is_trigger || !collider.is_registered {
+    if collider.data.is_trigger || !collider.is_registered {
         return None;
     }
 
     let mut bounds = collider.bounds();
+
     bounds.x += motion.x;
     bounds.y += motion.y;
+
     let neighbors = collider_store.aabb_broadphase_excluding_self(
         collider_id,
         bounds,
-        Some(collider.collides_with_layers),
+        Some(collider.data.collides_with_layers),
     );
 
     for id in neighbors {
         let neighbor = collider_store.get(id).unwrap();
-        if neighbor.is_trigger {
+        if neighbor.data.is_trigger {
             continue;
         }
 

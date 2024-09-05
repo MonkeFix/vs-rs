@@ -1,3 +1,5 @@
+use crate::assets::GameAssets;
+use crate::collisions::colliders::ColliderData;
 use crate::collisions::plugin::{ColliderBundle, ColliderComponent};
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::{ColliderIdResolver, ColliderStore};
@@ -6,7 +8,8 @@ use crate::input::PlayerControls;
 use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::stats::*;
-use bevy::log;
+use crate::AppState;
+use bevy::sprite::Anchor;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
 use std::time::Duration;
 
@@ -14,9 +17,16 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn)
-            .add_systems(FixedUpdate, (movement, check_enemy_collision, check_health))
-            .add_systems(Update, handle_input);
+        app.add_systems(OnEnter(AppState::Finished), spawn)
+            .add_systems(
+                FixedUpdate,
+                (movement, check_enemy_collision, check_health)
+                    .run_if(in_state(AppState::Finished)),
+            )
+            .add_systems(
+                Update,
+                (handle_input, update_sprite, update_atlas).run_if(in_state(AppState::Finished)),
+            );
     }
 }
 
@@ -30,10 +40,6 @@ struct PlTimer(Timer);
 
 #[derive(Component)]
 struct Direction(Vec2);
-
-#[allow(dead_code)]
-#[derive(Event)]
-struct TimerCallbackEvent(());
 
 #[derive(Bundle)]
 struct PlayerBundle {
@@ -56,28 +62,57 @@ impl PlayerBundle {
     }
 }
 
-fn spawn(
-    mut collider_set: ResMut<ColliderStore>,
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
-    let texture_handle: Handle<Image> = asset_server.load("player.png");
-    commands.spawn((
-        PlayerBundle::new(),
-        SpriteBundle {
-            texture: texture_handle,
-            transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
-            ..default()
-        },
-        SteeringBundle { ..default() },
-        Name::new("player"),
-        ColliderBundle {
-            collider: ColliderComponent::new(
-                &mut collider_set,
-                ColliderShapeType::Circle { radius: 16.0 },
-            ),
-        },
-    ));
+fn spawn(mut collider_set: ResMut<ColliderStore>, mut commands: Commands, assets: Res<GameAssets>) {
+    let player_tileset = &assets.player_tilesheet;
+
+    commands
+        .spawn((
+            PlayerBundle::new(),
+            TextureAtlas {
+                layout: player_tileset.layout.clone(),
+                index: 0,
+            },
+            SpriteBundle {
+                sprite: Sprite::default(),
+                texture: player_tileset.image.clone(),
+                transform: Transform::from_xyz(0.0, 0.0, 1.0),
+                ..default()
+            },
+            SteeringBundle { ..default() },
+            Name::new("player"),
+            ColliderBundle {
+                collider: ColliderComponent::new(
+                    &mut collider_set,
+                    ColliderData {
+                        shape_type: ColliderShapeType::Circle { radius: 10.0 },
+                        local_offset: Vec2::new(0.0, -16.0),
+                        ..default()
+                    },
+                    None,
+                ),
+            },
+        ))
+        .with_children(|c| {
+            c.spawn((
+                TextureAtlas {
+                    layout: player_tileset.layout.clone(),
+                    index: 3,
+                },
+                SpriteBundle {
+                    sprite: Sprite {
+                        anchor: Anchor::Center,
+                        color: Color::srgba(1.0, 1.0, 1.0, 0.3),
+                        ..default()
+                    },
+                    texture: player_tileset.image.clone(),
+                    transform: Transform {
+                        translation: Vec3::new(0.0, 0.0, -1.0),
+                        ..default()
+                    },
+                    ..default()
+                },
+            ));
+        });
 }
 
 fn handle_input(
@@ -167,6 +202,24 @@ fn movement(
     }
 }
 
+fn update_atlas(mut query: Query<(&Direction, &mut TextureAtlas), With<Player>>) {
+    if let Ok((dir, mut atlas)) = query.get_single_mut() {
+        if dir.0.y > 0.0 {
+            atlas.index = 1;
+        } else if dir.0.x != 0.0 {
+            atlas.index = 2;
+        } else {
+            atlas.index = 0;
+        }
+    }
+}
+
+fn update_sprite(mut query: Query<(&Direction, &mut Sprite), With<Player>>) {
+    if let Ok((dir, mut sprite)) = query.get_single_mut() {
+        sprite.flip_x = dir.0.x > 0.;
+    }
+}
+
 fn check_enemy_collision(
     time: Res<Time>,
     mut player_collider: Query<(&ColliderComponent, &mut Health, &mut PlTimer), With<Player>>,
@@ -185,6 +238,7 @@ fn check_enemy_collision(
 
                 if timer.0.finished() {
                     if let Some(entity) = collider.entity {
+                        //let dmg = enemies.get_component::<Damage>(entity);
                         let dmg = enemies.get(entity);
                         if let Ok(dmg) = dmg {
                             hp.0 = hp.0.saturating_sub(dmg.0);
@@ -201,7 +255,7 @@ fn check_enemy_collision(
 fn check_health(mut player: Query<&mut Health, With<Player>>) {
     if let Ok(h) = player.get_single_mut() {
         if h.0 <= 0 {
-            log::error!("you lost. please close the game");
+            //log::error!("you lost. please close the game");
         }
     }
 }

@@ -10,12 +10,10 @@ use super::{
     ColliderId, CollisionResultRef, RaycastHit,
 };
 
-#[derive(Debug, Clone, PartialEq, Reflect)]
-pub struct Collider {
-    pub id: ColliderId,
-    pub entity: Option<Entity>,
+#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+pub struct ColliderData {
     /// The underlying `ColliderShape` of the `Collider`.
-    pub shape: ColliderShape,
+    pub shape_type: ColliderShapeType,
     /// If this collider is a trigger it will not cause collisions but it will still trigger events.
     pub is_trigger: bool,
     /// `local_offset` is added to `shape.position` to get the final position for the collider
@@ -27,31 +25,47 @@ pub struct Collider {
     /// Layer mask of all the layers this Collider should collide with.
     /// Default is all layers.
     pub collides_with_layers: i32,
-    pub(crate) is_registered: bool,
 }
 
-impl Collider {
-    pub fn new(shape_type: ColliderShapeType, entity: Option<Entity>) -> Self {
-        let bounds = match shape_type {
-            ColliderShapeType::Circle { radius } => {
-                super::Rect::new(0.0, 0.0, radius * 2.0, radius * 2.0)
-            }
-            ColliderShapeType::Box { width, height } => super::Rect::new(0.0, 0.0, width, height),
-        };
-
+impl Default for ColliderData {
+    fn default() -> Self {
         Self {
-            id: ColliderId(0),
-            entity,
-            shape: ColliderShape {
-                shape_type,
-                position: Vec2::ZERO,
-                center: Vec2::ZERO,
-                bounds,
-            },
+            shape_type: ColliderShapeType::None,
             is_trigger: false,
             local_offset: Vec2::ZERO,
             physics_layer: 1 << 0,
             collides_with_layers: ALL_LAYERS,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Reflect)]
+pub struct Collider {
+    pub id: ColliderId,
+    pub entity: Option<Entity>,
+    pub data: ColliderData,
+    pub shape: ColliderShape,
+    pub(crate) is_registered: bool,
+}
+
+impl Collider {
+    pub fn new(data: ColliderData, entity: Option<Entity>) -> Self {
+        let bounds = match data.shape_type {
+            ColliderShapeType::Circle { radius } => {
+                super::Rect::new(0.0, 0.0, radius * 2.0, radius * 2.0)
+            }
+            ColliderShapeType::Box { width, height } => super::Rect::new(0.0, 0.0, width, height),
+            ColliderShapeType::None => super::Rect::new(0.0, 0.0, 0.0, 0.0),
+        };
+
+        let mut shape = ColliderShape::new(data.shape_type);
+        shape.bounds = bounds;
+
+        Self {
+            id: ColliderId(0),
+            entity,
+            data,
+            shape,
             is_registered: false,
         }
     }
@@ -61,7 +75,7 @@ impl Collider {
     }
 
     pub fn absolute_position(&self) -> Vec2 {
-        self.shape.position + self.local_offset
+        self.shape.position + self.data.local_offset
     }
 
     pub fn bounds(&self) -> super::Rect {
@@ -78,81 +92,87 @@ impl Collider {
         match self.shape.shape_type {
             ColliderShapeType::Circle { radius: r1 } => match other.shape.shape_type {
                 ColliderShapeType::Circle { radius: r2 } => circle_to_circle(
-                    position + self.local_offset,
+                    position + self.data.local_offset,
                     r1,
-                    other.position() + other.local_offset,
+                    other.position() + other.data.local_offset,
                     r2,
                 ),
                 ColliderShapeType::Box { width, height } => rect_to_circle(
-                    other.position().x + other.local_offset.x,
-                    other.position().y + other.local_offset.y,
+                    other.position().x + other.data.local_offset.x,
+                    other.position().y + other.data.local_offset.y,
                     width,
                     height,
-                    self.position() + self.local_offset,
+                    self.position() + self.data.local_offset,
                     r1,
                 ),
+                ColliderShapeType::None => false,
             },
             ColliderShapeType::Box {
                 width: w1,
                 height: h1,
             } => match other.shape.shape_type {
                 ColliderShapeType::Circle { radius } => rect_to_circle(
-                    position.x + self.local_offset.x,
-                    position.y + self.local_offset.y,
+                    position.x + self.data.local_offset.x,
+                    position.y + self.data.local_offset.y,
                     w1,
                     h1,
-                    other.position() + other.local_offset,
+                    other.position() + other.data.local_offset,
                     radius,
                 ),
                 ColliderShapeType::Box {
                     width: w2,
                     height: h2,
                 } => rect_to_rect(
-                    position + self.local_offset,
+                    position + self.data.local_offset,
                     Vec2::new(w1, h1),
-                    other.position() + other.local_offset,
+                    other.position() + other.data.local_offset,
                     Vec2::new(w2, h2),
                 ),
+                ColliderShapeType::None => false,
             },
+            ColliderShapeType::None => false,
         }
     }
 
     /// Checks if this Collider collides with collider. If it does,
     /// true will be returned and result will be populated with collision data.
     pub fn collides_with<'a>(&self, other: &'a Collider) -> Option<CollisionResultRef<'a>> {
-        if self.is_trigger || other.is_trigger {
+        if self.data.is_trigger || other.data.is_trigger {
             return None;
         }
 
-        let res = match self.shape.shape_type {
+        let res = match self.data.shape_type {
             ColliderShapeType::Circle { .. } => match other.shape.shape_type {
                 ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_circle(
                     &self.shape,
                     &other.shape,
-                    self.local_offset,
-                    other.local_offset,
+                    self.data.local_offset,
+                    other.data.local_offset,
                 ),
                 ColliderShapeType::Box { .. } => super::shapes::collisions::circle_to_box(
                     &self.shape,
                     &other.shape,
-                    self.local_offset,
-                    other.local_offset,
+                    self.data.local_offset,
+                    other.data.local_offset,
                 ),
+                ColliderShapeType::None => None,
             },
             ColliderShapeType::Box { .. } => match other.shape.shape_type {
                 ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_box(
                     &other.shape,
                     &self.shape,
-                    other.local_offset,
-                    self.local_offset,
+                    other.data.local_offset,
+                    self.data.local_offset,
                 ),
                 ColliderShapeType::Box { .. } => super::shapes::collisions::box_to_box(
                     &self.shape,
                     &other.shape,
-                    self.local_offset,
-                    other.local_offset,
+                    self.data.local_offset,
+                    other.data.local_offset,
                 ),
+                ColliderShapeType::None => None,
             },
+            ColliderShapeType::None => None,
         };
 
         if let Some(mut res) = res {
@@ -171,7 +191,7 @@ impl Collider {
         other: &'a Collider,
         motion: Vec2,
     ) -> Option<CollisionResultRef<'a>> {
-        if self.is_trigger || other.is_trigger {
+        if self.data.is_trigger || other.data.is_trigger {
             return None;
         }
 
@@ -180,30 +200,33 @@ impl Collider {
                 ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_circle(
                     &self.shape,
                     &other.shape,
-                    self.local_offset + motion,
-                    other.local_offset,
+                    self.data.local_offset + motion,
+                    other.data.local_offset,
                 ),
                 ColliderShapeType::Box { .. } => super::shapes::collisions::circle_to_box(
                     &self.shape,
                     &other.shape,
-                    self.local_offset + motion,
-                    other.local_offset,
+                    self.data.local_offset + motion,
+                    other.data.local_offset,
                 ),
+                ColliderShapeType::None => None,
             },
             ColliderShapeType::Box { .. } => match other.shape.shape_type {
                 ColliderShapeType::Circle { .. } => super::shapes::collisions::circle_to_box(
                     &other.shape,
                     &self.shape,
-                    other.local_offset,
-                    self.local_offset + motion,
+                    other.data.local_offset,
+                    self.data.local_offset + motion,
                 ),
                 ColliderShapeType::Box { .. } => super::shapes::collisions::box_to_box(
                     &self.shape,
                     &other.shape,
-                    self.local_offset + motion,
-                    other.local_offset,
+                    self.data.local_offset + motion,
+                    other.data.local_offset,
                 ),
+                ColliderShapeType::None => None,
             },
+            ColliderShapeType::None => None,
         };
 
         if let Some(mut res) = res {
@@ -217,19 +240,24 @@ impl Collider {
     pub fn recalc_bounds(&mut self) {
         match self.shape.shape_type {
             ColliderShapeType::Circle { radius } => {
-                self.shape.bounds.x = self.shape.center.x - radius;
-                self.shape.bounds.y = self.shape.center.y - radius;
+                self.shape.bounds.x =
+                    self.shape.center.x + self.data.local_offset.x - radius;
+                self.shape.bounds.y =
+                    self.shape.center.y + self.data.local_offset.y - radius;
                 self.shape.bounds.width = radius * 2.0;
                 self.shape.bounds.height = radius * 2.0;
             }
             ColliderShapeType::Box { width, height } => {
                 let hw = width / 2.0;
                 let hh = height / 2.0;
-                self.shape.bounds.x = self.shape.position.x - hw;
-                self.shape.bounds.y = self.shape.position.y - hh;
+                self.shape.bounds.x =
+                    self.shape.position.x + self.data.local_offset.x - hw;
+                self.shape.bounds.y =
+                    self.shape.position.y + self.data.local_offset.y - hh;
                 self.shape.bounds.width = width;
                 self.shape.bounds.height = height;
             }
+            ColliderShapeType::None => {}
         };
     }
 
@@ -239,6 +267,7 @@ impl Collider {
                 super::shapes::collisions::line_to_circle(start, end, &self.shape)
             }
             ColliderShapeType::Box { .. } => todo!(),
+            ColliderShapeType::None => None,
         }
     }
 
@@ -248,6 +277,7 @@ impl Collider {
                 (point - self.shape.position).length_squared() <= radius * radius
             }
             ColliderShapeType::Box { .. } => self.bounds().contains(point),
+            ColliderShapeType::None => false,
         }
     }
 
@@ -269,6 +299,8 @@ impl Collider {
     }
 
     fn needs_update(&self, position: &Position) -> bool {
-        !self.is_registered || self.shape.position != position.0 || self.shape.center != position.0
+        !self.is_registered
+            || self.shape.position != position.0
+            || self.shape.center != position.0
     }
 }

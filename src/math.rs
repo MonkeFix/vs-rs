@@ -41,3 +41,18 @@ pub fn rng_vec2(min_length: f32, max_length: f32) -> Vec2 {
 
     Vec2::new(length * theta.cos() as f32, length * theta.sin() as f32)
 }
+
+pub fn almost_equal_f32(x: f32, y: f32) -> bool {
+    (x - y).abs() <= f32::EPSILON * (x + y).abs() * 2. || (x - y).abs() < f32::MIN
+}
+
+pub fn almost_equal_vec2(left: Vec2, right: Vec2) -> bool {
+    almost_equal_f32(left.x, left.y) && almost_equal_f32(right.x, right.y)
+}
+
+pub fn choose_random<T>(arr: &[T]) -> (&T, usize) {
+    let mut rand = thread_rng();
+    let index = rand.gen_range(0..arr.len());
+    (&arr[index], index)
+}
+

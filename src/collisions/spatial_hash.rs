@@ -3,12 +3,16 @@
 use bevy::{
     log,
     math::Vec2,
+    prelude::*,
     utils::{hashbrown::HashSet, HashMap},
 };
 
 use crate::math::{self, approach};
 
-use super::{colliders::Collider, rect_to_circle, ColliderId, Ray2D, RaycastHit, Rect};
+use super::{
+    colliders::{Collider, ColliderData},
+    rect_to_circle, ColliderId, Ray2D, RaycastHit, Rect,
+};
 
 #[derive(Debug)]
 pub struct SpatialHash {
@@ -104,7 +108,7 @@ impl SpatialHash {
                             let collder = collider_finder(collider_id).unwrap();
 
                             if exclude_collider.is_some_and(|excl| *collider_id == excl)
-                                || !is_flag_set(layer_mask, collder.physics_layer)
+                                || !is_flag_set(layer_mask, collder.data.physics_layer)
                             {
                                 continue;
                             }
@@ -247,6 +251,7 @@ impl SpatialHash {
                 super::shapes::ColliderShapeType::Box { .. } => {
                     results.push(collider_id);
                 }
+                super::shapes::ColliderShapeType::None => {}
             }
         }
 
@@ -272,8 +277,14 @@ impl SpatialHash {
             radius * 2.0,
         );
 
-        let mut test_circle =
-            Collider::new(super::shapes::ColliderShapeType::Circle { radius }, None);
+        let mut test_circle = Collider::new(
+            ColliderData {
+                shape_type: super::shapes::ColliderShapeType::Circle { radius },
+                ..default()
+            },
+            None,
+        );
+
         test_circle.shape.position = circle_center;
         test_circle.shape.center = circle_center;
 
@@ -292,6 +303,7 @@ impl SpatialHash {
                         results.push(collider_id);
                     }
                 }
+                super::shapes::ColliderShapeType::None => {}
             }
         }
 
@@ -401,11 +413,11 @@ impl RaycastResultParser {
                 continue;
             }
 
-            if potential.is_trigger {
+            if potential.data.is_trigger {
                 continue;
             }
 
-            if !is_flag_set(self.layer_mask, potential.physics_layer) {
+            if !is_flag_set(self.layer_mask, potential.data.physics_layer) {
                 continue;
             }
 

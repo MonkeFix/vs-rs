@@ -1,11 +1,16 @@
+use crate::assets::GameAssets;
+use crate::collisions::colliders::ColliderData;
 use crate::collisions::plugin::ColliderBundle;
 use crate::collisions::plugin::ColliderComponent;
 use crate::collisions::shapes::ColliderShapeType;
 use crate::collisions::store::ColliderStore;
+#[cfg(debug_assertions)]
+use crate::debug::DebugSettings;
 use crate::movement::behaviors::SteerSeek;
 use crate::movement::{PhysicsParams, Position, SteeringBundle, SteeringHost};
 use crate::player::*;
 use crate::stats::*;
+use crate::AppState;
 use bevy::prelude::*;
 use bevy::time::TimerMode::Repeating;
 use rand::{thread_rng, Rng};
@@ -47,8 +52,10 @@ impl Plugin for EnemyPlugin {
             Duration::from_secs(GLOBAL_TIME_TICKER_SEC),
             TimerMode::Repeating,
         )))
-        .add_systems(Startup, (enemy_factory,))
-        .add_systems(
+        .add_systems(OnEnter(AppState::Finished), (enemy_factory,));
+
+        #[cfg(debug_assertions)]
+        app.add_systems(
             Update,
             (
                 spawn,
@@ -56,7 +63,22 @@ impl Plugin for EnemyPlugin {
                 check_health,
                 change_wave,
                 global_timer_tick,
-            ),
+            )
+                .run_if(in_state(AppState::Finished))
+                .run_if(enemy_spawns_enabled),
+        );
+
+        #[cfg(not(debug_assertions))]
+        app.add_systems(
+            Update,
+            (
+                spawn,
+                movement,
+                check_health,
+                change_wave,
+                global_timer_tick,
+            )
+                .run_if(in_state(AppState::Finished)),
         );
     }
 }
@@ -122,7 +144,7 @@ struct CurrentWave {
     need_wave_spawn: bool,
 }
 
-fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn enemy_factory(mut commands: Commands, assets: Res<GameAssets>) {
     #[derive(Debug, Serialize, Deserialize)]
     struct EnemyConfig {
         name: String,
@@ -142,7 +164,8 @@ fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut spawn_map: HashMap<u16, Vec<EnemySpawnComponent>> = HashMap::new();
 
     for enemy_conf in data {
-        let texture_handle: Handle<Image> = asset_server.load(enemy_conf.asset_path);
+        // TODO: use file from the config
+        let texture_handle: Handle<Image> = assets.capybara_texture.clone();
         let mut enemy = EnemySpawnComponent {
             name: enemy_conf.name,
             _enemy: Enemy,
@@ -180,6 +203,12 @@ fn enemy_factory(mut commands: Commands, asset_server: Res<AssetServer>) {
     let spawners = EnemySpawners(spawn_map);
     commands.insert_resource(spawners.clone());
 }
+
+#[cfg(debug_assertions)]
+fn enemy_spawns_enabled(debug_settings: Res<DebugSettings>) -> bool {
+    !debug_settings.disable_enemy_spawns
+}
+
 fn spawn(
     mut collider_set: ResMut<ColliderStore>,
     mut commands: Commands,
@@ -265,7 +294,11 @@ fn spawn(
                                 ColliderBundle {
                                     collider: ColliderComponent::new(
                                         &mut collider_set,
-                                        ColliderShapeType::Circle { radius: 16.0 },
+                                        ColliderData {
+                                            shape_type: ColliderShapeType::Circle { radius: 16.0 },
+                                            ..default()
+                                        },
+                                        None,
                                     ),
                                 },
                             ));
