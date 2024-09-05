@@ -1,6 +1,5 @@
 use crate::enemy::Enemy;
 use crate::input::PlayerControls;
-use crate::prelude::*;
 use crate::stats::*;
 use crate::AppState;
 use behaviors::SteerSeek;
@@ -8,11 +7,11 @@ use bevy::sprite::Anchor;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
 use colliders::Collider;
 use physics::prelude::*;
+use physics::CollideEvent;
 use shapes::Shape;
 use std::time::Duration;
-use steering::PhysicalParams;
 use steering::SteeringBundle;
-use steering::SteeringHost;
+use steering::SteeringTargetVec2;
 use vs_assets::plugin::GameAssets;
 
 pub struct PlayerPlugin;
@@ -22,20 +21,19 @@ impl Plugin for PlayerPlugin {
         app.add_systems(OnEnter(AppState::Finished), spawn)
             .add_systems(
                 FixedUpdate,
-                (movement, check_enemy_collision, check_health)
+                (movement, check_health)
                     .run_if(in_state(AppState::Finished)),
             )
             .add_systems(
                 Update,
-                (handle_input, update_sprite, update_atlas).run_if(in_state(AppState::Finished)),
+                (update_timer, handle_input, update_sprite, update_atlas)
+                    .run_if(in_state(AppState::Finished)),
             );
     }
 }
 
 #[derive(Component)]
-pub struct Player {
-    steer_seek: SteerSeek,
-}
+pub struct Player;
 
 #[derive(Component)]
 struct PlTimer(Timer);
@@ -54,11 +52,9 @@ struct PlayerBundle {
 impl PlayerBundle {
     fn new() -> Self {
         Self {
-            player: Player {
-                steer_seek: SteerSeek,
-            },
+            player: Player,
             health: Health(100),
-            inv_timer: PlTimer(Timer::new(Duration::from_millis(500), TimerMode::Repeating)),
+            inv_timer: PlTimer(Timer::new(Duration::from_millis(500), TimerMode::Once)),
             direction: Direction(Vec2::ZERO),
         }
     }
@@ -85,8 +81,12 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
             Collider {
                 shape: Shape::new(shapes::ShapeType::Circle { radius: 10.0 }),
                 local_offset: Vec2::new(0.0, -16.0),
+                physics_layer: 2,
+                collides_with_layers: 1 | 2,
                 ..default()
             },
+            SteerSeek,
+            SteeringTargetVec2::default(),
         ))
         .with_children(|c| {
             c.spawn((
@@ -108,7 +108,8 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
                     ..default()
                 },
             ));
-        });
+        })
+        .observe(on_collision);
 }
 
 fn handle_input(
@@ -178,23 +179,14 @@ fn handle_input(
 }
 
 fn movement(
-    mut steering_host: Query<
-        (
-            &mut SteeringHost,
-            &Transform,
-            &PhysicalParams,
-            &Direction,
-            &Player,
-        ),
-        With<Player>,
-    >,
+    mut steering_host: Query<(&mut SteeringTargetVec2, &Transform, &Direction), With<Player>>,
 ) {
-    if let Ok((mut host, pos, params, dir, player)) = steering_host.get_single_mut() {
-        let target = pos.translation.xy() + dir.0;
-
-        let steering = player.steer_seek.steer(pos, &host, params, &target);
-
-        host.steer(steering);
+    if let Ok((mut target, pos, dir)) = steering_host.get_single_mut() {
+        target.0 = if dir.0 == Vec2::ZERO {
+            Vec2::ZERO
+        } else {
+            pos.translation.xy() + dir.0 * 10.0
+        };
     }
 }
 
@@ -216,42 +208,35 @@ fn update_sprite(mut query: Query<(&Direction, &mut Sprite), With<Player>>) {
     }
 }
 
-fn check_enemy_collision(
-    time: Res<Time>,
-    mut player_collider: Query<(&Collider, &mut Health, &mut PlTimer), With<Player>>,
-    enemies: Query<&Damage, (With<Enemy>, Without<Player>)>,
+fn on_collision(
+    trigger: Trigger<CollideEvent>,
+    damage_query: Query<&Damage, (With<Enemy>, Without<Player>)>,
+    mut player: Query<(&mut PlTimer, &mut Health), With<Player>>,
 ) {
-    if let Ok((player_collider, mut hp, mut timer)) = player_collider.get_single_mut() {
-        // TODO: Observe collisions
-        //let player_collider = collider_store.get(id.id).unwrap();
+    let e = trigger.event();
 
-        /* let rect = player_collider.bounds();
-        let neighbors = collider_store.aabb_broadphase_excluding_self(player_collider.id, rect, None);
-        for neighbor in neighbors {
-            let collider = collider_store.get(neighbor).unwrap();
-            if player_collider.collides_with(collider).is_some() {
-                timer.0.tick(time.delta());
-
-                if timer.0.finished() {
-                    if let Some(entity) = collider.entity {
-                        //let dmg = enemies.get_component::<Damage>(entity);
-                        let dmg = enemies.get(entity);
-                        if let Ok(dmg) = dmg {
-                            hp.0 = hp.0.saturating_sub(dmg.0);
-                        }
-                    }
-                }
+    if let Ok(dmg) = damage_query.get(e.collided_with) {
+        if let Ok((mut timer, mut health)) = player.get_mut(e.entity_main) {
+            if timer.0.finished() {
+                info!("damaging!");
+                health.0 = health.0.saturating_sub(dmg.0);
+                timer.0.reset();
             }
-        } */
+        }
     }
 }
 
-//fn timer_callback() {}
+fn update_timer(time: Res<Time>, mut player: Query<&mut PlTimer, With<Player>>) {
+    if let Ok(mut timer) = player.get_single_mut() {
+        timer.0.tick(time.delta());
+    }
+}
 
 fn check_health(mut player: Query<&mut Health, With<Player>>) {
-    if let Ok(h) = player.get_single_mut() {
+    if let Ok(mut h) = player.get_single_mut() {
         if h.0 <= 0 {
-            //log::error!("you lost. please close the game");
+            error!("you lost. please close the game");
+            h.0 = 100;
         }
     }
 }

@@ -13,6 +13,49 @@ impl SteeringTarget for Vec2 {
     }
 }
 
+impl SteeringTarget for Transform {
+    fn position(&self) -> Vec2 {
+        self.translation.xy()
+    }
+}
+
+#[derive(Component, Debug, Default)]
+pub struct SteeringTargetComponent;
+
+#[derive(Component, Debug, Default)]
+pub struct SteeringTargetVec2(pub Vec2);
+
+#[derive(Component, Debug, Default)]
+pub struct SteeringTargetFull {
+    pub position: Vec2,
+    pub velocity: Vec2,
+}
+
+impl SteeringTarget for SteeringTargetFull {
+    fn position(&self) -> Vec2 {
+        self.position
+    }
+
+    fn velocity(&self) -> Vec2 {
+        self.velocity
+    }
+}
+
+#[derive(Component, Debug)]
+pub struct SteeringTargetEntity(pub Entity);
+
+impl SteeringTarget for SteeringTargetEntity {
+    fn position(&self) -> Vec2 {
+        Vec2::ZERO
+    }
+}
+
+impl SteeringTarget for SteeringTargetVec2 {
+    fn position(&self) -> Vec2 {
+        self.0
+    }
+}
+
 #[derive(Component, Debug, Clone, Copy, PartialEq, Reflect)]
 pub struct PhysicalParams {
     /// Determines how fast an object can move. This value is multiplied by delta time, so it
@@ -38,7 +81,7 @@ impl Default for PhysicalParams {
             max_velocity: 250.0,
             max_force: 150.0,
             mass: 4.0,
-            friction: 0.98,
+            friction: 0.9,
         }
     }
 }
