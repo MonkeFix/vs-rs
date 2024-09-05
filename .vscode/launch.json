@@ -13,8 +13,7 @@
                     "build",
                     "--bin=vs-rs",
                     "--package=vs-rs",
-                    //"--features",
-                    //"bevy/dynamic_linking"
+                    "--features=bevy/dynamic_linking"
                 ],
                 "filter": {
                     "name": "vs-rs",
@@ -22,10 +21,10 @@
                 }
             },
             "args": [],
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/vs-rs",
             "env": {
-                "CARGO_MANIFEST_DIR": "${workspaceFolder}",
-                //"PATH": "${workspaceFolder}/target/debug/deps:${env:PATH}",
+                "CARGO_MANIFEST_DIR": "${workspaceFolder}/vs-rs",
+                "PATH": "${env:USERPROFILE}/.rustup/toolchains/nightly-x86_64-pc-windows-msvc/bin;${workspaceFolder}/target/debug/deps;${env:PATH}",
             }
         },
         {

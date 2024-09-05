@@ -1464,15 +1464,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "collisions"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "common",
- "num_enum",
-]
-
-[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2693,15 +2684,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "movement"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "collisions",
- "common",
-]
-
-[[package]]
 name = "naga"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3229,6 +3211,15 @@ dependencies = [
  "indexmap",
  "serde",
  "serde_derive",
+]
+
+[[package]]
+name = "physics"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "common",
+ "num_enum",
 ]
 
 [[package]]
@@ -4145,11 +4136,10 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_framepace",
  "bevy_simple_tilemap",
- "collisions",
  "common",
- "movement",
  "num_enum",
  "pathfinding",
+ "physics",
  "rand",
  "serde",
  "serde_json",
@@ -4967,9 +4957,9 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_simple_tilemap",
- "collisions",
  "common",
  "pathfinding",
+ "physics",
  "rand",
  "tiled",
  "vs-assets",

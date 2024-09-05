@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use bevy_simple_tilemap::{Tile, TileMap};
-use collisions::prelude::*;
+use colliders::Collider;
 use common::{delaunay2d::Delaunay2D, prim::PrimEdge, FRect};
+use physics::prelude::*;
 use tiled::{Layer, TileLayer};
 use vs_assets::rooms::MapAsset;
 
@@ -47,7 +48,9 @@ impl World {
         assets: &Assets<MapAsset>,
         collision_layer_name: &str,
         collision_fine_layer_name: &str,
-        collider_store: &mut ColliderStore,
+        //collider_store: &mut ColliderStore,
+        //spatial_hash: &SpatialHash,
+        commands: &mut Commands,
         offset: Vec2,
     ) {
         for room in &self.rooms {
@@ -95,7 +98,7 @@ impl World {
                             th,
                         );
 
-                        collider_store.create_and_register(
+                        /* collider_store.create_and_register(
                             ColliderData {
                                 shape_type: ColliderShapeType::Box {
                                     width: rect.width,
@@ -104,7 +107,18 @@ impl World {
                                 ..default()
                             },
                             Some(Vec2::new(rect.x, rect.y)),
-                        );
+                        ); */
+                        commands.spawn((
+                            SpatialBundle {
+                                transform: Transform::from_xyz(rect.x, rect.y, 0.0),
+                                ..default()
+                            },
+                            Collider::new(shapes::ShapeType::Box {
+                                width: rect.width,
+                                height: rect.height,
+                            }),
+                            RigidBodyStatic,
+                        ));
                     }
                 }
             }
@@ -130,13 +144,21 @@ impl World {
                             offset.y + offset_y + (room_height - (obj.y + height / 2.0)) + 16.0,
                         );
 
-                        collider_store.create_and_register(
+                        /* collider_store.create_and_register(
                             ColliderData {
                                 shape_type: ColliderShapeType::Box { width, height },
                                 ..default()
                             },
                             Some(pos),
-                        );
+                        ); */
+                        commands.spawn((
+                            SpatialBundle {
+                                transform: Transform::from_xyz(pos.x, pos.y, 0.0),
+                                ..default()
+                            },
+                            Collider::new(shapes::ShapeType::Box { width, height }),
+                            RigidBodyStatic,
+                        ));
                     }
                     tiled::ObjectShape::Ellipse { .. } => {
                         unimplemented!("ellipse is not implemented")

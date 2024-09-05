@@ -13,14 +13,15 @@
 				"isDefault": true
 			},
 			"args": [
-				"--bin",
-				"vs-rs",
-				"--features",
-				"bevy/dynamic_linking"
+				"--bin=vs-rs",
+				"--features=bevy/dynamic_linking",
 			],
-			"options": {
-				"cwd": "./vs-rs/"
+			"env": {
+				//"CARGO_MANIFEST_DIR": "${workspaceFolder}/vs-rs"
 			}
+			/* "options": {
+				"cwd": "./vs-rs/"
+			} */
 		}
 	]
 }

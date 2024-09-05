@@ -5,9 +5,6 @@ pub mod delaunay2d;
 pub mod math;
 pub mod prim;
 
-#[derive(Component, Debug, Default, Clone, Copy, PartialEq, Reflect)]
-pub struct Position(pub Vec2);
-
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Ray2D {
     pub start: Vec2,

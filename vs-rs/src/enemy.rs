@@ -4,10 +4,18 @@ use crate::player::*;
 use crate::prelude::*;
 use crate::stats::*;
 use crate::AppState;
+use behaviors::SteerArrival;
+use behaviors::SteerCollisionAvoidance;
+use behaviors::SteerSeek;
 use bevy::time::TimerMode::Repeating;
-use movement::behaviors::SteerSeek;
+use colliders::Collider;
+use shapes::Shape;
 use std::collections::HashMap;
 use std::time::Duration;
+use steering::PhysicalParams;
+use steering::SteeringBundle;
+use steering::SteeringHost;
+use steering::SteeringTargetEntity;
 use vs_assets::enemies::EnemyConfig;
 use vs_assets::plugin::Configs;
 use vs_assets::plugin::GameAssets;
@@ -86,7 +94,7 @@ const SPAWN_DISTANCE: MinMaxStruct<f32> = MinMaxStruct {
     max: 800.0,
 };
 
-const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 5, max: 20 };
+const ENEMY_BATCH_SIZE: MinMaxStruct<i64> = MinMaxStruct { min: 15, max: 20 };
 #[derive(Resource)]
 struct GlobalTimeTickerResource(Timer);
 
@@ -189,10 +197,9 @@ fn enemy_spawns_enabled(debug_settings: Res<DebugSettings>) -> bool {
 }
 
 fn spawn(
-    mut collider_set: ResMut<ColliderStore>,
     mut commands: Commands,
     mut spawn_map: ResMut<EnemySpawners>,
-    mut player: Query<&mut Transform, With<Player>>,
+    mut player: Query<(&mut Transform, Entity), With<Player>>,
     mut current_wave: ResMut<CurrentWave>,
     global_time_ticker: Res<GlobalTimeTickerResource>,
 ) {
@@ -206,16 +213,10 @@ fn spawn(
                     if Some(true) == spawner.is_elite && !current_wave.need_wave_spawn {
                         continue;
                     }
-                    if let Ok(p_t) = player.get_single_mut() {
+                    if let Ok((player_transform, player_entity)) = player.get_single_mut() {
                         let is_left = thread_rng().gen_range(0..2);
                         let is_up = thread_rng().gen_range(0..2);
-                        let mut enemy_batch: Vec<(
-                            EnemyBundle,
-                            SpriteBundle,
-                            SteeringBundle,
-                            Name,
-                            ColliderBundle,
-                        )> = Vec::new();
+                        let mut enemy_batch = Vec::new();
 
                         for i in
                             1..thread_rng().gen_range(ENEMY_BATCH_SIZE.min..ENEMY_BATCH_SIZE.max)
@@ -223,29 +224,29 @@ fn spawn(
                             let (m_x, m_y, m_z): (f32, f32, f32);
                             if is_left == 1 {
                                 m_x = thread_rng().gen_range(
-                                    p_t.translation.x - SPAWN_DISTANCE.max
-                                        ..p_t.translation.x - SPAWN_DISTANCE.min,
+                                    player_transform.translation.x - SPAWN_DISTANCE.max
+                                        ..player_transform.translation.x - SPAWN_DISTANCE.min,
                                 );
                             } else {
                                 m_x = thread_rng().gen_range(
-                                    p_t.translation.x + SPAWN_DISTANCE.min
-                                        ..p_t.translation.x + SPAWN_DISTANCE.max,
+                                    player_transform.translation.x + SPAWN_DISTANCE.min
+                                        ..player_transform.translation.x + SPAWN_DISTANCE.max,
                                 );
                             }
 
                             if is_up == 1 {
                                 m_y = thread_rng().gen_range(
-                                    p_t.translation.y - SPAWN_DISTANCE.max
-                                        ..p_t.translation.y - SPAWN_DISTANCE.min,
+                                    player_transform.translation.y - SPAWN_DISTANCE.max
+                                        ..player_transform.translation.y - SPAWN_DISTANCE.min,
                                 );
                             } else {
                                 m_y = thread_rng().gen_range(
-                                    p_t.translation.y + SPAWN_DISTANCE.min
-                                        ..p_t.translation.y + SPAWN_DISTANCE.max,
+                                    player_transform.translation.y + SPAWN_DISTANCE.min
+                                        ..player_transform.translation.y + SPAWN_DISTANCE.max,
                                 );
                             }
 
-                            m_z = p_t.translation.z;
+                            m_z = player_transform.translation.z;
                             enemy_batch.push((
                                 EnemyBundle::new(
                                     spawner.health.clone(),
@@ -260,8 +261,7 @@ fn spawn(
                                     ..default()
                                 },
                                 SteeringBundle {
-                                    position: Position(Vec2::new(m_x, m_y)),
-                                    physics_params: PhysicsParams {
+                                    physics_params: PhysicalParams {
                                         max_velocity: spawner.max_velocity,
                                         max_force: spawner.max_force,
                                         mass: spawner.mass,
@@ -270,16 +270,18 @@ fn spawn(
                                     ..default()
                                 },
                                 Name::new(spawner.name.clone() + &i.to_string()),
-                                ColliderBundle {
-                                    collider: ColliderComponent::new(
-                                        &mut collider_set,
-                                        ColliderData {
-                                            shape_type: ColliderShapeType::Circle { radius: 16.0 },
-                                            ..default()
-                                        },
-                                        None,
-                                    ),
+                                Collider {
+                                    shape: Shape::new(shapes::ShapeType::Circle { radius: 16.0 }),
+                                    physics_layer: 0b100,
+                                    collides_with_layers: 0b101,
+                                    ..default()
                                 },
+                                //SteerSeek,
+                                SteerArrival {
+                                    slowing_radius: 64.0,
+                                },
+                                //SteerCollisionAvoidance::default(),
+                                SteeringTargetEntity(player_entity),
                             ));
                             if let Some(true) = spawner.is_elite {
                                 break;
@@ -298,23 +300,21 @@ fn spawn(
 
 #[allow(clippy::type_complexity)]
 fn movement(
-    player: Query<&Position, With<Player>>,
-    mut enemies: Query<
-        (&mut Transform, &mut SteeringHost, &Position, &PhysicsParams),
-        (With<Enemy>, Without<Player>),
-    >,
+    mut enemies: Query<(&mut Transform, &SteeringHost), (With<Enemy>, Without<Player>)>,
+    player: Query<&Transform, (With<Player>, Without<Enemy>)>,
 ) {
-    if let Ok(player) = player.get_single() {
-        for (mut transform, mut host, pos, params) in &mut enemies {
-            let steering = SteerSeek.steer(pos, &host, params, &player.0);
-            host.steering += steering;
-
-            if host.velocity.x < 0.0 {
-                transform.scale.x = -1.0;
-            } else {
-                transform.scale.x = 1.0
-            }
+    let player = player.get_single().unwrap();
+    for (mut transform, _host) in &mut enemies {
+        if transform.translation.x - player.translation.x < 0.0 {
+            transform.scale.x = 1.0;
+        } else {
+            transform.scale.x = -1.0;
         }
+        /* if host.velocity.x < 0.0 {
+            transform.scale.x = -1.0;
+        } else {
+            transform.scale.x = 1.0
+        } */
     }
 }
 

@@ -4,8 +4,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_simple_tilemap::plugin::SimpleTileMapPlugin;
-use collisions::plugin::CollisionPlugin;
-use movement::plugin::SteeringPlugin;
+use physics::plugin::PhysicsPlugin;
 use vs_assets::{
     enemies::{EnemyConfig, EnemyConfigLoader},
     plugin::{AssetLoadingState, GameAssetsPlugin},
@@ -60,9 +59,8 @@ fn main() {
     .add_plugins(input::InputPlugin)
     .add_plugins(CameraMovementPlugin)
     .add_plugins(PlayerPlugin)
-    .add_plugins(SteeringPlugin)
+    .add_plugins(PhysicsPlugin)
     .add_plugins(EnemyPlugin)
-    .add_plugins(CollisionPlugin)
     .add_systems(Startup, (spawn_camera, setup_gamepad))
     .add_systems(
         Update,
