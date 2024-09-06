@@ -6,12 +6,26 @@ use super::{
     CollisionResultRef, RaycastHit, ALL_LAYERS,
 };
 
+/// Represents a collider with specified `Shape`, local offset vector and physics layer.
+/// Also can be marked as trigger which skips all the collision resolution calculations
+/// and just sends an event of type `InvokeTriggerEvent`.
+/// You also can specify with which layers this collider collides with by setting
+/// `collided_with_layers` field.
+///
+/// NOTE: `physics_layer` and `collides_with_layers` are bitmasks which allow to
+/// specify multiple layers simultaneously. Example: 0b0010 (layer 2), 1 | 2 | 4 (layers 1, 2 and 4).
 #[derive(Debug, Component, Clone, Reflect)]
 pub struct Collider {
+    /// Shape of collider. Defaults to `Shape::None`.
     pub shape: Shape,
+    /// Whether collider is a trigger or not.
     pub is_trigger: bool,
+    /// Local offset of collider. Can be used to store multiple colliders on the same entity.
     pub local_offset: Vec2,
+    /// Bitmask of collider's physics layer. Defaults to `1`.
     pub physics_layer: i32,
+    /// Bitmask of layers collider collides with. Ignores other layers for collision resolution,
+    /// however still triggers `CollideEvent`. Defaults to `ALL_LAYERS`.
     pub collides_with_layers: i32,
 }
 
@@ -62,6 +76,8 @@ fn get_center(shape: &Shape, local_offset: Vec2) -> Vec2 {
 }
 
 impl Collider {
+    /// Creates a new `Collider` with specified `ShapeType`.
+    /// On creation bounds and center are calculated and set immediately.
     pub fn new(shape_type: ShapeType) -> Self {
         let mut shape = Shape::new(shape_type);
         let bounds = calc_bounds(&shape, Vec2::ZERO);
@@ -71,18 +87,22 @@ impl Collider {
         Self { shape, ..default() }
     }
 
+    /// Gets current bounds rectangle.
     pub fn bounds(&self) -> FRect {
         self.shape.bounds
     }
 
+    /// Gets `Collider`'s center.
     pub fn center(&self) -> Vec2 {
         self.shape.center
     }
 
+    /// Gets `Collider`'s internal position without taking local offset into account.
     pub fn position(&self) -> Vec2 {
         self.shape.position
     }
 
+    /// Gets `Collider`'s internal position with taking local offset into account.
     pub fn absolute_position(&self) -> Vec2 {
         self.shape.position + self.local_offset
     }
@@ -238,6 +258,8 @@ impl Collider {
         None
     }
 
+    /// Checks if `Collider` collides with a line from start and to end vectors.
+    /// If it does, returns `Some(RaycastHit)`.
     pub fn collides_with_line(&self, start: Vec2, end: Vec2) -> Option<RaycastHit> {
         match self.shape.shape_type {
             ShapeType::Circle { .. } => {
@@ -248,6 +270,7 @@ impl Collider {
         }
     }
 
+    /// Checks whether `Collider` contains a point withit itself or not.
     pub fn contains_point(&self, point: Vec2) -> bool {
         match self.shape.shape_type {
             ShapeType::Circle { radius } => {
@@ -262,7 +285,7 @@ impl Collider {
         self.shape.position = position;
 
         let bounds = self.calc_bounds();
-        let center = self.center();
+        let center = self.get_center();
         self.shape.bounds = bounds;
         self.shape.center = center;
     }

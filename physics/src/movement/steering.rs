@@ -19,12 +19,11 @@ impl SteeringTarget for Transform {
     }
 }
 
-#[derive(Component, Debug, Default)]
-pub struct SteeringTargetComponent;
-
+/// A component that stores only the position part of the `SteeringTarget` trait.
 #[derive(Component, Debug, Default)]
 pub struct SteeringTargetVec2(pub Vec2);
 
+/// A component that stores both `position` and `velocity` of the `SteeringTarget` trait.
 #[derive(Component, Debug, Default)]
 pub struct SteeringTargetFull {
     pub position: Vec2,
@@ -41,6 +40,9 @@ impl SteeringTarget for SteeringTargetFull {
     }
 }
 
+/// A component that stores an `Entity` that is served as a target.
+/// Implements the `SteeringTarget` trait, but `position()` and `velocity()` always return `Vec2::ZERO`.
+/// For actual values you'll need to query them: `Transform` for position and `SteeringHost` for velocity.
 #[derive(Component, Debug)]
 pub struct SteeringTargetEntity(pub Entity);
 
@@ -86,15 +88,22 @@ impl Default for PhysicalParams {
     }
 }
 
+/// Represents a `Component` which stores movement data.
 #[derive(Component, Debug, Default, Clone, PartialEq, Reflect)]
 pub struct SteeringHost {
+    /// Current velocity.
     pub velocity: Vec2,
+    /// Indicates the steering vector which is the sum of all steering behaviors.
     pub steering: Vec2,
+    /// Indicates where the host is wanting to move to.
     pub desired_velocity: Vec2,
+    /// An actual movement the host is going to perform.
+    /// Is directly applied to current position by summing these two values together.
     pub movement: Vec2,
 }
 
 impl SteeringHost {
+    /// Applies a steering vector to the host.
     pub fn steer(&mut self, steering_vec: Vec2) {
         self.steering += steering_vec;
     }

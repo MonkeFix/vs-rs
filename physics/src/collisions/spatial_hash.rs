@@ -20,6 +20,7 @@ pub struct SpatialHash {
 }
 
 impl SpatialHash {
+    /// Creates an instance of the hash.
     pub fn new(cell_size: i32) -> Self {
         Self {
             cell_size,
@@ -29,6 +30,7 @@ impl SpatialHash {
         }
     }
 
+    /// Register a collider in the hash.
     pub fn register(&mut self, collider: &Collider, entity: Entity) {
         let bounds = collider.bounds();
 
@@ -55,6 +57,7 @@ impl SpatialHash {
         }
     }
 
+    /// Removes a collider from the hash.
     pub fn remove(&mut self, collider: &Collider, entity: Entity) {
         let bounds = collider.bounds();
 
@@ -75,6 +78,7 @@ impl SpatialHash {
         }
     }
 
+    /// Gets nearby colliders near specified position (1 neighboring cell around the position).
     pub fn get_nearby_pos(&self, pos: Vec2) -> HashSet<Entity> {
         let mut result = HashSet::new();
 
@@ -90,6 +94,7 @@ impl SpatialHash {
         result
     }
 
+    /// Gets nearby colliders withing bounding rectangle.
     pub fn get_nearby_bounds(&self, bounds: FRect) -> HashSet<Entity> {
         let mut result = HashSet::new();
 
@@ -151,6 +156,8 @@ impl SpatialHash {
         tmp_hashset
     }
 
+    /// Returns number of all colliders inside specified rectangle.
+    /// Populates `Vec<Entity>` if `results` argument is set to `Some(&mut my_vec)`.
     pub fn overlap_rectangle(
         &self,
         query: &Query<&Collider>,
@@ -192,6 +199,8 @@ impl SpatialHash {
         total
     }
 
+    /// Returns number of all colliders within circle.
+    /// Populates `Vec<Entity>` if `results` argument is set to `Some(&mut my_vec)`.
     pub fn overlap_circle(
         &self,
         query: &Query<&Collider>,
@@ -240,6 +249,7 @@ impl SpatialHash {
         total
     }
 
+    /// Performs a linecast and returns number of collisions and collisions themselves.
     pub fn linecast(
         &self,
         query: &Query<&Collider>,
@@ -331,18 +341,22 @@ impl SpatialHash {
         (parser.hit_counter, res)
     }
 
+    /// Fully clears the hash.
     pub fn clear(&mut self) {
         self.cell_map.clear();
     }
 
+    /// Gets current cell size.
     pub fn cell_size(&self) -> i32 {
         self.cell_size
     }
 
+    /// Gets current inverse cell size (`1 / cell_size`).
     pub fn inverse_cell_size(&self) -> f32 {
         self.inverse_cell_size
     }
 
+    /// Gets all registered colliders.
     pub fn get_all(&self) -> HashSet<Entity> {
         let mut result = HashSet::new();
 
