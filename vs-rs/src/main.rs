@@ -21,12 +21,14 @@ mod player;
 mod stats;
 mod worlds;
 mod prelude;
+mod ui;
 
 use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;
 #[cfg(debug_assertions)]
 use debug::DebugPlugin;
 use player::PlayerPlugin;
+use ui::UiPlugin;
 
 pub const FRAMERATE: f64 = 60.0;
 pub const FIXED_TIMESTEP: f64 = 1.0 / FRAMERATE;
@@ -57,6 +59,7 @@ fn main() {
     .add_plugins(FrameTimeDiagnosticsPlugin)
     .add_plugins(SimpleTileMapPlugin)
     .add_plugins(input::InputPlugin)
+    .add_plugins(UiPlugin)
     .add_plugins(CameraMovementPlugin)
     .add_plugins(PlayerPlugin)
     .add_plugins(PhysicsPlugin)
