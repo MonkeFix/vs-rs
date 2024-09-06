@@ -52,8 +52,11 @@ fn close_on_esc(
     }
 }
 
+#[derive(Component)]
+struct CapybarasText;
+
 fn add_enemy_count(mut commands: Commands) {
-    commands.spawn(
+    commands.spawn((
         TextBundle::from_section(
             "Capybaras: ",
             TextStyle {
@@ -68,7 +71,8 @@ fn add_enemy_count(mut commands: Commands) {
             left: Val::Px(5.0),
             ..default()
         }),
-    );
+        CapybarasText,
+    ));
 
     commands.spawn((
         TextBundle::from_sections([
@@ -92,7 +96,7 @@ fn add_enemy_count(mut commands: Commands) {
 
 fn update_enemy_count(
     enemies: Query<&Enemy, (With<Enemy>, Without<Player>)>,
-    mut text: Query<&mut Text, Without<FpsText>>,
+    mut text: Query<&mut Text, (With<CapybarasText>, Without<FpsText>)>,
 ) {
     if let Ok(mut text) = text.get_single_mut() {
         text.sections[0].value = format!("Capybaras: {}", enemies.iter().count());
