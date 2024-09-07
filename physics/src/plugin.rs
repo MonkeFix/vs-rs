@@ -161,7 +161,6 @@ fn calc_movement(
                             evt.entity,
                         );
                     } else {
-                        info!("collided with a trigger");
                         evt_invoke_trigger.send(InvokeTriggerEvent {
                             entity_main: evt.entity,
                             entity_trigger: neighbor_entity,
@@ -198,17 +197,18 @@ fn update_position(
     mut colliders: Query<&mut Collider>,
 ) {
     for ev in evt_pos_update.read() {
-        let mut transform = host.get_mut(ev.entity).unwrap();
-        transform.translation.x += ev.movement.x;
-        transform.translation.y += ev.movement.y;
+        if let Ok(mut transform) = host.get_mut(ev.entity) {
+            transform.translation.x += ev.movement.x;
+            transform.translation.y += ev.movement.y;
 
-        if ev.movement != Vec2::ZERO {
-            let collider = colliders.get_mut(ev.entity);
-            if let Ok(mut collider) = collider {
-                info_span!("update_position_hash", name = "update_position_hash");
-                spatial_hash.remove(&collider, ev.entity);
-                collider.update_from_transform(&transform);
-                spatial_hash.register(&collider, ev.entity);
+            if ev.movement != Vec2::ZERO {
+                let collider = colliders.get_mut(ev.entity);
+                if let Ok(mut collider) = collider {
+                    info_span!("update_position_hash", name = "update_position_hash");
+                    spatial_hash.remove(&collider, ev.entity);
+                    collider.update_from_transform(&transform);
+                    spatial_hash.register(&collider, ev.entity);
+                }
             }
         }
     }

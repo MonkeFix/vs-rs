@@ -21,8 +21,7 @@ impl Plugin for PlayerPlugin {
         app.add_systems(OnEnter(AppState::Finished), spawn)
             .add_systems(
                 FixedUpdate,
-                (movement, check_health)
-                    .run_if(in_state(AppState::Finished)),
+                (movement, check_health).run_if(in_state(AppState::Finished)),
             )
             .add_systems(
                 Update,
@@ -47,6 +46,8 @@ struct PlayerBundle {
     health: Health,
     inv_timer: PlTimer,
     direction: Direction,
+    exp: Experience,
+    gold: Gold,
 }
 
 impl PlayerBundle {
@@ -56,6 +57,8 @@ impl PlayerBundle {
             health: Health(100),
             inv_timer: PlTimer(Timer::new(Duration::from_millis(500), TimerMode::Once)),
             direction: Direction(Vec2::ZERO),
+            exp: Experience(0),
+            gold: Gold(0),
         }
     }
 }

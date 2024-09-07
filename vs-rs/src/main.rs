@@ -4,6 +4,8 @@ use bevy::{
     prelude::*,
 };
 use bevy_simple_tilemap::plugin::SimpleTileMapPlugin;
+use enemy::EnemyDieEvent;
+use experience::ExperiencePlugin;
 use physics::plugin::PhysicsPlugin;
 use vs_assets::{
     enemies::{EnemyConfig, EnemyConfigLoader},
@@ -16,11 +18,12 @@ use worlds::WorldPlugin;
 mod camera;
 mod debug;
 mod enemy;
+mod experience;
 mod input;
 mod player;
+mod prelude;
 mod stats;
 mod worlds;
-mod prelude;
 
 use crate::enemy::EnemyPlugin;
 use camera::CameraMovementPlugin;
@@ -61,6 +64,7 @@ fn main() {
     .add_plugins(PlayerPlugin)
     .add_plugins(PhysicsPlugin)
     .add_plugins(EnemyPlugin)
+    .add_plugins(ExperiencePlugin)
     .add_systems(Startup, (spawn_camera, setup_gamepad))
     .add_systems(
         Update,
@@ -75,7 +79,8 @@ fn main() {
     .init_asset::<EnemyConfig>()
     .init_asset_loader::<MapAssetLoader>()
     .init_asset_loader::<TsxTilesetAssetLoader>()
-    .init_asset_loader::<EnemyConfigLoader>();
+    .init_asset_loader::<EnemyConfigLoader>()
+    .add_event::<EnemyDieEvent>();
 
     #[cfg(debug_assertions)]
     app.add_plugins(DebugPlugin);

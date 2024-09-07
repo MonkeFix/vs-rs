@@ -54,11 +54,12 @@ impl Plugin for EnemyPlugin {
             Duration::from_secs(GLOBAL_TIME_TICKER_SEC),
             TimerMode::Repeating,
         )))
-        .add_systems(OnEnter(AppState::Finished), (enemy_factory,));
+        .add_systems(OnEnter(AppState::Finished), (enemy_factory,))
+        .add_systems(FixedUpdate, (update_timers,));
 
         #[cfg(debug_assertions)]
         app.add_systems(
-            Update,
+            FixedUpdate,
             (
                 spawn,
                 movement,
@@ -72,7 +73,7 @@ impl Plugin for EnemyPlugin {
 
         #[cfg(not(debug_assertions))]
         app.add_systems(
-            Update,
+            FixedUpdate,
             (
                 spawn,
                 movement,
@@ -107,6 +108,12 @@ struct Rewards {
 #[derive(Component, Clone, Debug)]
 pub struct Enemy;
 
+#[derive(Event)]
+pub struct EnemyDieEvent {
+    pub position: Vec2,
+    pub exp: u32,
+}
+
 #[derive(Bundle)]
 struct EnemyBundle {
     enemy: Enemy,
@@ -128,6 +135,7 @@ struct EnemySpawnComponent {
     rewards: Rewards,
     is_elite: Option<bool>,
     timer: Timer,
+    exp_drop: u32,
 }
 
 #[derive(Resource, Debug, Clone)]
@@ -138,6 +146,9 @@ struct CurrentWave {
     timer: Timer,
     need_wave_spawn: bool,
 }
+
+#[derive(Component)]
+struct EnemyDamageTimer(Timer);
 
 fn enemy_factory(
     mut commands: Commands,
@@ -168,6 +179,7 @@ fn enemy_factory(
                 _items: "Orange",
             }, // TODO: Make them drop gems)
             timer: Default::default(),
+            exp_drop: enemy_conf.exp_drop,
         };
 
         for waves in &enemy_conf.spawn_waves {
@@ -282,6 +294,11 @@ fn spawn(
                                 },
                                 //SteerCollisionAvoidance::default(),
                                 SteeringTargetEntity(player_entity),
+                                EnemyDamageTimer(Timer::new(
+                                    Duration::from_secs(1),
+                                    TimerMode::Repeating,
+                                )),
+                                ExperienceDrop(spawner.exp_drop),
                             ));
                             if let Some(true) = spawner.is_elite {
                                 break;
@@ -321,10 +338,15 @@ fn movement(
 #[allow(clippy::type_complexity)]
 fn check_health(
     mut commands: Commands,
-    enemies: Query<(&Health, Entity), (With<Enemy>, Without<Player>)>,
+    enemies: Query<(&Health, &Transform, &ExperienceDrop, Entity), (With<Enemy>, Without<Player>)>,
+    mut enemy_die: EventWriter<EnemyDieEvent>,
 ) {
-    for (health, entity) in &enemies {
+    for (health, transform, exp, entity) in enemies.iter() {
         if health.0 <= 0 {
+            enemy_die.send(EnemyDieEvent {
+                position: transform.translation.xy(),
+                exp: exp.0,
+            });
             commands.entity(entity).despawn();
         }
     }
@@ -345,4 +367,16 @@ fn change_wave(
 
 fn global_timer_tick(mut global_time_ticker: ResMut<GlobalTimeTickerResource>, t: Res<Time>) {
     global_time_ticker.0.tick(t.delta());
+}
+
+fn update_timers(
+    time: Res<Time>,
+    mut query: Query<(&mut EnemyDamageTimer, &mut Health), With<Enemy>>,
+) {
+    for (mut timer, mut health) in query.iter_mut() {
+        timer.0.tick(time.delta());
+        if timer.0.finished() {
+            health.0 -= 19;
+        }
+    }
 }

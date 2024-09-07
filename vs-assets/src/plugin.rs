@@ -40,6 +40,8 @@ pub struct GameAssets {
     pub player_tilesheet: AssetTileSheet,
     pub capybara_texture: Handle<Image>,
     pub capybara_elite_texture: Handle<Image>,
+    pub exp_gem_texture: Handle<Image>,
+    pub money_texture: Handle<Image>,
 }
 
 #[derive(Default, Resource)]
@@ -123,6 +125,12 @@ fn setup_game_assets(
     let capybara_elite_handle = asset_server
         .get_handle::<Image>("textures/capybara_elite.png")
         .unwrap();
+    let exp_gem_handle = asset_server
+        .get_handle::<Image>("textures/exp_gem.png")
+        .unwrap();
+    let money_handle = asset_server
+        .get_handle::<Image>("textures/money.png")
+        .unwrap();
 
     let player_tilesheet = load_player(&asset_server, &mut layouts);
 
@@ -138,6 +146,8 @@ fn setup_game_assets(
         tilesheet_main,
         capybara_texture: capybara_handle,
         capybara_elite_texture: capybara_elite_handle,
+        exp_gem_texture: exp_gem_handle,
+        money_texture: money_handle,
     };
 
     commands.insert_resource(game_assets);
