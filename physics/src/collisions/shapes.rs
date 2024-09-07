@@ -3,17 +3,24 @@ use common::FRect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub enum ShapeType {
+    /// No shape at all. Position, Center and Bounds are stored as zeroes.
     None,
+    /// A circle with specified radius.
     Circle { radius: f32 },
+    /// A box with specified width and height.
     Box { width: f32, height: f32 },
 }
 
+/// Represents a collider shape with specified `ShapeType`.
+/// Internally stores position and center vectors as well as bounds rectangle.
+/// Those fields are private and update internally.
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub struct Shape {
+    /// Shape Type.
     pub shape_type: ShapeType,
     pub(crate) position: Vec2,
     pub(crate) center: Vec2,
-    pub(crate) bounds: FRect 
+    pub(crate) bounds: FRect,
 }
 
 impl Default for Shape {
@@ -40,7 +47,6 @@ impl Shape {
     }
 }
 
-
 pub mod collisions {
     use bevy::math::Vec2;
     use common::FRect;
@@ -49,6 +55,8 @@ pub mod collisions {
 
     use super::{Shape, ShapeType};
 
+    /// Performs a box-to-box collision check.
+    /// Returns `Some(CollisionResultRef)` if collision occurs, `None` otherwise.
     pub fn box_to_box<'a>(
         first: &Shape,
         second: &Shape,
@@ -74,6 +82,8 @@ pub mod collisions {
         None
     }
 
+    /// Performs a circle-to-circle collision check.
+    /// Returns `Some(CollisionResultRef)` if collision occurs, `None` otherwise.
     pub fn circle_to_circle<'a>(
         first: &Shape,
         second: &Shape,
@@ -111,6 +121,8 @@ pub mod collisions {
         }
     }
 
+    /// Performs a circle-to-box collision check.
+    /// Returns `Some(CollisionResultRef)` if collision occurs, `None` otherwise.
     pub fn circle_to_box<'a>(
         circle: &Shape,
         bx: &Shape,
@@ -158,6 +170,8 @@ pub mod collisions {
         }
     }
 
+    /// Performs a line-to-circle collision check.
+    /// Returns `Some(RaycastHit)` if collision occurs, `None` otherwise.
     pub fn line_to_circle(start: Vec2, end: Vec2, s: &Shape) -> Option<RaycastHit> {
         match s.shape_type {
             ShapeType::Circle { radius } => {

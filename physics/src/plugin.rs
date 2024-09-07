@@ -13,6 +13,7 @@ use steering::*;
 #[derive(Component, Default)]
 pub struct RigidBodyStatic;
 
+/// The main plugin. Required for collisions and movement to work.
 pub struct PhysicsPlugin;
 
 impl Plugin for PhysicsPlugin {

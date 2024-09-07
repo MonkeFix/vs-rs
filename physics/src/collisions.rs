@@ -6,10 +6,14 @@ pub mod shapes;
 pub mod spatial_hash;
 pub mod tests;
 
+/// Represents a collision result of a `Collider` with another `Collider`.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct CollisionResultRef<'a> {
+    /// Another `Collider` the main one collided with.
     pub collider: Option<&'a Collider>,
+    /// A normal vector of the collision.
     pub normal: Vec2,
+    /// Min translation required to correctly resolve the collision.
     pub min_translation: Vec2,
     pub point: Vec2,
 }
