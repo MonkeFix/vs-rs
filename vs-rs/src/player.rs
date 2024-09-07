@@ -2,6 +2,7 @@ use crate::enemy::Enemy;
 use crate::input::PlayerControls;
 use crate::stats::*;
 use crate::AppState;
+use crate::ui::health_bar::spawn_health_bar;
 use behaviors::SteerSeek;
 use bevy::sprite::Anchor;
 use bevy::{input::gamepad::GamepadSettings, prelude::*};
@@ -13,6 +14,7 @@ use std::time::Duration;
 use steering::SteeringBundle;
 use steering::SteeringTargetVec2;
 use vs_assets::plugin::GameAssets;
+use vs_assets::plugin::UiAssets;
 
 pub struct PlayerPlugin;
 
@@ -45,6 +47,7 @@ struct Direction(Vec2);
 struct PlayerBundle {
     player: Player,
     health: Health,
+    max_health: MaxHealth,
     inv_timer: PlTimer,
     direction: Direction,
 }
@@ -54,13 +57,14 @@ impl PlayerBundle {
         Self {
             player: Player,
             health: Health(100),
+            max_health: MaxHealth(100),
             inv_timer: PlTimer(Timer::new(Duration::from_millis(500), TimerMode::Once)),
             direction: Direction(Vec2::ZERO),
         }
     }
 }
 
-fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
+fn spawn(mut commands: Commands, assets: Res<GameAssets>, ui_assets: Res<UiAssets>) {
     let player_tileset = &assets.player_tilesheet;
 
     commands
@@ -109,7 +113,10 @@ fn spawn(mut commands: Commands, assets: Res<GameAssets>) {
                 },
             ));
         })
-        .observe(on_collision);
+        .observe(on_collision)
+        .with_children(|c| {
+            spawn_health_bar(c, ui_assets);
+        });
 }
 
 fn handle_input(
