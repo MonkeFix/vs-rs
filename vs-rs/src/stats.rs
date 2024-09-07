@@ -4,4 +4,7 @@ use bevy::prelude::Component;
 pub struct Health(pub i64);
 
 #[derive(Component, Clone, Debug)]
+pub struct MaxHealth(pub i64);
+
+#[derive(Component, Clone, Debug)]
 pub struct Damage(pub i64);
