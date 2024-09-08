@@ -12,6 +12,7 @@ use crate::{
     enemy::{Enemy, EnemyDieEvent},
     player::Player,
     stats::{Experience, ExperienceDrop},
+    AppState,
 };
 
 #[derive(Component, Debug, Default)]
@@ -30,7 +31,10 @@ pub struct ExperiencePlugin;
 
 impl Plugin for ExperiencePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(FixedUpdate, (on_enemy_die, on_player_collided));
+        app.add_systems(
+            FixedUpdate,
+            (on_enemy_die, on_player_collided).run_if(in_state(AppState::Finished)),
+        );
     }
 }
 
