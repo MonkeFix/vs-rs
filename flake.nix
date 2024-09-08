@@ -85,7 +85,8 @@
       vs-rs = wrap vs-rs-unwrapped;
     in {
       devShells.default = craneLib.devShell {
-        inherit LD_LIBRARY_PATH buildInputs;
+        inherit LD_LIBRARY_PATH;
+        buildInputs = buildInputs ++ [pkgs.rust-analyzer];
       };
 
       packages = {

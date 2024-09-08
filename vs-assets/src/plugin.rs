@@ -45,6 +45,12 @@ pub struct GameAssets {
 }
 
 #[derive(Default, Resource)]
+pub struct UiAssets {
+    pub health_bar: Handle<Image>,
+    pub health_bar_outline: Handle<Image>,
+}
+
+#[derive(Default, Resource)]
 pub struct Configs {
     pub enemy_config: Handle<EnemyConfig>,
 }
@@ -53,6 +59,7 @@ pub struct Configs {
 pub struct GameAssetFolders {
     pub tiles_folder: Handle<LoadedFolder>,
     pub rooms_folder: Handle<LoadedFolder>,
+    pub ui_folder: Handle<LoadedFolder>,
     pub tileset_main: Handle<TsxTilesetAsset>,
     pub tiles_loaded: bool,
     pub rooms_loaded: bool,
@@ -90,6 +97,7 @@ fn start_loading(
     info!("Loading game asset folders");
     let tiles_folder_handle = asset_server.load_folder("textures");
     let rooms_folder_handle = asset_server.load_folder("rooms");
+    let ui_folder_handle = asset_server.load_folder("ui");
     let tileset_main = asset_server.load("tilesheet.tsx");
 
     configs.enemy_config = asset_server.load("configs/enemies.json");
@@ -97,6 +105,7 @@ fn start_loading(
     let asset_folders = GameAssetFolders {
         tiles_folder: tiles_folder_handle,
         rooms_folder: rooms_folder_handle,
+        ui_folder: ui_folder_handle,
         tileset_main,
         ..default()
     };
@@ -151,6 +160,20 @@ fn setup_game_assets(
     };
 
     commands.insert_resource(game_assets);
+
+    let health_bar = asset_server
+        .get_handle::<Image>("ui/health_bar.png")
+        .unwrap();
+    let health_bar_outline = asset_server
+        .get_handle::<Image>("ui/health_bar_outline.png")
+        .unwrap();
+
+    let ui_assets = UiAssets {
+        health_bar,
+        health_bar_outline,
+    };
+
+    commands.insert_resource(ui_assets);
 
     for (id, map) in rooms.iter() {
         info!(
