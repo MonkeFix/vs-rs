@@ -6,6 +6,7 @@
     "max_velocity": 100.0,
     "max_force": 100.0,
     "mass": 2.0,
+    "exp_drop": 10,
     "spawn_waves": [
       {
         "from": 1,
@@ -27,6 +28,7 @@
     "max_velocity": 90.0,
     "max_force": 90.0,
     "mass": 2.0,
+    "exp_drop": 100,
     "spawn_waves": [
       {
         "from": 2,

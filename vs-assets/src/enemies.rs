@@ -29,6 +29,7 @@ pub struct EnemyParams {
     pub asset_path: String,
     pub is_elite: Option<bool>,
     pub spawn_waves: Vec<SpawnWave>,
+    pub exp_drop: u32,
 }
 
 #[derive(Default)]
